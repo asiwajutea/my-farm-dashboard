@@ -72,13 +72,13 @@ function Landing() {
                 Cultivate Seeds, harvest cycles, and trade peer-to-peer — all in one place.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <button className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-medium text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]">
+                <Link to="/auth" className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-medium text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]">
                   Start farming
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-                <button className="rounded-xl border border-border bg-card/40 px-5 py-3 font-medium backdrop-blur transition-colors hover:bg-card">
+                </Link>
+                <a href="#how" className="rounded-xl border border-border bg-card/40 px-5 py-3 font-medium backdrop-blur transition-colors hover:bg-card">
                   Watch a cycle
-                </button>
+                </a>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                 {["Transparent rewards", "Non-custodial wallets", "No hidden fees"].map((t) => (
