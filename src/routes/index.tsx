@@ -38,12 +38,12 @@ function Landing() {
             <a href="#stats" className="transition-colors hover:text-foreground">Ecosystem</a>
           </nav>
           <div className="flex items-center gap-2">
-            <button className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
+            <Link to="/auth" className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
               Sign in
-            </button>
-            <button className="rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]">
+            </Link>
+            <Link to="/auth" className="rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]">
               Become a Farmer
-            </button>
+            </Link>
           </div>
         </div>
       </header>
