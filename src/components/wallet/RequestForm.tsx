@@ -72,8 +72,9 @@ export function RequestForm({ type, minAmount, hint }: Props) {
       return isDeposit ? submitDeposit({ data: fd }) : submitWithdraw({ data: fd });
     },
     onSuccess: (res) => {
+      const deduped = (res as { deduped?: boolean })?.deduped;
       toast.success(
-        res?.deduped
+        deduped
           ? "Duplicate detected — showing your existing pending request."
           : `${isDeposit ? "Deposit" : "Withdrawal"} request submitted.`,
       );
