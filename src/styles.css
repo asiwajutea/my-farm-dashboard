@@ -94,7 +94,7 @@
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Sidebar tokens — solid surfaces so the mobile sheet is readable */
-  --sidebar: oklch(0.14 0.02 150);
+  --sidebar: oklch(0.14 0.02 150 / 0.95);
   --sidebar-foreground: oklch(0.97 0.01 120);
   --sidebar-primary: oklch(0.72 0.20 142);
   --sidebar-primary-foreground: oklch(0.15 0.02 150);
