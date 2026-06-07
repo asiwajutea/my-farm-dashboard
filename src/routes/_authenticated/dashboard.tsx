@@ -7,7 +7,7 @@ import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · VFarm" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · VFarmers" }] }),
   component: Dashboard,
 });
 
@@ -48,9 +48,9 @@ function Dashboard() {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="VFarm" className="h-9 w-9" />
+            <img src={logo} alt="VFarmers" className="h-9 w-9" />
             <span className="text-lg font-semibold tracking-tight">
-              V<span className="text-primary">Farm</span>
+              V<span className="text-primary">Farmers</span>
             </span>
           </div>
           <div className="flex items-center gap-2">

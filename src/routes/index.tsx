@@ -11,9 +11,9 @@ import { FeatureCard } from "@/components/FeatureCard";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "VFarm — Grow Seeds, Reap Rewards" },
-      { name: "description", content: "VFarm is a community-driven farming ecosystem where members grow Seeds, earn rewards, and trade peer-to-peer with full transparency." },
-      { property: "og:title", content: "VFarm — Grow Seeds, Reap Rewards" },
+      { title: "VFarmers — Grow Seeds, Reap Rewards" },
+      { name: "description", content: "VFarmers is a community-driven farming ecosystem where members grow Seeds, earn rewards, and trade peer-to-peer with full transparency." },
+      { property: "og:title", content: "VFarmers — Grow Seeds, Reap Rewards" },
       { property: "og:description", content: "Join thousands of Farmers cultivating value in a transparent, community-powered ecosystem." },
     ],
   }),
@@ -27,9 +27,9 @@ function Landing() {
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="VFarm logo" className="h-9 w-9" />
+            <img src={logo} alt="VFarmers logo" className="h-9 w-9" />
             <span className="text-lg font-semibold tracking-tight">
-              V<span className="text-primary">Farm</span>
+              V<span className="text-primary">Farmers</span>
             </span>
           </div>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
@@ -68,7 +68,7 @@ function Landing() {
                 reap <span className="text-gradient-gold">rewards</span>.
               </h1>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg">
-                VFarm is a transparent, community-driven ecosystem where every member is a Farmer.
+                VFarmers is a transparent, community-driven ecosystem where every member is a Farmer.
                 Cultivate Seeds, harvest cycles, and trade peer-to-peer — all in one place.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
@@ -237,7 +237,7 @@ function Landing() {
               Ready to plant your first Seed?
             </h3>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Join the VFarm community and start cultivating value today. Your one-time access code is generated at sign-up.
+              Join the VFarmers community and start cultivating value today. Your one-time access code is generated at sign-up.
             </p>
             <Link to="/auth" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold to-primary px-6 py-3 font-semibold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02]">
               Create my Farmer account
@@ -251,7 +251,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2">
             <img src={logo} alt="" className="h-6 w-6" />
-            <span>© {new Date().getFullYear()} VFarm. Cultivated by the community.</span>
+            <span>© {new Date().getFullYear()} VFarmers. Cultivated by the community.</span>
           </div>
           <div className="flex gap-5">
             <a href="#" className="hover:text-foreground">Terms</a>
