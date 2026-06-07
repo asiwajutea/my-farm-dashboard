@@ -11,7 +11,7 @@
 // money mutator — writing exactly one atomic `deposit` ledger row (Req 10.1,
 // 9.1/9.2/9.3). Submissions elsewhere never move money (Req 9.4).
 
-import { createServerFileRoute } from "@tanstack/react-start/server";
+import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -90,66 +90,69 @@ function json(body: unknown, status: number): Response {
 // Route
 // ---------------------------------------------------------------------------
 
-export const ServerRoute = createServerFileRoute("/api/public/test-credit").methods({
-  POST: async ({ request }) => {
-    // 1. Server-only secret, read INSIDE the handler (Req 13.2).
-    const secret = process.env.TEST_CREDIT_SECRET;
-    if (!secret) {
-      return json({ ok: false, error: "not_configured" }, 503);
-    }
+export const Route = createFileRoute("/api/public/test-credit")({
+  server: {
+    handlers: {
+      POST: async ({ request }: { request: Request }) => {
+        // 1. Server-only secret, read INSIDE the handler (Req 13.2).
+        const secret = process.env.TEST_CREDIT_SECRET;
+        if (!secret) {
+          return json({ ok: false, error: "not_configured" }, 503);
+        }
 
-    // 2. Verify HMAC over the raw body (Req 10.2/10.4, 14.2/14.3).
-    const rawBody = await request.text();
-    if (!verifySignature(rawBody, request.headers.get("x-signature"), secret)) {
-      return json({ ok: false, error: "invalid_signature" }, 401);
-    }
+        // 2. Verify HMAC over the raw body (Req 10.2/10.4, 14.2/14.3).
+        const rawBody = await request.text();
+        if (!verifySignature(rawBody, request.headers.get("x-signature"), secret)) {
+          return json({ ok: false, error: "invalid_signature" }, 401);
+        }
 
-    // 3. Parse + reject stale timestamps (replay hardening).
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawBody);
-    } catch {
-      return json({ ok: false, error: "invalid_json" }, 400);
-    }
-    const ts = (parsed as TestCreditPayload)?.ts;
-    if (typeof ts === "number" && Math.abs(Date.now() - ts) > MAX_SKEW_MS) {
-      return json({ ok: false, error: "stale_timestamp" }, 401);
-    }
+        // 3. Parse + reject stale timestamps (replay hardening).
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(rawBody);
+        } catch {
+          return json({ ok: false, error: "invalid_json" }, 400);
+        }
+        const ts = (parsed as TestCreditPayload)?.ts;
+        if (typeof ts === "number" && Math.abs(Date.now() - ts) > MAX_SKEW_MS) {
+          return json({ ok: false, error: "stale_timestamp" }, 401);
+        }
 
-    // 4. Validate fields (Req 10.5).
-    const validation = validatePayload(parsed);
-    if (!validation.ok) {
-      return json({ ok: false, error: "invalid_field", field: validation.field }, 400);
-    }
-    const { user_id, amount, memo } = validation.value;
+        // 4. Validate fields (Req 10.5).
+        const validation = validatePayload(parsed);
+        if (!validation.ok) {
+          return json({ ok: false, error: "invalid_field", field: validation.field }, 400);
+        }
+        const { user_id, amount, memo } = validation.value;
 
-    // 5. Look up the target's Primary wallet via service-role client.
-    const { data: wallet, error: walletErr } = await supabaseAdmin
-      .from("wallets")
-      .select("id")
-      .eq("user_id", user_id)
-      .eq("kind", "primary")
-      .maybeSingle();
-    if (walletErr) {
-      return json({ ok: false, error: "internal" }, 500);
-    }
-    if (!wallet) {
-      return json({ ok: false, error: "invalid_field", field: "user_id" }, 400);
-    }
+        // 5. Look up the target's Primary wallet via service-role client.
+        const { data: wallet, error: walletErr } = await supabaseAdmin
+          .from("wallets")
+          .select("id")
+          .eq("user_id", user_id)
+          .eq("kind", "primary")
+          .maybeSingle();
+        if (walletErr) {
+          return json({ ok: false, error: "internal" }, 500);
+        }
+        if (!wallet) {
+          return json({ ok: false, error: "invalid_field", field: "user_id" }, 400);
+        }
 
-    // 6. Credit via the SECURITY DEFINER, service_role-only money mutator.
-    //    Writes exactly one atomic `deposit` ledger row (Req 10.1, 9.1/9.2/9.3).
-    const { error: rpcErr } = await supabaseAdmin.rpc("wallet_adjust", {
-      p_wallet: wallet.id,
-      p_amount: amount,
-      p_kind: "deposit",
-      p_memo: memo ?? "test_credit",
-      p_ref_table: "deposit_requests",
-    });
-    if (rpcErr) {
-      return json({ ok: false, error: "internal" }, 500);
-    }
+        // 6. Credit via the SECURITY DEFINER, service_role-only money mutator.
+        const { error: rpcErr } = await supabaseAdmin.rpc("wallet_adjust", {
+          p_wallet: wallet.id,
+          p_amount: amount,
+          p_kind: "deposit",
+          p_memo: memo ?? "test_credit",
+          p_ref_table: "deposit_requests",
+        });
+        if (rpcErr) {
+          return json({ ok: false, error: "internal" }, 500);
+        }
 
-    return json({ ok: true, ledgerWritten: true }, 200);
+        return json({ ok: true, ledgerWritten: true }, 200);
+      },
+    },
   },
 });
