@@ -59,6 +59,42 @@ export type Database = {
         }
         Relationships: []
       }
+      deposit_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          proof_url: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          method: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           amount: number
@@ -189,6 +225,42 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          proof_url: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          method: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -205,6 +277,7 @@ export type Database = {
         }[]
       }
       generate_referral_code: { Args: never; Returns: string }
+      is_admin: { Args: { uid: string }; Returns: boolean }
       wallet_adjust: {
         Args: {
           p_amount: number
@@ -255,6 +328,7 @@ export type Database = {
         | "fee"
         | "adjustment"
         | "test_credit"
+      request_status: "pending" | "approved" | "rejected"
       wallet_kind: "primary" | "farming"
     }
     CompositeTypes: {
@@ -408,6 +482,7 @@ export const Constants = {
         "adjustment",
         "test_credit",
       ],
+      request_status: ["pending", "approved", "rejected"],
       wallet_kind: ["primary", "farming"],
     },
   },

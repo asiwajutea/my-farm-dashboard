@@ -181,8 +181,14 @@ function Dashboard() {
 
         {/* Quick actions */}
         <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Link
+            to="/wallet"
+            className="glass flex flex-col items-center gap-1.5 rounded-2xl py-4 text-xs transition-colors hover:border-primary/50 hover:text-primary"
+          >
+            <Plus className="h-5 w-5" />
+            Deposit
+          </Link>
           {[
-            { l: "Deposit", i: Plus },
             { l: "Transfer", i: ArrowLeftRight },
             { l: "Reap", i: Coins },
             { l: "Boost", i: Zap },

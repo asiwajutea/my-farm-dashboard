@@ -16,7 +16,8 @@ Per the project's PBT methodology, property/exploration tests are written **alon
 
 ## Tasks
 
-- [ ] 1. Set up the test harness (no harness exists in the repo today)
+- [x] 1. Set up the test harness (no harness exists in the repo today) <!-- config/scripts/tests authored; install + run blocked by offline sandbox (registry 403) -->
+
   - Add dev dependencies: `vitest`, `fast-check`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`, `@vitejs/plugin-react` (already present).
   - Create `vitest.config.ts` with two projects/environments: `node` (default, for pure-logic + server tests) and `jsdom` (for component tests), wiring `vite-tsconfig-paths` so `@/` imports resolve; add a `src/test/setup.ts` that imports `@testing-library/jest-dom`.
   - Add `package.json` scripts: `"test": "vitest run"`, `"test:watch": "vitest"`, and `"typecheck": "tsc --noEmit"`.
@@ -24,8 +25,8 @@ Per the project's PBT methodology, property/exploration tests are written **alon
   - Add a single trivial passing test to confirm the runner executes, then run `bun run test` and `bun run typecheck` to confirm both pass.
   - _Requirements: supports testing strategy for all requirements; no functional requirement directly_
 
-- [ ] 2. Database migration: enum, tables, grants, RLS, triggers, proofs bucket + storage policies, is_admin() shim
-  - [ ] 2.1 Create the migration SQL file
+- [x] 2. Database migration: enum, tables, grants, RLS, triggers, proofs bucket + storage policies, is_admin() shim
+  - [x] 2.1 Create the migration SQL file
     - Add a new timestamped file under `supabase/migrations/` (e.g. `2026060710xxxx_phase3_deposits_withdrawals.sql`) following the existing convention of keeping DDL + grants + RLS + policies **in one file** (see `20260607004431`).
     - Define `public.request_status` enum with exactly `('pending','approved','rejected')`.
     - Create `public.deposit_requests` with columns/constraints from the Data Models table: `id uuid PK default gen_random_uuid()`, `user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`, `amount numeric(20,8) NOT NULL CHECK (amount > 0)`, `method text NOT NULL CHECK (char_length(method) <= 50)`, `status public.request_status NOT NULL DEFAULT 'pending'`, `admin_note text CHECK (... <= 1000)`, `proof_url text CHECK (... <= 2048)`, `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at timestamptz NOT NULL DEFAULT now()`.
@@ -35,38 +36,38 @@ Per the project's PBT methodology, property/exploration tests are written **alon
     - `ENABLE ROW LEVEL SECURITY` on both tables and define own-row `SELECT` (`USING auth.uid() = user_id`) and `INSERT` (`WITH CHECK auth.uid() = user_id`) policies for `authenticated`.
     - Add `BEFORE UPDATE` `updated_at` triggers on both tables reusing the existing `public.update_updated_at_column()`.
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 4.5_
-  - [ ] 2.2 Add the private `proofs` bucket, storage policies, and the `is_admin()` shim in the same migration
+  - [x] 2.2 Add the private `proofs` bucket, storage policies, and the `is_admin()` shim in the same migration
     - Insert the private (non-public) `proofs` bucket into `storage.buckets` (`ON CONFLICT DO NOTHING`).
     - Add `storage.objects` policies for `authenticated`: owner `INSERT` and owner `SELECT` gated on `bucket_id = 'proofs' AND (storage.foldername(name))[1] = auth.uid()::text`; add **no** `anon` policy (unauthenticated denied by default).
     - Add the forward-compatible `public.is_admin(uid uuid) RETURNS boolean LANGUAGE sql STABLE` shim returning `false` (Phase 7 swaps in `has_role(uid,'admin')`), and the `proofs admin read` `SELECT` policy referencing `public.is_admin(auth.uid())`.
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 3. Regenerate Supabase TypeScript types
+- [x] 3. Regenerate Supabase TypeScript types <!-- no codegen tool offline; deposit_requests/withdrawal_requests/request_status/is_admin hand-added to match generator output -->
   - Regenerate `src/integrations/supabase/types.ts` from the migrated schema so `deposit_requests`, `withdrawal_requests`, and the `request_status` enum are present in the generated `Database` type (treated as generated, not hand-edited).
   - Run `bun run typecheck` to confirm the regenerated types compile cleanly.
   - _Requirements: 2.1, 2.2, 2.3 (type surface for downstream server functions)_
 
-- [ ] 4. Shared validation contract — `src/lib/requests.shared.ts` (pure, client+server safe, NO `process.env`)
-  - [ ] 4.1 Implement constants, zod schemas, and pure validators
+- [x] 4. Shared validation contract — `src/lib/requests.shared.ts` (pure, client+server safe, NO `process.env`)
+  - [x] 4.1 Implement constants, zod schemas, and pure validators
     - Export `DEPOSIT_METHODS`, `WITHDRAWAL_METHODS`, `AMOUNT_MAX`, `DEPOSIT_AMOUNT_MIN`, `WITHDRAWAL_AMOUNT_MIN`, `METHOD_MAX_LEN`, `PROOF_MAX_BYTES`, `PROOF_MIME`, `DEDUPE_WINDOW_MS`.
     - Implement `parseAmount(input, min)` returning a normalized 2-dp string on success or a typed error code (`not_numeric | too_small | too_large | too_many_decimals`), validating as string→Decimal to avoid float drift.
     - Implement `validateProof({ mimeType, byteSize })` returning ok/typed-error per `PROOF_MIME` + `PROOF_MAX_BYTES`.
     - Export `depositInput`, `withdrawalInput`, `listInput` zod schemas and the shared `RequestRow`/`SubmitResult`/`HistoryPage`/`RequestErrorCode` types.
     - Confirm the module references no `process.env` at module scope.
     - _Requirements: 5.2, 5.4, 5.6, 6.2, 6.4, 6.6, 7.5, 13.1_
-  - [ ]* 4.2 Property test: amount validation (Property 1)
+  - [x]* 4.2 Property test: amount validation (Property 1)
     - **Property 1: Amount accepted iff numeric, in range, and at most two decimals**
     - Generators: arbitrary numeric strings incl. negatives, huge values, 3+ decimals, non-numeric; assert acceptance iff numeric ∧ in `[min, max]` ∧ ≤2 decimals, with round-trip of the normalized value.
     - **Validates: Requirements 5.2, 5.3, 6.2, 6.3**
-  - [ ]* 4.3 Property test: method allow-list (Property 2)
+  - [x]* 4.3 Property test: method allow-list (Property 2)
     - **Property 2: Method accepted iff in the supported allow-list** (deposits: `DEPOSIT_METHODS`; withdrawals: `WITHDRAWAL_METHODS` ∧ length ≤ 30).
     - **Validates: Requirements 5.6, 6.6**
-  - [ ]* 4.4 Property test: proof validation (Property 3)
+  - [x]* 4.4 Property test: proof validation (Property 3)
     - **Property 3: Proof accepted iff allowed type and size** — generate `(mime, size)` across/inside the allowed set.
     - **Validates: Requirements 5.4, 5.7, 6.4**
 
-- [ ] 5. Server-only helpers — `src/lib/requests.server.ts`
-  - [ ] 5.1 Implement proof-upload and dedupe helpers
+- [x] 5. Server-only helpers — `src/lib/requests.server.ts`
+  - [x] 5.1 Implement proof-upload and dedupe helpers
     - `uploadProof(supabaseOrAdmin, userId, scope, file)` → uploads valid files to `proofs/{userId}/{scope}/{uuid}.{ext}` and returns the stored path; fails closed (no path) on storage error.
     - `findRecentDuplicateDeposit(supabase, { userId, amount, method, windowMs })` → returns an existing pending deposit row created within `DEDUPE_WINDOW_MS` matching `(user_id, amount, method)`, else null.
     - Keep all env/storage access server-side only (this is a `.server.ts` module).
@@ -75,23 +76,23 @@ Per the project's PBT methodology, property/exploration tests are written **alon
     - **Property 5: Deposit submissions are idempotent within the dedupe window** — exercise the dedupe predicate over generated timestamp/amount/method sets (returns the in-window match iff `(amount, method)` equal and within 60s); full end-to-end dedupe is also covered in the server-fn integration test (Task 6.7).
     - **Validates: Requirement 5.8**
 
-- [ ] 6. Server functions — `src/lib/api/requests.functions.ts`
-  - [ ] 6.1 Implement `submitDepositRequest`
+- [x] 6. Server functions — `src/lib/api/requests.functions.ts`
+  - [x] 6.1 Implement `submitDepositRequest`
     - `createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((fd: FormData) => fd).handler(...)`.
     - In handler: `parseAmount(.., DEPOSIT_AMOUNT_MIN)` → `invalid_amount`; method ∈ `DEPOSIT_METHODS` → `invalid_method`; optional file via `validateProof` → `invalid_proof`; 60s dedupe via `findRecentDuplicateDeposit` (return existing pending row); upload proof if valid; insert via `context.supabase` (RLS `WITH CHECK`) with `user_id = context.userId`, `status` defaulting `pending`.
     - Return typed `SubmitResult`; never leak SQL/stack detail.
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 9.4, 11.1, 11.2_
-  - [ ] 6.2 Implement `submitWithdrawalRequest`
+  - [x] 6.2 Implement `submitWithdrawalRequest`
     - Same shape plus: `parseAmount(.., WITHDRAWAL_AMOUNT_MIN)`; method ∈ `WITHDRAWAL_METHODS` ∧ length ≤ `METHOD_MAX_LEN`; read caller Primary wallet `(balance, locked)` via `context.supabase` and reject with `insufficient_balance` (no row, no balance change) when `amount > balance − locked`; upload proof if present; insert `withdrawal_requests` row with `status` `pending`.
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 9.4, 11.1, 11.2_
-  - [ ] 6.3 Implement `listMyRequests` (merge/sort/paginate)
+  - [x] 6.3 Implement `listMyRequests` (merge/sort/paginate)
     - `createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator(listInput).handler(...)`: RLS-scoped selects of both tables, tag `type`, merge, sort `created_at DESC, id DESC`, keyset-paginate (page size ≤ 20) returning `{ items, nextCursor }` with an opaque base64 `{created_at,id}` cursor.
     - Extract the pure merge/sort/paginate + cursor encode/decode into exported pure functions so they are unit/property-testable without a DB.
     - _Requirements: 7.1, 7.2, 7.5, 11.1, 11.2_
-  - [ ]* 6.4 Property test: history projection & ordering (Property 9)
+  - [x]* 6.4 Property test: history projection & ordering (Property 9)
     - **Property 9: History is the caller's deposits and withdrawals, projected and sorted newest-first** — run against the pure merge/sort over generated row sets.
     - **Validates: Requirements 7.1, 7.2**
-  - [ ]* 6.5 Property test: pagination traversal (Property 10)
+  - [x]* 6.5 Property test: pagination traversal (Property 10)
     - **Property 10: Pagination returns at most 20 per page and traverses every request once** — generate `N` rows; follow `nextCursor` to null; assert ≤20/page, every row exactly once, descending order, no gaps/dupes.
     - **Validates: Requirement 7.5**
   - [ ]* 6.6 Example/unit test: unauthenticated submit rejected
@@ -107,42 +108,42 @@ Per the project's PBT methodology, property/exploration tests are written **alon
 - [ ] 7. Checkpoint — Ensure all tests pass
   - Run `bun run test` and `bun run typecheck`; ensure the harness, migration types, shared contract, helpers, and server functions are green. Ask the user if questions arise.
 
-- [ ] 8. Service-role test-credit route — `src/routes/api/public/test-credit.ts`
-  - [ ] 8.1 Implement the HMAC-verified server route
+- [x] 8. Service-role test-credit route — `src/routes/api/public/test-credit.ts`
+  - [x] 8.1 Implement the HMAC-verified server route
     - `createServerFileRoute("/api/public/test-credit").methods({ POST })` under `src/routes/api/public/` (no auth middleware — authenticates by shared-secret signature).
     - Read `TEST_CREDIT_SECRET` from `process.env` **inside the handler** (→ `503` if unset); read raw body; recompute HMAC-SHA256 and constant-time compare to `x-signature` (→ `401` on missing/invalid); reject stale `ts` (>5 min skew); validate `{ user_id exists, amount numeric > 0 }` (→ `400` naming the field); look up the target Primary wallet via `supabaseAdmin`; credit via `wallet_adjust(p_wallet, +amount, 'deposit', ...)` (SECURITY DEFINER, service_role-only) writing exactly one atomic `deposit` ledger row; return `200 { ok, ledgerWritten }`.
     - Extract `verifySignature(rawBody, header, secret)` and the payload validator as pure exported functions for property testing.
     - _Requirements: 9.1, 9.2, 9.3, 10.1, 10.2, 10.3, 10.4, 10.5, 13.2, 14.1, 14.2, 14.3_
-  - [ ]* 8.2 Property test: signature gating (Property 13)
+  - [x]* 8.2 Property test: signature gating (Property 13)
     - **Property 13: The privileged credit occurs iff the request signature is valid** — generate valid-vs-corrupted HMACs over arbitrary bodies; assert the credit path runs iff valid, with no DB effect otherwise (wallet adjust mocked).
     - **Validates: Requirements 10.2, 14.2, 14.3**
-  - [ ]* 8.3 Property test: payload validation (Property 14)
+  - [x]* 8.3 Property test: payload validation (Property 14)
     - **Property 14: Test-credit amount/field validation rejects bad input without side effects** — generate non-numeric/zero/negative amounts and missing user ids; assert field-naming validation error and no balance/ledger change.
     - **Validates: Requirement 10.5**
   - [ ]* 8.4 Integration test (local Supabase): happy path + browser denial
     - Signed call credits the Primary wallet by `amount` and writes exactly one `deposit` ledger row in one transaction; an unsigned `anon`/`authenticated`-style call is denied with no DB effect (1–3 examples).
     - _Requirements: 10.1, 10.3, 10.4, 9.2_
 
-- [ ] 9. Authenticated wallet UI — `src/routes/_authenticated/wallet.tsx`
-  - [ ] 9.1 Create the route file with Deposit | Withdraw | History tabs
+- [x] 9. Authenticated wallet UI — `src/routes/_authenticated/wallet.tsx`
+  - [x] 9.1 Create the route file with Deposit | Withdraw | History tabs
     - Create the route under the existing `_authenticated` group (inherits `ssr:false` + `beforeLoad` guard); **create this file before** any `<Link to="/wallet">` references it (Req 12.2).
     - Deposit and Withdraw forms post `multipart/form-data` (amount, method, optional file) to `submitDepositRequest` / `submitWithdrawalRequest`; surface typed `RequestErrorCode`s as inline field errors.
     - History tab calls `listMyRequests`, renders a loading skeleton, an empty-state card for zero requests (no rows), per-row status badges, and a single error banner with retry on failure (no partial/stale rows); supports loading the next page via `nextCursor`.
     - Implement a pure `statusBadge(status)` mapping (pending = amber, approved = green, rejected = destructive) in a small module (e.g. `src/components/wallet/StatusBadge.tsx`) so it is unit/property-testable.
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6, 7.7, 12.1, 12.3_
-  - [ ]* 9.2 Property test: status→badge mapping (Property 11)
+  - [x]* 9.2 Property test: status→badge mapping (Property 11)
     - **Property 11: Status indicator matches request status** — for each status in `{pending, approved, rejected}` the mapping yields a distinct indicator; no two statuses share an indicator.
     - **Validates: Requirements 7.3, 7.4**
   - [ ]* 9.3 Example/component tests: empty and error states
     - Empty history → empty-state shown, zero rows (Req 7.6); failed history fetch → error banner shown, no rows (Req 7.7).
     - _Requirements: 7.6, 7.7_
 
-- [ ] 10. Part 1 — Brand rename audit, canonicalization, and regression guard
-  - [ ] 10.1 Audit and canonicalize brand surfaces
+- [x] 10. Part 1 — Brand rename audit, canonicalization, and regression guard
+  - [x] 10.1 Audit and canonicalize brand surfaces <!-- audit confirms all surfaces already render "VFarmers" (20 occurrences, 0 non-compliant); no code changes needed -->
     - Verify/canonicalize "VFarmers" across `src/routes/index.tsx` (nav, hero, footer, meta title/description/og:title/og:description, logo alt), `src/routes/auth.tsx` (mark, head title, copy, terms, logo alt), `src/routes/_authenticated/dashboard.tsx` (top-bar mark, head title, greeting/copy, logo alt), and `src/routes/__root.tsx` (default description / og tags); styled marks use `V<span className="text-primary">Farmers</span>`.
     - Preserve the member term "Farmer"/"Farmers" (incl. Ticker counts like "12,847 Farmers"), keep the `vfarm-logo.png` filename, and keep the lowercase `package.json` `name` unchanged.
     - _Requirements: 1.1, 1.3, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12, 1.13, 1.14_
-  - [ ]* 10.2 Property/static test: brand lexical regression guard (Property 15)
+  - [x]* 10.2 Property/static test: brand lexical regression guard (Property 15)
     - **Property 15: No user-facing brand token reads "VFarm" unless it is "VFarmers"** — case-sensitive scan of user-facing strings/attributes across the Brand_Renderer surfaces asserts `VFarm` matches only when followed by `ers`, excluding `vfarm-logo.png` import paths; also assert logo `alt` equals "VFarmers".
     - **Validates: Requirements 1.2, 1.4**
   - [ ]* 10.3 Example/snapshot tests: per-file brand strings
@@ -164,7 +165,7 @@ Per the project's PBT methodology, property/exploration tests are written **alon
     - Static assertions: request server logic uses `createServerFn` (Req 11.1); a single `attachSupabaseAuth` in `src/start.ts` (Req 11.3); no protected loader on a public route (Req 12.1); wallet route under `_authenticated` (Req 12.3); test-credit under `api/public/` (Req 14.1); no module-scope `process.env` in client-imported files incl. `requests.shared.ts` (Req 13.1); `bun run typecheck`/build passes so every `<Link>` target route exists (Req 12.2).
     - _Requirements: 11.1, 11.3, 12.1, 12.2, 12.3, 13.1, 14.1_
 
-- [ ] 12. Optional: wire dashboard "Deposit"/"Withdraw" quick-actions to the wallet route
+- [x] 12. Optional: wire dashboard "Deposit"/"Withdraw" quick-actions to the wallet route
   - Convert the dashboard's non-navigating `<button>` placeholders to `<Link to="/wallet">` (now safe — the route file exists from Task 9.1).
   - _Requirements: 12.2_
 
