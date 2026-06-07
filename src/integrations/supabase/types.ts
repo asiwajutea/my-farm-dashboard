@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          cycle_base_reward_pct: number
+          cycle_duration_days: number
+          id: boolean
+          max_cycle_seed: number
+          min_cycle_seed: number
+          min_deposit_seed: number
+          min_withdraw_seed: number
+          p2p_fee_pct: number
+          referral_bonus_pct: number
+          seed_to_usdt: number
+          updated_at: string
+          withdraw_fee_pct: number
+        }
+        Insert: {
+          cycle_base_reward_pct?: number
+          cycle_duration_days?: number
+          id?: boolean
+          max_cycle_seed?: number
+          min_cycle_seed?: number
+          min_deposit_seed?: number
+          min_withdraw_seed?: number
+          p2p_fee_pct?: number
+          referral_bonus_pct?: number
+          seed_to_usdt?: number
+          updated_at?: string
+          withdraw_fee_pct?: number
+        }
+        Update: {
+          cycle_base_reward_pct?: number
+          cycle_duration_days?: number
+          id?: boolean
+          max_cycle_seed?: number
+          min_cycle_seed?: number
+          min_deposit_seed?: number
+          min_withdraw_seed?: number
+          p2p_fee_pct?: number
+          referral_bonus_pct?: number
+          seed_to_usdt?: number
+          updated_at?: string
+          withdraw_fee_pct?: number
+        }
+        Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["ledger_kind"]
+          memo: string | null
+          ref_id: string | null
+          ref_table: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["ledger_kind"]
+          memo?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["ledger_kind"]
+          memo?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -67,6 +159,36 @@ export type Database = {
           },
         ]
       }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["wallet_kind"]
+          locked: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["wallet_kind"]
+          locked?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["wallet_kind"]
+          locked?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -83,9 +205,57 @@ export type Database = {
         }[]
       }
       generate_referral_code: { Args: never; Returns: string }
+      wallet_adjust: {
+        Args: {
+          p_amount: number
+          p_kind: Database["public"]["Enums"]["ledger_kind"]
+          p_memo?: string
+          p_ref_id?: string
+          p_ref_table?: string
+          p_wallet: string
+        }
+        Returns: undefined
+      }
+      wallet_transfer: {
+        Args: {
+          p_amount: number
+          p_from_wallet: string
+          p_kind_in: Database["public"]["Enums"]["ledger_kind"]
+          p_kind_out: Database["public"]["Enums"]["ledger_kind"]
+          p_memo?: string
+          p_ref_id?: string
+          p_ref_table?: string
+          p_to_wallet: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
+      ledger_kind:
+        | "deposit"
+        | "withdrawal"
+        | "withdrawal_fee"
+        | "transfer_in"
+        | "transfer_out"
+        | "p2p_in"
+        | "p2p_out"
+        | "p2p_fee"
+        | "cycle_start"
+        | "cycle_reap_principal"
+        | "cycle_reap_reward"
+        | "booster_apply"
+        | "coupon_redeem"
+        | "referral_bonus"
+        | "escrow_lock"
+        | "escrow_release"
+        | "escrow_refund"
+        | "admin_credit"
+        | "admin_debit"
+        | "fee"
+        | "adjustment"
+        | "test_credit"
+      wallet_kind: "primary" | "farming"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -214,6 +384,31 @@ export const Constants = {
   public: {
     Enums: {
       kyc_status: ["unverified", "pending", "verified", "rejected"],
+      ledger_kind: [
+        "deposit",
+        "withdrawal",
+        "withdrawal_fee",
+        "transfer_in",
+        "transfer_out",
+        "p2p_in",
+        "p2p_out",
+        "p2p_fee",
+        "cycle_start",
+        "cycle_reap_principal",
+        "cycle_reap_reward",
+        "booster_apply",
+        "coupon_redeem",
+        "referral_bonus",
+        "escrow_lock",
+        "escrow_release",
+        "escrow_refund",
+        "admin_credit",
+        "admin_debit",
+        "fee",
+        "adjustment",
+        "test_credit",
+      ],
+      wallet_kind: ["primary", "farming"],
     },
   },
 } as const
