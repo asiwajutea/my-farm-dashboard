@@ -78,7 +78,7 @@ export function AppTopbar() {
             {verified && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
           </button>
           {open && (
-            <div className="glass absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl p-1.5 shadow-elegant">
+            <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-elegant">
               <div className="px-3 py-2 text-xs text-muted-foreground">
                 {profile?.username ? `@${profile.username}` : email}
               </div>
