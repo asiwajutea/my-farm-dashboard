@@ -217,14 +217,17 @@ function Dashboard() {
 }
 
 function WalletCard({
-  title, balance, sub, accent, icon: Icon,
+  title, balance, rate, sub, accent, icon: Icon,
 }: {
   title: string;
-  balance: string;
+  balance: number;
+  rate: number;
   sub: string;
   accent: "primary" | "gold";
   icon: React.ComponentType<{ className?: string }>;
 }) {
+  const seed = balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usdt = (balance * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <div className="glass relative overflow-hidden rounded-3xl p-6">
       <div
@@ -244,10 +247,10 @@ function WalletCard({
       </div>
       <div className="relative mt-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-semibold tracking-tight">{balance}</span>
+          <span className="text-4xl font-semibold tracking-tight">{seed}</span>
           <span className="text-sm text-muted-foreground">Seed</span>
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">≈ $0.00 USDT · {sub}</div>
+        <div className="mt-1 text-xs text-muted-foreground">≈ ${usdt} USDT · {sub}</div>
       </div>
     </div>
   );
