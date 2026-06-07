@@ -27,6 +27,31 @@ but keeps all of its Hooks before any conditional return, which is why it loads 
 isolates the defect to the misplaced Hook in `ProfilePage`, not to the shared helpers
 (`src/lib/countries.ts`, `src/lib/avatar.ts`) or the Supabase data layer.
 
+### Second Root Cause (Unsafe KYC Metadata Lookup)
+
+After the first fix (the Hooks-order relocation) was merged to `main`, the profile page can **still**
+crash with "This page didn't load" for a distinct reason. After the `if (loading)` early return,
+`ProfilePage` derives the KYC status badge metadata by indexing a literal map with the raw status
+value and **no fallback**:
+
+```ts
+const kyc = profile?.kyc_status ?? "unverified";
+const kycMeta = {
+  unverified: {...}, pending: {...}, verified: {...}, rejected: {...},
+}[kyc];
+```
+
+The JSX then reads `kycMeta.color` and renders `<kycMeta.icon ... />`. If `profile.kyc_status` is
+any value that is **not exactly** one of the four known keys (`"unverified" | "pending" | "verified"
+| "rejected"`) — for example an unexpected/new status string, a different casing such as
+`"Verified"`, or any other value the database returns — then `kycMeta` is `undefined`. Accessing
+`kycMeta.color` (and `<kycMeta.icon>`) then throws "Cannot read properties of undefined", which
+propagates to the root `errorComponent` in `__root.tsx` and again renders "This page didn't load".
+
+The sibling dashboard route avoids this because it only checks `profile?.kyc_status === "verified"`
+rather than indexing a metadata map, so an unknown status simply renders the non-verified path
+instead of crashing.
+
 ## Bug Analysis
 
 ### Current Behavior (Defect)
@@ -37,6 +62,10 @@ isolates the defect to the misplaced Hook in `ProfilePage`, not to the shared he
 
 1.3 WHEN the React error is thrown during the profile render THEN the system surfaces the root `ErrorComponent` showing the message "This page didn't load" instead of the profile form.
 
+1.4 WHEN the profile finishes loading with a `kyc_status` value that is not exactly one of the four known keys (`"unverified"`, `"pending"`, `"verified"`, `"rejected"`) THEN the system looks up `kycMeta` from the literal map and receives `undefined` because there is no fallback entry.
+
+1.5 WHEN the render accesses `kycMeta.color` or renders `<kycMeta.icon ... />` while `kycMeta` is `undefined` THEN the system throws "Cannot read properties of undefined", which propagates to the root `ErrorComponent` and again renders "This page didn't load".
+
 ### Expected Behavior (Correct)
 
 2.1 WHEN an authenticated user navigates to the profile page and the profile data finishes loading THEN the system SHALL render the profile page successfully without throwing a Hooks-order error.
@@ -44,6 +73,10 @@ isolates the defect to the misplaced Hook in `ProfilePage`, not to the shared he
 2.2 WHEN the profile page renders in any state (loading or loaded) THEN the system SHALL invoke the same set of React Hooks in the same order, with no Hook placed after a conditional early return.
 
 2.3 WHEN the profile data finishes loading THEN the system SHALL display the profile content (avatar, KYC status, country selector, dial-code dropdown, phone, bio, and form fields) instead of the error boundary.
+
+2.4 WHEN the profile finishes loading with a `kyc_status` value that is not one of the four known keys THEN the system SHALL resolve `kycMeta` to a valid metadata object by falling back to the `unverified` entry, so that `kycMeta.color` and `<kycMeta.icon ... />` always operate on a defined object and the page never throws.
+
+2.5 WHEN the profile finishes loading with an unknown `kyc_status` value THEN the system SHALL render the full profile content (using the fallback badge) instead of the root `ErrorComponent`.
 
 ### Unchanged Behavior (Regression Prevention)
 
@@ -54,6 +87,8 @@ isolates the defect to the misplaced Hook in `ProfilePage`, not to the shared he
 3.3 WHEN a user loads the dashboard or any other authenticated route THEN the system SHALL CONTINUE TO render correctly without regression.
 
 3.4 WHEN the user edits and saves the profile, uploads an avatar, copies the referral code, or changes country/phone THEN the system SHALL CONTINUE TO behave as it did before the fix.
+
+3.5 WHEN the profile loads with a `kyc_status` value that IS one of the four known keys (`"unverified"`, `"pending"`, `"verified"`, `"rejected"`) THEN the system SHALL CONTINUE TO render the exact same KYC badge label, icon, color, and spin behavior as before the fix.
 
 ## Bug Condition Derivation
 
@@ -105,3 +140,59 @@ END FOR
 
 This guarantees the spinner-only state, the fully-loaded profile output (dial options, country
 selector, avatar, form fields), and all other routes remain unchanged after the fix.
+
+## Bug Condition Derivation (Second Root Cause: Unsafe KYC Metadata Lookup)
+
+**Definitions**
+- **F2**: The original (unfixed) KYC badge derivation, where `kycMeta` is obtained by indexing the
+  literal map with `kyc` and no fallback: `kycMeta = { ... }[kyc]`.
+- **F2'**: The fixed derivation, where `kycMeta` falls back to the `unverified` entry when the key
+  is unknown: `kycMeta = KYC_META[kyc] ?? KYC_META.unverified`.
+- **Y**: A loaded `ProfilePage` render characterized by the value of `profile.kyc_status`.
+
+**Bug Condition**
+
+```pascal
+FUNCTION isKycBugCondition(Y)
+  INPUT: Y of type LoadedProfileRender
+  OUTPUT: boolean
+
+  // The defect triggers whenever the profile loads with a kyc_status value that
+  // is not exactly one of the four known map keys, so the unguarded map lookup
+  // returns undefined and the render throws when reading kycMeta.color / .icon.
+  RETURN Y.profile.kyc_status IS NOT NULL
+         AND Y.profile.kyc_status NOT IN
+             ['unverified', 'pending', 'verified', 'rejected']
+END FUNCTION
+```
+
+Note: a `null`/missing `kyc_status` is coalesced to `"unverified"` (a known key) and is therefore
+NOT a buggy input; only values outside the four known keys trigger the crash.
+
+**Property: Fix Checking**
+
+```pascal
+// For every loaded render with an unknown kyc_status, the fixed derivation must
+// produce a defined metadata object and render the profile without throwing.
+FOR ALL Y WHERE isKycBugCondition(Y) DO
+  result <- renderProfilePage'(Y)   // F2'
+  ASSERT kycMeta_is_defined(result)
+  ASSERT no_undefined_property_error(result)
+  ASSERT result.rendered = ProfileContent   // not the root ErrorComponent
+END FOR
+```
+
+**Property: Preservation Checking**
+
+```pascal
+// For every loaded render whose kyc_status IS one of the four known keys, the
+// fixed code must behave identically to the original (same badge label, icon,
+// color, spin behavior), and all previously-covered non-buggy scenarios remain
+// unchanged.
+FOR ALL Y WHERE NOT isKycBugCondition(Y) DO
+  ASSERT F2(Y) = F2'(Y)
+END FOR
+```
+
+This guarantees the KYC badge for the four known statuses, and every other aspect of the loaded
+profile, remains identical after the defensive fix.

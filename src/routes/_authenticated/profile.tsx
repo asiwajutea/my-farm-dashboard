@@ -19,6 +19,13 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
+const KYC_META = {
+  unverified: { label: "Not verified", icon: ShieldAlert, color: "text-muted-foreground bg-muted/40 border-border" },
+  pending: { label: "Verification pending", icon: Loader2, color: "text-gold bg-gold/10 border-gold/30" },
+  verified: { label: "Verified Farmer", icon: ShieldCheck, color: "text-primary bg-primary/10 border-primary/30" },
+  rejected: { label: "Verification rejected", icon: ShieldAlert, color: "text-destructive bg-destructive/10 border-destructive/30" },
+} as const;
+
 /** Split a stored phone string like "+1 555 0100" into dial + local parts. */
 function splitPhone(stored: string | null): { dial: string; local: string } {
   if (!stored) return { dial: "", local: "" };
@@ -224,12 +231,7 @@ function ProfilePage() {
   }
 
   const kyc = profile?.kyc_status ?? "unverified";
-  const kycMeta = {
-    unverified: { label: "Not verified", icon: ShieldAlert, color: "text-muted-foreground bg-muted/40 border-border" },
-    pending: { label: "Verification pending", icon: Loader2, color: "text-gold bg-gold/10 border-gold/30" },
-    verified: { label: "Verified Farmer", icon: ShieldCheck, color: "text-primary bg-primary/10 border-primary/30" },
-    rejected: { label: "Verification rejected", icon: ShieldAlert, color: "text-destructive bg-destructive/10 border-destructive/30" },
-  }[kyc];
+  const kycMeta = KYC_META[kyc as keyof typeof KYC_META] ?? KYC_META.unverified;
 
   return (
     <div className="min-h-screen bg-hero">
