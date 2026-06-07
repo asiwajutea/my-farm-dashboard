@@ -8,8 +8,8 @@ import { lovable } from "@/integrations/lovable";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · VFarm" },
-      { name: "description", content: "Sign in or create your VFarm Farmer account." },
+      { title: "Sign in · VFarmers" },
+      { name: "description", content: "Sign in or create your VFarmers Farmer account." },
     ],
   }),
   component: AuthPage,
@@ -79,9 +79,9 @@ function AuthPage() {
     <div className="min-h-screen bg-hero">
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-5 py-10">
         <Link to="/" className="mb-8 flex items-center gap-2.5">
-          <img src={logo} alt="VFarm" className="h-10 w-10" />
+          <img src={logo} alt="VFarmers" className="h-10 w-10" />
           <span className="text-xl font-semibold tracking-tight">
-            V<span className="text-primary">Farm</span>
+            V<span className="text-primary">Farmers</span>
           </span>
         </Link>
 
@@ -92,7 +92,7 @@ function AuthPage() {
               {mode === "signin" ? "Welcome back, Farmer" : "Become a Farmer"}
             </div>
             <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-              {mode === "signin" ? "Sign in to VFarm" : "Create your account"}
+              {mode === "signin" ? "Sign in to VFarmers" : "Create your account"}
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               {mode === "signin"
@@ -195,7 +195,7 @@ function AuthPage() {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-muted-foreground">
-          By continuing you agree to VFarm's Terms, Privacy Policy and Risk Disclosure.
+          By continuing you agree to VFarmers's Terms, Privacy Policy and Risk Disclosure.
         </p>
       </div>
     </div>
