@@ -234,23 +234,9 @@ function ProfilePage() {
   const kycMeta = KYC_META[kyc as keyof typeof KYC_META] ?? KYC_META.unverified;
 
   return (
-    <div className="min-h-screen bg-hero">
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
-          <Link to="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="" className="h-7 w-7" />
-            <span className="text-sm font-semibold">
-              V<span className="text-primary">Farmers</span>
-            </span>
-          </div>
-        </div>
-      </header>
-
+    <div>
       <main className="mx-auto max-w-3xl px-5 py-8">
+
         <div className="text-xs uppercase tracking-[0.2em] text-primary">Identity</div>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">Your Farmer profile</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
