@@ -163,14 +163,16 @@ function Dashboard() {
         <section className="mt-8 grid gap-4 md:grid-cols-2">
           <WalletCard
             title="Primary Wallet"
-            balance="0.00"
+            balance={Number(wallets.primary?.balance ?? 0)}
+            rate={rate}
             sub="Deposits and withdrawals"
             accent="gold"
             icon={Wallet}
           />
           <WalletCard
             title="Farming Wallet"
-            balance="0.00"
+            balance={Number(wallets.farming?.balance ?? 0)}
+            rate={rate}
             sub="Active farming activity"
             accent="primary"
             icon={Sprout}
