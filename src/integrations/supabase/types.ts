@@ -59,6 +59,95 @@ export type Database = {
         }
         Relationships: []
       }
+      boosters: {
+        Row: {
+          active: boolean
+          code: string
+          cost_seed: number
+          created_at: string
+          duration_hours: number
+          id: string
+          label: string
+          reward_bps: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          cost_seed?: number
+          created_at?: string
+          duration_hours: number
+          id?: string
+          label: string
+          reward_bps: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          cost_seed?: number
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          label?: string
+          reward_bps?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cycles: {
+        Row: {
+          amount: number
+          booster_id: string | null
+          created_at: string
+          duration_hours: number
+          id: string
+          matures_at: string
+          reaped_at: string | null
+          reward_bps: number
+          started_at: string
+          status: Database["public"]["Enums"]["cycle_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booster_id?: string | null
+          created_at?: string
+          duration_hours: number
+          id?: string
+          matures_at: string
+          reaped_at?: string | null
+          reward_bps: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["cycle_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booster_id?: string | null
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          matures_at?: string
+          reaped_at?: string | null
+          reward_bps?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["cycle_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycles_booster_id_fkey"
+            columns: ["booster_id"]
+            isOneToOne: false
+            referencedRelation: "boosters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposit_requests: {
         Row: {
           admin_note: string | null
@@ -195,6 +284,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -277,7 +387,19 @@ export type Database = {
         }[]
       }
       generate_referral_code: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      reap_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      start_cycle: {
+        Args: { p_amount: number; p_booster_id: string }
+        Returns: string
+      }
       wallet_adjust: {
         Args: {
           p_amount: number
@@ -304,6 +426,8 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
+      cycle_status: "active" | "matured" | "reaped" | "cancelled"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
       ledger_kind:
         | "deposit"
@@ -457,6 +581,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
+      cycle_status: ["active", "matured", "reaped", "cancelled"],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
       ledger_kind: [
         "deposit",
