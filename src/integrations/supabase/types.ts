@@ -17,36 +17,75 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          country: string | null
           created_at: string
           display_name: string | null
           id: string
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
+          phone: string | null
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_profile_by_handle: {
+        Args: { handle: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          referral_code: string
+          username: string
+        }[]
+      }
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      kyc_status: "unverified" | "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -173,6 +212,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      kyc_status: ["unverified", "pending", "verified", "rejected"],
+    },
   },
 } as const
