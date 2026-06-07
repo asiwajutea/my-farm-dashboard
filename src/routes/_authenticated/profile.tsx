@@ -2,6 +2,8 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera, Check, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
+} from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
