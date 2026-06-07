@@ -65,43 +65,23 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "profiles_referred_by_fkey"
-            columns: ["referred_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Views: {
-      profiles_public: {
-        Row: {
-          avatar_url: string | null
-          display_name: string | null
-          id: string | null
-          referral_code: string | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          display_name?: string | null
-          id?: string | null
-          referral_code?: string | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          display_name?: string | null
-          id?: string | null
-          referral_code?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      find_profile_by_handle: {
+        Args: { handle: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          referral_code: string
+          username: string
+        }[]
+      }
       generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
