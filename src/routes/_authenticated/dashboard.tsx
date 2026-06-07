@@ -23,8 +23,8 @@ interface Profile {
 type WalletKind = "primary" | "farming";
 interface WalletRow {
   kind: WalletKind;
-  balance: string;
-  locked: string;
+  balance: number;
+  locked: number;
 }
 
 function Dashboard() {
