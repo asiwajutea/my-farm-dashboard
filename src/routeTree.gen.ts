@@ -9,17 +9,60 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AmlRouteImport } from './routes/aml'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
+import { Route as AuthenticatedSendRouteImport } from './routes/_authenticated/send'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedFarmRouteImport } from './routes/_authenticated/farm'
+import { Route as AuthenticatedEscrowRouteImport } from './routes/_authenticated/escrow'
+import { Route as AuthenticatedDepositRouteImport } from './routes/_authenticated/deposit'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCouponsRouteImport } from './routes/_authenticated/coupons'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedEscrowIndexRouteImport } from './routes/_authenticated/escrow.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicTestCreditRouteImport } from './routes/api/public/test-credit'
+import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticated/escrow.$id'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin/requests'
+import { Route as AuthenticatedAdminFarmersRouteImport } from './routes/_authenticated/admin/farmers'
+import { Route as AuthenticatedAdminEscrowRouteImport } from './routes/_authenticated/admin/escrow'
+import { Route as AuthenticatedAdminCyclesRouteImport } from './routes/_authenticated/admin/cycles'
+import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin/coupons'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
+  id: '/risk-disclosure',
+  path: '/risk-disclosure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AmlRoute = AmlRouteImport.update({
+  id: '/aml',
+  path: '/aml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -31,9 +74,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWithdrawRoute = AuthenticatedWithdrawRouteImport.update({
+  id: '/withdraw',
+  path: '/withdraw',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSendRoute = AuthenticatedSendRouteImport.update({
+  id: '/send',
+  path: '/send',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -41,85 +99,339 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFarmRoute = AuthenticatedFarmRouteImport.update({
+  id: '/farm',
+  path: '/farm',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEscrowRoute = AuthenticatedEscrowRouteImport.update({
+  id: '/escrow',
+  path: '/escrow',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDepositRoute = AuthenticatedDepositRouteImport.update({
+  id: '/deposit',
+  path: '/deposit',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCouponsRoute = AuthenticatedCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEscrowIndexRoute =
+  AuthenticatedEscrowIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedEscrowRoute,
+  } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
 const ApiPublicTestCreditRoute = ApiPublicTestCreditRouteImport.update({
   id: '/api/public/test-credit',
   path: '/api/public/test-credit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedEscrowIdRoute = AuthenticatedEscrowIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedEscrowRoute,
+} as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminRequestsRoute =
+  AuthenticatedAdminRequestsRouteImport.update({
+    id: '/requests',
+    path: '/requests',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminFarmersRoute =
+  AuthenticatedAdminFarmersRouteImport.update({
+    id: '/farmers',
+    path: '/farmers',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminEscrowRoute =
+  AuthenticatedAdminEscrowRouteImport.update({
+    id: '/escrow',
+    path: '/escrow',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCyclesRoute =
+  AuthenticatedAdminCyclesRouteImport.update({
+    id: '/cycles',
+    path: '/cycles',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCouponsRoute =
+  AuthenticatedAdminCouponsRouteImport.update({
+    id: '/coupons',
+    path: '/coupons',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/privacy': typeof PrivacyRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deposit': typeof AuthenticatedDepositRoute
+  '/escrow': typeof AuthenticatedEscrowRouteWithChildren
+  '/farm': typeof AuthenticatedFarmRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/send': typeof AuthenticatedSendRoute
+  '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/withdraw': typeof AuthenticatedWithdrawRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
+  '/admin/escrow': typeof AuthenticatedAdminEscrowRoute
+  '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/escrow/': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/privacy': typeof PrivacyRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deposit': typeof AuthenticatedDepositRoute
+  '/farm': typeof AuthenticatedFarmRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/send': typeof AuthenticatedSendRoute
+  '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/withdraw': typeof AuthenticatedWithdrawRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
+  '/admin/escrow': typeof AuthenticatedAdminEscrowRoute
+  '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/escrow': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/privacy': typeof PrivacyRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/coupons': typeof AuthenticatedCouponsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/deposit': typeof AuthenticatedDepositRoute
+  '/_authenticated/escrow': typeof AuthenticatedEscrowRouteWithChildren
+  '/_authenticated/farm': typeof AuthenticatedFarmRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/send': typeof AuthenticatedSendRoute
+  '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/_authenticated/admin/cycles': typeof AuthenticatedAdminCyclesRoute
+  '/_authenticated/admin/escrow': typeof AuthenticatedAdminEscrowRoute
+  '/_authenticated/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/escrow/': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aml'
     | '/auth'
+    | '/privacy'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/admin'
+    | '/coupons'
     | '/dashboard'
+    | '/deposit'
+    | '/escrow'
+    | '/farm'
+    | '/notifications'
     | '/profile'
+    | '/send'
+    | '/verify'
     | '/wallet'
+    | '/withdraw'
+    | '/admin/audit'
+    | '/admin/coupons'
+    | '/admin/cycles'
+    | '/admin/escrow'
+    | '/admin/farmers'
+    | '/admin/requests'
+    | '/admin/settings'
+    | '/escrow/$id'
     | '/api/public/test-credit'
+    | '/admin/'
+    | '/escrow/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aml'
     | '/auth'
+    | '/privacy'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/coupons'
     | '/dashboard'
+    | '/deposit'
+    | '/farm'
+    | '/notifications'
     | '/profile'
+    | '/send'
+    | '/verify'
     | '/wallet'
+    | '/withdraw'
+    | '/admin/audit'
+    | '/admin/coupons'
+    | '/admin/cycles'
+    | '/admin/escrow'
+    | '/admin/farmers'
+    | '/admin/requests'
+    | '/admin/settings'
+    | '/escrow/$id'
     | '/api/public/test-credit'
+    | '/admin'
+    | '/escrow'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/aml'
     | '/auth'
+    | '/privacy'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/_authenticated/admin'
+    | '/_authenticated/coupons'
     | '/_authenticated/dashboard'
+    | '/_authenticated/deposit'
+    | '/_authenticated/escrow'
+    | '/_authenticated/farm'
+    | '/_authenticated/notifications'
     | '/_authenticated/profile'
+    | '/_authenticated/send'
+    | '/_authenticated/verify'
     | '/_authenticated/wallet'
+    | '/_authenticated/withdraw'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/coupons'
+    | '/_authenticated/admin/cycles'
+    | '/_authenticated/admin/escrow'
+    | '/_authenticated/admin/farmers'
+    | '/_authenticated/admin/requests'
+    | '/_authenticated/admin/settings'
+    | '/_authenticated/escrow/$id'
     | '/api/public/test-credit'
+    | '/_authenticated/admin/'
+    | '/_authenticated/escrow/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AmlRoute: typeof AmlRoute
   AuthRoute: typeof AuthRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RiskDisclosureRoute: typeof RiskDisclosureRoute
+  TermsRoute: typeof TermsRoute
   ApiPublicTestCreditRoute: typeof ApiPublicTestCreditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk-disclosure': {
+      id: '/risk-disclosure'
+      path: '/risk-disclosure'
+      fullPath: '/risk-disclosure'
+      preLoaderRoute: typeof RiskDisclosureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aml': {
+      id: '/aml'
+      path: '/aml'
+      fullPath: '/aml'
+      preLoaderRoute: typeof AmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -136,11 +448,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/withdraw': {
+      id: '/_authenticated/withdraw'
+      path: '/withdraw'
+      fullPath: '/withdraw'
+      preLoaderRoute: typeof AuthenticatedWithdrawRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/wallet': {
       id: '/_authenticated/wallet'
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof AuthenticatedWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/verify': {
+      id: '/_authenticated/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof AuthenticatedVerifyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/send': {
+      id: '/_authenticated/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof AuthenticatedSendRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -150,12 +483,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/farm': {
+      id: '/_authenticated/farm'
+      path: '/farm'
+      fullPath: '/farm'
+      preLoaderRoute: typeof AuthenticatedFarmRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escrow': {
+      id: '/_authenticated/escrow'
+      path: '/escrow'
+      fullPath: '/escrow'
+      preLoaderRoute: typeof AuthenticatedEscrowRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/deposit': {
+      id: '/_authenticated/deposit'
+      path: '/deposit'
+      fullPath: '/deposit'
+      preLoaderRoute: typeof AuthenticatedDepositRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/coupons': {
+      id: '/_authenticated/coupons'
+      path: '/coupons'
+      fullPath: '/coupons'
+      preLoaderRoute: typeof AuthenticatedCouponsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escrow/': {
+      id: '/_authenticated/escrow/'
+      path: '/'
+      fullPath: '/escrow/'
+      preLoaderRoute: typeof AuthenticatedEscrowIndexRouteImport
+      parentRoute: typeof AuthenticatedEscrowRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/api/public/test-credit': {
       id: '/api/public/test-credit'
@@ -164,19 +553,134 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTestCreditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/escrow/$id': {
+      id: '/_authenticated/escrow/$id'
+      path: '/$id'
+      fullPath: '/escrow/$id'
+      preLoaderRoute: typeof AuthenticatedEscrowIdRouteImport
+      parentRoute: typeof AuthenticatedEscrowRoute
+    }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/requests': {
+      id: '/_authenticated/admin/requests'
+      path: '/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/farmers': {
+      id: '/_authenticated/admin/farmers'
+      path: '/farmers'
+      fullPath: '/admin/farmers'
+      preLoaderRoute: typeof AuthenticatedAdminFarmersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/escrow': {
+      id: '/_authenticated/admin/escrow'
+      path: '/escrow'
+      fullPath: '/admin/escrow'
+      preLoaderRoute: typeof AuthenticatedAdminEscrowRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/cycles': {
+      id: '/_authenticated/admin/cycles'
+      path: '/cycles'
+      fullPath: '/admin/cycles'
+      preLoaderRoute: typeof AuthenticatedAdminCyclesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/coupons': {
+      id: '/_authenticated/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AuthenticatedAdminCouponsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
+  AuthenticatedAdminCyclesRoute: typeof AuthenticatedAdminCyclesRoute
+  AuthenticatedAdminEscrowRoute: typeof AuthenticatedAdminEscrowRoute
+  AuthenticatedAdminFarmersRoute: typeof AuthenticatedAdminFarmersRoute
+  AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+    AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
+    AuthenticatedAdminCyclesRoute: AuthenticatedAdminCyclesRoute,
+    AuthenticatedAdminEscrowRoute: AuthenticatedAdminEscrowRoute,
+    AuthenticatedAdminFarmersRoute: AuthenticatedAdminFarmersRoute,
+    AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
+    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
+interface AuthenticatedEscrowRouteChildren {
+  AuthenticatedEscrowIdRoute: typeof AuthenticatedEscrowIdRoute
+  AuthenticatedEscrowIndexRoute: typeof AuthenticatedEscrowIndexRoute
+}
+
+const AuthenticatedEscrowRouteChildren: AuthenticatedEscrowRouteChildren = {
+  AuthenticatedEscrowIdRoute: AuthenticatedEscrowIdRoute,
+  AuthenticatedEscrowIndexRoute: AuthenticatedEscrowIndexRoute,
+}
+
+const AuthenticatedEscrowRouteWithChildren =
+  AuthenticatedEscrowRoute._addFileChildren(AuthenticatedEscrowRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedCouponsRoute: typeof AuthenticatedCouponsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDepositRoute: typeof AuthenticatedDepositRoute
+  AuthenticatedEscrowRoute: typeof AuthenticatedEscrowRouteWithChildren
+  AuthenticatedFarmRoute: typeof AuthenticatedFarmRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedSendRoute: typeof AuthenticatedSendRoute
+  AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
+  AuthenticatedWithdrawRoute: typeof AuthenticatedWithdrawRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedCouponsRoute: AuthenticatedCouponsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDepositRoute: AuthenticatedDepositRoute,
+  AuthenticatedEscrowRoute: AuthenticatedEscrowRouteWithChildren,
+  AuthenticatedFarmRoute: AuthenticatedFarmRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedSendRoute: AuthenticatedSendRoute,
+  AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
+  AuthenticatedWithdrawRoute: AuthenticatedWithdrawRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -185,9 +689,23 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AmlRoute: AmlRoute,
   AuthRoute: AuthRoute,
+  PrivacyRoute: PrivacyRoute,
+  RiskDisclosureRoute: RiskDisclosureRoute,
+  TermsRoute: TermsRoute,
   ApiPublicTestCreditRoute: ApiPublicTestCreditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
