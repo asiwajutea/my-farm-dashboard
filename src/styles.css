@@ -92,6 +92,16 @@
   --shadow-elegant: 0 20px 60px -20px oklch(0.05 0 0 / 0.6);
 
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Sidebar tokens — solid surfaces so the mobile sheet is readable */
+  --sidebar: oklch(0.14 0.02 150);
+  --sidebar-foreground: oklch(0.97 0.01 120);
+  --sidebar-primary: oklch(0.72 0.20 142);
+  --sidebar-primary-foreground: oklch(0.15 0.02 150);
+  --sidebar-accent: oklch(0.22 0.03 150);
+  --sidebar-accent-foreground: oklch(0.97 0.01 120);
+  --sidebar-border: oklch(0.30 0.03 150 / 60%);
+  --sidebar-ring: oklch(0.72 0.20 142);
 }
 
 @layer base {
