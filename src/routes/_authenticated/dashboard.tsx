@@ -1,10 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Sprout, Wallet, Coins, ArrowLeftRight, Zap, LogOut, Bell, TrendingUp, Plus,
+  User as UserIcon, ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveAvatarUrl } from "@/lib/avatar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · VFarmers" }] }),
@@ -14,12 +16,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 interface Profile {
   display_name: string | null;
   avatar_url: string | null;
+  username: string | null;
+  kyc_status: "unverified" | "pending" | "verified" | "rejected" | null;
 }
 
 function Dashboard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [email, setEmail] = useState<string>("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -28,11 +35,20 @@ function Dashboard() {
       setEmail(user.email ?? "");
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, username, kyc_status")
         .eq("id", user.id)
         .maybeSingle();
-      setProfile(data ?? { display_name: null, avatar_url: null });
+      setProfile(data ?? { display_name: null, avatar_url: null, username: null, kyc_status: "unverified" });
+      setAvatarUrl(await resolveAvatarUrl(data?.avatar_url ?? null));
     })();
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
   const handleSignOut = async () => {
@@ -41,6 +57,7 @@ function Dashboard() {
   };
 
   const name = profile?.display_name || email.split("@")[0] || "Farmer";
+  const verified = profile?.kyc_status === "verified";
 
   return (
     <div className="min-h-screen bg-hero">
@@ -57,19 +74,44 @@ function Dashboard() {
             <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card hover:text-foreground">
               <Bell className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                {name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm">{name}</span>
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-2 py-1.5 transition-colors hover:bg-card"
+              >
+                <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-xs font-semibold text-primary">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span className="hidden text-sm sm:inline">{name}</span>
+                {verified && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
+              </button>
+              {menuOpen && (
+                <div className="glass absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl p-1.5 shadow-elegant">
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    {profile?.username ? `@${profile.username}` : email}
+                  </div>
+                  <Link
+                    to="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-card"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
-            <button
-              onClick={handleSignOut}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </header>
