@@ -105,6 +105,19 @@ function ProfilePage() {
     [countryCode],
   );
 
+  // Unique dial codes for the phone-code dropdown (e.g. "+1 🇺🇸 🇨🇦").
+  const dialOptions = useMemo(() => {
+    const map = new Map<string, Country[]>();
+    for (const c of COUNTRIES) {
+      const list = map.get(c.dial) ?? [];
+      list.push(c);
+      map.set(c.dial, list);
+    }
+    return Array.from(map.entries())
+      .map(([dial, list]) => ({ dial, list }))
+      .sort((a, b) => Number(a.dial.slice(1)) - Number(b.dial.slice(1)));
+  }, []);
+
   const handleCountryChange = (code: string) => {
     setCountryCode(code);
     setAutoDetected(false);
@@ -217,19 +230,6 @@ function ProfilePage() {
     verified: { label: "Verified Farmer", icon: ShieldCheck, color: "text-primary bg-primary/10 border-primary/30" },
     rejected: { label: "Verification rejected", icon: ShieldAlert, color: "text-destructive bg-destructive/10 border-destructive/30" },
   }[kyc];
-
-  // Unique dial codes for the phone-code dropdown (e.g. "+1 🇺🇸 🇨🇦").
-  const dialOptions = useMemo(() => {
-    const map = new Map<string, Country[]>();
-    for (const c of COUNTRIES) {
-      const list = map.get(c.dial) ?? [];
-      list.push(c);
-      map.set(c.dial, list);
-    }
-    return Array.from(map.entries())
-      .map(([dial, list]) => ({ dial, list }))
-      .sort((a, b) => Number(a.dial.slice(1)) - Number(b.dial.slice(1)));
-  }, []);
 
   return (
     <div className="min-h-screen bg-hero">
