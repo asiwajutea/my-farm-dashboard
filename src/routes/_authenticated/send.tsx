@@ -9,6 +9,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Search,
+  ArrowRight,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,8 @@ function SendPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [balance, setBalance] = useState(0);
+  const [rate, setRate] = useState(0); // seed_to_usdt: USDT value of 1 Seed
+  const [usdtIn, setUsdtIn] = useState("1"); // inline converter input
 
   // Recipient confirmation popup state
   const [pending, setPending] = useState<RecipientPreview | null>(null);
@@ -63,18 +66,26 @@ function SendPage() {
   const fee = +((amt * feePct) / 100).toFixed(8);
   const total = +(amt + fee).toFixed(8);
 
+  // Inline USDT -> Seed conversion (1 Seed = `rate` USDT, so 1 USDT = 1/rate Seed).
+  const usdtNum = Number(usdtIn) || 0;
+  const seedOut = rate > 0 ? usdtNum / rate : 0;
+
   const loadBalance = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: w } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .eq("kind", "primary")
-      .maybeSingle();
+    const [{ data: w }, { data: settings }] = await Promise.all([
+      supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .eq("kind", "primary")
+        .maybeSingle(),
+      supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
+    ]);
     setBalance(Number(w?.balance ?? 0));
+    if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
   };
 
   useEffect(() => {
@@ -145,6 +156,30 @@ function SendPage() {
           Transfer Seeds to another farmer using their username or referral code.
         </p>
       </header>
+
+      {/* Inline USDT -> Seed rate converter */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2.5 text-sm">
+        <span className="text-muted-foreground">Rate</span>
+        <div className="relative">
+          <Input
+            inputMode="decimal"
+            value={usdtIn}
+            onChange={(e) => setUsdtIn(e.target.value)}
+            aria-label="USDT amount"
+            className="h-8 w-24 pr-12"
+          />
+          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+            USDT
+          </span>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="font-semibold tabular-nums">
+          {fmt(seedOut, 4)} <span className="font-normal text-muted-foreground">Seed</span>
+        </span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          1 USDT ≈ {rate > 0 ? fmt(1 / rate, 4) : "—"} Seed
+        </span>
+      </div>
 
       <form onSubmit={handleSubmit} className="glass space-y-5 rounded-3xl p-6">
         <div className="space-y-2">

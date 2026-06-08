@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type RecipientPreview = {
   id: string;
@@ -29,14 +30,34 @@ export const lookupRecipient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => handleInput.parse(d))
   .handler(async ({ data, context }): Promise<RecipientPreview | null> => {
-    const { data: rows, error } = await context.supabase.rpc("find_profile_by_handle", {
-      handle: data.handle,
-    });
-    if (error) throw new Error(error.message);
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row) return null;
-    if (row.id === context.userId) return null;
-    return row as RecipientPreview;
+    const handle = data.handle.trim();
+
+    // Primary path: dedicated RPC (case-insensitive, matches username or referral code).
+    let row: RecipientPreview | null = null;
+    const rpc = await context.supabase.rpc("find_profile_by_handle", { handle });
+    if (!rpc.error) {
+      const r = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+      row = (r as RecipientPreview | undefined) ?? null;
+    }
+
+    // Fallback: direct service-role lookup so a missing/restricted RPC doesn't break
+    // recipient resolution. Sanitize the handle before using it in an `or` filter so
+    // user input can't alter the query.
+    if (!row) {
+      const safe = handle.replace(/[^a-zA-Z0-9_-]/g, "");
+      if (safe) {
+        const { data: rows, error } = await supabaseAdmin
+          .from("profiles")
+          .select("id, display_name, username, avatar_url, referral_code")
+          .or(`username.ilike.${safe},referral_code.ilike.${safe}`)
+          .limit(5);
+        if (error) throw new Error(error.message);
+        row = (rows ?? []).find((r) => r.id !== context.userId) ?? null;
+      }
+    }
+
+    if (!row || row.id === context.userId) return null;
+    return row;
   });
 
 const sendInput = z.object({
