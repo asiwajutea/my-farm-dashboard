@@ -174,3 +174,15 @@
 @utility animate-glow {
   animation: glow-pulse 3s ease-in-out infinite;
 }
+
+
+@utility no-scrollbar {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE / legacy Edge */
+  -ms-overflow-style: none;
+  /* Chrome, Safari, Edge (Chromium) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
