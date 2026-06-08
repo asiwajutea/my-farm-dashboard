@@ -336,6 +336,51 @@ export type Database = {
         }
         Relationships: []
       }
+      escrow_trades: {
+        Row: {
+          amount: number
+          created_at: string
+          dispute_reason: string | null
+          id: string
+          payee_id: string
+          payer_id: string
+          resolution: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["escrow_status"]
+          terms: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          dispute_reason?: string | null
+          id?: string
+          payee_id: string
+          payer_id: string
+          resolution?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["escrow_status"]
+          terms?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          dispute_reason?: string | null
+          id?: string
+          payee_id?: string
+          payer_id?: string
+          resolution?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["escrow_status"]
+          terms?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           amount: number
@@ -606,6 +651,23 @@ export type Database = {
     }
     Functions: {
       admin_run_monthly_maintenance: { Args: never; Returns: number }
+      escrow_accept: { Args: { p_id: string }; Returns: undefined }
+      escrow_cancel: { Args: { p_id: string }; Returns: undefined }
+      escrow_create: {
+        Args: {
+          p_amount: number
+          p_payee_id: string
+          p_terms?: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      escrow_dispute: { Args: { p_id: string; p_reason?: string }; Returns: undefined }
+      escrow_release: { Args: { p_id: string }; Returns: undefined }
+      escrow_resolve: {
+        Args: { p_id: string; p_release: boolean; p_resolution?: string }
+        Returns: undefined
+      }
       find_profile_by_handle: {
         Args: { handle: string }
         Returns: {
@@ -686,6 +748,13 @@ export type Database = {
       affiliate_source: "cycle" | "maintenance"
       app_role: "admin" | "moderator" | "user" | "farmer"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
+      escrow_status:
+        | "pending"
+        | "accepted"
+        | "released"
+        | "cancelled"
+        | "disputed"
+        | "refunded"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
       ledger_kind:
         | "deposit"
@@ -847,6 +916,14 @@ export const Constants = {
       affiliate_source: ["cycle", "maintenance"],
       app_role: ["admin", "moderator", "user", "farmer"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
+      escrow_status: [
+        "pending",
+        "accepted",
+        "released",
+        "cancelled",
+        "disputed",
+        "refunded",
+      ],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
       ledger_kind: [
         "deposit",
