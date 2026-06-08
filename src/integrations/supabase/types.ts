@@ -14,11 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_commissions: {
+        Row: {
+          amount: number
+          basis_amount: number
+          created_at: string
+          from_user_id: string
+          generation: number
+          id: string
+          pct: number
+          source: Database["public"]["Enums"]["affiliate_source"]
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          basis_amount: number
+          created_at?: string
+          from_user_id: string
+          generation: number
+          id?: string
+          pct: number
+          source: Database["public"]["Enums"]["affiliate_source"]
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          basis_amount?: number
+          created_at?: string
+          from_user_id?: string
+          generation?: number
+          id?: string
+          pct?: number
+          source?: Database["public"]["Enums"]["affiliate_source"]
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
+          aff_basis: Database["public"]["Enums"]["aff_basis"]
+          aff_gen1_pct: number
+          aff_gen2_pct: number
+          aff_gen3_pct: number
+          aff_maint_gen1_pct: number
+          aff_maint_gen2_pct: number
+          aff_maint_gen3_pct: number
           cycle_base_reward_pct: number
           cycle_duration_days: number
           id: boolean
+          maint_fee_day: number
+          maint_fee_seed: number
           max_cycle_seed: number
           min_cycle_seed: number
           min_deposit_seed: number
@@ -30,9 +93,18 @@ export type Database = {
           withdraw_fee_pct: number
         }
         Insert: {
+          aff_basis?: Database["public"]["Enums"]["aff_basis"]
+          aff_gen1_pct?: number
+          aff_gen2_pct?: number
+          aff_gen3_pct?: number
+          aff_maint_gen1_pct?: number
+          aff_maint_gen2_pct?: number
+          aff_maint_gen3_pct?: number
           cycle_base_reward_pct?: number
           cycle_duration_days?: number
           id?: boolean
+          maint_fee_day?: number
+          maint_fee_seed?: number
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -44,9 +116,18 @@ export type Database = {
           withdraw_fee_pct?: number
         }
         Update: {
+          aff_basis?: Database["public"]["Enums"]["aff_basis"]
+          aff_gen1_pct?: number
+          aff_gen2_pct?: number
+          aff_gen3_pct?: number
+          aff_maint_gen1_pct?: number
+          aff_maint_gen2_pct?: number
+          aff_maint_gen3_pct?: number
           cycle_base_reward_pct?: number
           cycle_duration_days?: number
           id?: boolean
+          maint_fee_day?: number
+          maint_fee_seed?: number
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -302,6 +383,50 @@ export type Database = {
           },
         ]
       }
+      maintenance_fees: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["maintenance_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_fees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       p2p_transfers: {
         Row: {
           amount: number
@@ -480,6 +605,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_run_monthly_maintenance: { Args: never; Returns: number }
       find_profile_by_handle: {
         Args: { handle: string }
         Returns: {
@@ -491,6 +617,13 @@ export type Database = {
         }[]
       }
       generate_referral_code: { Args: never; Returns: string }
+      get_uplines: {
+        Args: { _user_id: string }
+        Returns: {
+          generation: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -499,10 +632,24 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      lookup_referrer: {
+        Args: { _code: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
       p2p_send: {
         Args: { p_amount: number; p_note?: string; p_receiver_id: string }
         Returns: string
       }
+      pay_cycle_commissions: {
+        Args: { p_cycle_id: string }
+        Returns: undefined
+      }
+      pay_maintenance_fee: { Args: { p_fee_id: string }; Returns: undefined }
       reap_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
       redeem_coupon: { Args: { p_code: string }; Returns: string }
       start_cycle: {
@@ -535,6 +682,8 @@ export type Database = {
       }
     }
     Enums: {
+      aff_basis: "profit" | "profit_plus_capital"
+      affiliate_source: "cycle" | "maintenance"
       app_role: "admin" | "moderator" | "user" | "farmer"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
@@ -561,6 +710,9 @@ export type Database = {
         | "fee"
         | "adjustment"
         | "test_credit"
+        | "affiliate_commission"
+        | "maintenance_fee"
+      maintenance_status: "due" | "paid" | "waived" | "overdue"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -691,6 +843,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      aff_basis: ["profit", "profit_plus_capital"],
+      affiliate_source: ["cycle", "maintenance"],
       app_role: ["admin", "moderator", "user", "farmer"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
@@ -717,7 +871,10 @@ export const Constants = {
         "fee",
         "adjustment",
         "test_credit",
+        "affiliate_commission",
+        "maintenance_fee",
       ],
+      maintenance_status: ["due", "paid", "waived", "overdue"],
       request_status: ["pending", "approved", "rejected"],
       transfer_status: ["completed", "failed"],
       wallet_kind: ["primary", "farming"],
