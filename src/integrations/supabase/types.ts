@@ -426,7 +426,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "farmer"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
       ledger_kind:
@@ -581,7 +581,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "farmer"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
       ledger_kind: [
