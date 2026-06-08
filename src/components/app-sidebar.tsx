@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Wallet,
@@ -13,6 +14,7 @@ import {
   UserCircle,
   Shield,
   Users,
+  ChevronDown,
 } from "lucide-react";
 
 import logo from "@/assets/vfarm-logo.png";
@@ -73,6 +75,39 @@ export function AppSidebar() {
     }
   };
 
+  // The nav scroll container hides its scrollbar, so we surface a "more below"
+  // affordance (bottom fade + chevron) whenever the menu overflows and the user
+  // hasn't reached the end yet.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showMore, setShowMore] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      setShowMore(false);
+      return;
+    }
+    setShowMore(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    const ro = new ResizeObserver(() => updateScrollState());
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState, isAdmin, collapsed]);
+
+  const scrollDown = () => {
+    scrollRef.current?.scrollBy({ top: 240, behavior: "smooth" });
+  };
+
   const renderGroup = (label: string, items: Item[]) => (
     <SidebarGroup>
       {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
@@ -105,16 +140,31 @@ export function AppSidebar() {
           )}
         </Link>
       </SidebarHeader>
-      <SidebarContent>
-        {renderGroup("Wallet", wallet)}
-        {renderGroup("Earn", earn)}
-        {renderGroup("Transfer", transfer)}
-        {renderGroup("Account", account)}
-        {isAdmin && renderGroup("Admin", [
-          { title: "Admin Console", url: "/admin", icon: Shield },
-          { title: "Affiliates", url: "/admin/affiliates", icon: Users },
-        ])}
-      </SidebarContent>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <SidebarContent ref={scrollRef} onScroll={updateScrollState}>
+          {renderGroup("Wallet", wallet)}
+          {renderGroup("Earn", earn)}
+          {renderGroup("Transfer", transfer)}
+          {renderGroup("Account", account)}
+          {isAdmin && renderGroup("Admin", [
+            { title: "Admin Console", url: "/admin", icon: Shield },
+            { title: "Affiliates", url: "/admin/affiliates", icon: Users },
+          ])}
+        </SidebarContent>
+
+        {!collapsed && showMore && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-sidebar via-sidebar/80 to-transparent">
+            <button
+              type="button"
+              aria-label="Scroll down for more"
+              onClick={scrollDown}
+              className="pointer-events-auto mb-1.5 flex h-6 w-6 animate-bounce items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground/80 shadow-md transition-colors hover:text-sidebar-accent-foreground"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
     </Sidebar>
   );
 }
