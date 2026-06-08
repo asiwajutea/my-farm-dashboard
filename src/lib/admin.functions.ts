@@ -75,6 +75,7 @@ export type AdminCouponRow = {
   id: string;
   code: string;
   amount: number;
+  currency: "seed" | "usdt";
   max_redemptions: number;
   used_redemptions: number;
   active: boolean;
@@ -511,7 +512,7 @@ export const adminListCoupons = createServerFn({ method: "GET" })
     const sb = await adminDb();
     const { data: rows, error } = await sb
       .from("coupons")
-      .select("id, code, amount, max_redemptions, used_redemptions, active, expires_at, created_at")
+      .select("id, code, amount, currency, max_redemptions, used_redemptions, active, expires_at, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
@@ -519,6 +520,7 @@ export const adminListCoupons = createServerFn({ method: "GET" })
       id: c.id,
       code: c.code,
       amount: Number(c.amount),
+      currency: (c.currency === "usdt" ? "usdt" : "seed") as "seed" | "usdt",
       max_redemptions: c.max_redemptions,
       used_redemptions: c.used_redemptions,
       active: c.active,
@@ -531,6 +533,7 @@ const createCouponInput = z.object({
   code: z.string().min(2).max(40),
   amount: z.number().positive().max(1_000_000_000),
   maxRedemptions: z.number().int().min(1).max(1_000_000),
+  currency: z.enum(["seed", "usdt"]).default("seed"),
   expiresAt: z.string().datetime().optional(),
 });
 
@@ -542,10 +545,36 @@ export const adminCreateCoupon = createServerFn({ method: "POST" })
       p_code: data.code,
       p_amount: data.amount,
       p_max: data.maxRedemptions,
+      p_currency: data.currency,
       p_expires: data.expiresAt ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { id: id as unknown as string };
+  });
+
+const createCouponsBulkInput = z.object({
+  count: z.number().int().min(1).max(500),
+  amount: z.number().positive().max(1_000_000_000),
+  maxRedemptions: z.number().int().min(1).max(1_000_000),
+  currency: z.enum(["seed", "usdt"]).default("seed"),
+  prefix: z.string().max(12).optional(),
+  expiresAt: z.string().datetime().optional(),
+});
+
+export const adminCreateCouponsBulk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => createCouponsBulkInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ codes: string[] }> => {
+    const { data: codes, error } = await context.supabase.rpc("admin_create_coupons_bulk", {
+      p_count: data.count,
+      p_amount: data.amount,
+      p_max: data.maxRedemptions,
+      p_currency: data.currency,
+      p_prefix: data.prefix ?? undefined,
+      p_expires: data.expiresAt ?? undefined,
+    });
+    if (error) throw new Error(error.message);
+    return { codes: (codes as string[] | null) ?? [] };
   });
 
 const couponActiveInput = z.object({ id: z.string().uuid(), active: z.boolean() });

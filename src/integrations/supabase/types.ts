@@ -245,6 +245,7 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          currency: string
           expires_at: string | null
           id: string
           max_redemptions: number
@@ -257,6 +258,7 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -269,6 +271,7 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -692,10 +695,22 @@ export type Database = {
         Args: {
           p_amount: number
           p_code: string
+          p_currency?: string
           p_expires?: string
           p_max: number
         }
         Returns: string
+      }
+      admin_create_coupons_bulk: {
+        Args: {
+          p_amount: number
+          p_count: number
+          p_currency?: string
+          p_expires?: string
+          p_max: number
+          p_prefix?: string
+        }
+        Returns: string[]
       }
       admin_force_mature_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
       admin_review_request: {
