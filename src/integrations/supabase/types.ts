@@ -751,6 +751,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      is_username_available: { Args: { p_username: string }; Returns: boolean }
       lookup_referrer: {
         Args: { _code: string }
         Returns: {

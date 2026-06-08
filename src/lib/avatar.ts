@@ -9,6 +9,8 @@ const cache = new Map<string, { url: string; exp: number }>();
 export async function resolveAvatarUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  // Preset avatars are static public assets (e.g. "/avatars/01.svg") — use as-is.
+  if (path.startsWith("/")) return path;
 
   const now = Date.now();
   const cached = cache.get(path);
