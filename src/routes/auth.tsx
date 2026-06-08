@@ -129,13 +129,23 @@ function AuthPage() {
 
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === "signup" && (
-              <Field
-                icon={Sprout}
-                type="text"
-                placeholder="Farmer name"
-                value={displayName}
-                onChange={setDisplayName}
-              />
+              <>
+                <Field
+                  icon={Sprout}
+                  type="text"
+                  placeholder="Farmer name"
+                  value={displayName}
+                  onChange={setDisplayName}
+                />
+                <Field
+                  icon={Ticket}
+                  type="text"
+                  placeholder="Affiliate code (optional)"
+                  value={referralCode}
+                  onChange={(v) => setReferralCode(v.toUpperCase())}
+                />
+                <ReferrerPreview code={referralCode} />
+              </>
             )}
             <Field
               icon={Mail}
