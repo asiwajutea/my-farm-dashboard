@@ -64,8 +64,8 @@ function Dashboard() {
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
-        <WalletCard title="Primary Wallet" balance={Number(wallets.primary?.balance ?? 0)} rate={rate} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
-        <WalletCard title="Farming Wallet" balance={Number(wallets.farming?.balance ?? 0)} rate={rate} sub="Active farming activity" accent="primary" icon={Sprout} />
+        <WalletCard title="Primary Wallet" mode="usdt" seed={Number(wallets.primary?.balance ?? 0)} rate={rate} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
+        <WalletCard title="Farming Wallet" mode="seed" seed={Number(wallets.farming?.balance ?? 0)} rate={rate} sub="Active farming activity" accent="primary" icon={Sprout} />
       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -107,17 +107,22 @@ function QuickAction({
 }
 
 function WalletCard({
-  title, balance, rate, sub, accent, icon: Icon,
+  title, mode, seed, rate, sub, accent, icon: Icon,
 }: {
   title: string;
-  balance: number;
+  mode: "usdt" | "seed";
+  seed: number;
   rate: number;
   sub: string;
   accent: "primary" | "gold";
   icon: React.ComponentType<{ className?: string }>;
 }) {
-  const seed = balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const usdt = (balance * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usdt = seed * rate;
+  const main = mode === "usdt" ? fmt(usdt) : fmt(seed);
+  const mainUnit = mode === "usdt" ? "USDT" : "Seed";
+  const subUnit = mode === "usdt" ? "Seed" : "USDT";
+  const subVal = mode === "usdt" ? fmt(seed) : fmt(usdt);
   return (
     <div className="glass relative overflow-hidden rounded-3xl p-6">
       <div className={`pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full blur-3xl ${accent === "gold" ? "bg-gold/15" : "bg-primary/15"}`} />
@@ -129,10 +134,10 @@ function WalletCard({
       </div>
       <div className="relative mt-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-semibold tracking-tight">{seed}</span>
-          <span className="text-sm text-muted-foreground">Seed</span>
+          <span className="text-4xl font-semibold tracking-tight">{main}</span>
+          <span className="text-sm text-muted-foreground">{mainUnit}</span>
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">≈ ${usdt} USDT · {sub}</div>
+        <div className="mt-1 text-xs text-muted-foreground">≈ {subVal} {subUnit} · {sub}</div>
       </div>
     </div>
   );

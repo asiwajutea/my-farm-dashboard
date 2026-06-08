@@ -95,6 +95,77 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          amount: number
+          coupon_id: string
+          id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coupon_id: string
+          id?: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coupon_id?: string
+          id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          amount: number
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          max_redemptions: number
+          updated_at: string
+          used_redemptions: number
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_redemptions?: number
+          updated_at?: string
+          used_redemptions?: number
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_redemptions?: number
+          updated_at?: string
+          used_redemptions?: number
+        }
+        Relationships: []
+      }
       cycles: {
         Row: {
           amount: number
@@ -230,6 +301,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      p2p_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          fee: number
+          id: string
+          note: string | null
+          receiver_id: string
+          sender_id: string
+          status: Database["public"]["Enums"]["transfer_status"]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          fee?: number
+          id?: string
+          note?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: Database["public"]["Enums"]["transfer_status"]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          fee?: number
+          id?: string
+          note?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: Database["public"]["Enums"]["transfer_status"]
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -395,7 +499,12 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      p2p_send: {
+        Args: { p_amount: number; p_note?: string; p_receiver_id: string }
+        Returns: string
+      }
       reap_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      redeem_coupon: { Args: { p_code: string }; Returns: string }
       start_cycle: {
         Args: { p_amount: number; p_booster_id: string }
         Returns: string
@@ -426,7 +535,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "farmer"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
       ledger_kind:
@@ -453,6 +562,7 @@ export type Database = {
         | "adjustment"
         | "test_credit"
       request_status: "pending" | "approved" | "rejected"
+      transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
     }
     CompositeTypes: {
@@ -581,7 +691,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "farmer"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
       ledger_kind: [
@@ -609,6 +719,7 @@ export const Constants = {
         "test_credit",
       ],
       request_status: ["pending", "approved", "rejected"],
+      transfer_status: ["completed", "failed"],
       wallet_kind: ["primary", "farming"],
     },
   },
