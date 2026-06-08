@@ -1,14 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Camera, Check, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
-  Sparkles, Globe, MapPin, Phone, FileText,
+  Check, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
+  Sparkles, Globe, MapPin, Phone, FileText, X,
 } from "lucide-react";
-
-
+import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
+import { PRESET_AVATARS } from "@/lib/avatars";
+import { checkUsernameAvailable } from "@/lib/profile.functions";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
 });
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+type UsernameStatus = "idle" | "invalid" | "checking" | "available" | "taken";
 
 const KYC_META = {
   unverified: { label: "Not verified", icon: ShieldAlert, color: "text-muted-foreground bg-muted/40 border-border" },
@@ -46,18 +47,20 @@ function splitPhone(stored: string | null): { dial: string; local: string } {
 
 function ProfilePage() {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const checkUsernameFn = useServerFn(checkUsernameAvailable);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [countryCode, setCountryCode] = useState<string>(""); // ISO2
   const [phoneDial, setPhoneDial] = useState<string>("");
   const [phoneLocal, setPhoneLocal] = useState<string>("");
@@ -84,6 +87,7 @@ function ProfilePage() {
         setDisplayName(data.display_name ?? "");
         setUsername(data.username ?? "");
         setBio(data.bio ?? "");
+        setSelectedAvatar(data.avatar_url ?? null);
         setAvatarUrl(await resolveAvatarUrl(data.avatar_url));
 
         const existing = findCountryByName(data.country);
@@ -113,6 +117,35 @@ function ProfilePage() {
     () => (countryCode ? COUNTRY_BY_CODE[countryCode] : undefined),
     [countryCode],
   );
+
+  // Live username availability — debounced, with stale-response guarding.
+  useEffect(() => {
+    const u = username.trim().toLowerCase();
+    const current = (profile?.username ?? "").toLowerCase();
+    if (!u || u === current) {
+      setUsernameStatus("idle");
+      return;
+    }
+    if (!/^[a-z0-9_]{3,24}$/.test(u)) {
+      setUsernameStatus("invalid");
+      return;
+    }
+    setUsernameStatus("checking");
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const r = await checkUsernameFn({ data: { username: u } });
+        if (cancelled) return;
+        setUsernameStatus(!r.valid ? "invalid" : r.available ? "available" : "taken");
+      } catch {
+        if (!cancelled) setUsernameStatus("idle");
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [username, profile?.username, checkUsernameFn]);
 
   // Unique dial codes for the phone-code dropdown (e.g. "+1 🇺🇸 🇨🇦").
   const dialOptions = useMemo(() => {
@@ -148,6 +181,10 @@ function ProfilePage() {
     const u = username.trim().toLowerCase();
     if (u && !/^[a-z0-9_]{3,24}$/.test(u)) {
       setError("Username must be 3–24 chars: a-z, 0-9, underscore.");
+      return;
+    }
+    if (usernameStatus === "taken") {
+      setError("That username is already taken.");
       return;
     }
     if (displayName.trim().length > 60) {
@@ -190,30 +227,21 @@ function ProfilePage() {
     router.invalidate();
   };
 
-  const handleAvatar = async (file: File) => {
+  const selectAvatar = async (url: string) => {
+    if (!userId || url === selectedAvatar) return;
     setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("Avatar must be an image.");
-      return;
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setError("Avatar must be under 2 MB.");
-      return;
-    }
-    setUploading(true);
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const path = `${userId}/avatar-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true, contentType: file.type });
+    setSavingAvatar(true);
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ avatar_url: url })
+      .eq("id", userId);
+    setSavingAvatar(false);
     if (upErr) {
-      setUploading(false);
       setError(upErr.message);
       return;
     }
-    await supabase.from("profiles").update({ avatar_url: path }).eq("id", userId);
-    setAvatarUrl(await resolveAvatarUrl(path));
-    setUploading(false);
+    setSelectedAvatar(url);
+    setAvatarUrl(await resolveAvatarUrl(url));
     setSuccess("Avatar updated.");
   };
 
@@ -246,9 +274,9 @@ function ProfilePage() {
         </p>
 
         {/* Avatar + status */}
-        <section className="glass mt-7 flex flex-col items-center gap-5 rounded-3xl p-7 sm:flex-row">
-          <div className="relative">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card">
+        <section className="glass mt-7 rounded-3xl p-7">
+          <div className="flex flex-col items-center gap-5 sm:flex-row">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
@@ -257,49 +285,64 @@ function ProfilePage() {
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="absolute -bottom-1 -right-1 inline-flex items-center justify-center rounded-full border border-border bg-background p-2 shadow-elegant transition-colors hover:bg-card disabled:opacity-60"
-              aria-label="Change avatar"
-            >
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleAvatar(f);
-                e.target.value = "";
-              }}
-            />
+            <div className="flex-1 text-center sm:text-left">
+              <div className="text-lg font-semibold">{displayName || "Farmer"}</div>
+              <div className="text-xs text-muted-foreground">{email}</div>
+              <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${kycMeta.color}`}>
+                <kycMeta.icon className={`h-3.5 w-3.5 ${kyc === "pending" ? "animate-spin" : ""}`} />
+                {kycMeta.label}
+              </div>
+            </div>
+            {profile?.referral_code && (
+              <button
+                type="button"
+                onClick={copyReferral}
+                className="group flex items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3 text-left transition-colors hover:border-primary/40"
+              >
+                <Sparkles className="h-4 w-4 text-gold" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Referral code</div>
+                  <div className="font-mono text-sm font-semibold tracking-wider">{profile.referral_code}</div>
+                </div>
+                {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            )}
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <div className="text-lg font-semibold">{displayName || "Farmer"}</div>
-            <div className="text-xs text-muted-foreground">{email}</div>
-            <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${kycMeta.color}`}>
-              <kycMeta.icon className={`h-3.5 w-3.5 ${kyc === "pending" ? "animate-spin" : ""}`} />
-              {kycMeta.label}
+
+          {/* Preset avatar chooser (no uploads — keeps storage/bandwidth at zero) */}
+          <div className="mt-6 border-t border-border/40 pt-5">
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Choose your avatar</div>
+              {savingAvatar && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </div>
+            <div className="mt-3 grid grid-cols-6 gap-2.5 sm:grid-cols-12">
+              {PRESET_AVATARS.map((a) => {
+                const active = selectedAvatar === a.url;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => selectAvatar(a.url)}
+                    disabled={savingAvatar}
+                    aria-label={`Avatar ${a.id}`}
+                    aria-pressed={active}
+                    className={`relative overflow-hidden rounded-xl border transition-all disabled:opacity-60 ${
+                      active
+                        ? "border-primary ring-2 ring-primary/50"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <img src={a.url} alt="" className="h-full w-full" />
+                    {active && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-primary/20">
+                        <Check className="h-4 w-4 text-white drop-shadow" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          {profile?.referral_code && (
-            <button
-              type="button"
-              onClick={copyReferral}
-              className="group flex items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3 text-left transition-colors hover:border-primary/40"
-            >
-              <Sparkles className="h-4 w-4 text-gold" />
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Referral code</div>
-                <div className="font-mono text-sm font-semibold tracking-wider">{profile.referral_code}</div>
-              </div>
-              {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-            </button>
-          )}
         </section>
 
         {/* Edit form */}
@@ -313,15 +356,56 @@ function ProfilePage() {
             placeholder="Your name on VFarmers"
             maxLength={60}
           />
-          <Field
-            label="Username (handle)"
-            icon={AtSign}
-            value={username}
-            onChange={(v) => setUsername(v.toLowerCase())}
-            placeholder="e.g. sage_farmer"
-            hint="Other Farmers can find you by @handle for P2P transfers."
-            maxLength={24}
-          />
+          {/* Username with live availability feedback */}
+          <label className="block">
+            <div className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <AtSign className="h-3.5 w-3.5" />
+              Username (handle)
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                placeholder="e.g. sage_farmer"
+                maxLength={24}
+                autoComplete="off"
+                className={`w-full rounded-xl border bg-background/40 px-3.5 py-2.5 pr-10 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/60 ${
+                  usernameStatus === "taken" || usernameStatus === "invalid"
+                    ? "border-destructive/60"
+                    : usernameStatus === "available"
+                      ? "border-primary/60"
+                      : "border-border"
+                }`}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {usernameStatus === "available" && <Check className="h-4 w-4 text-primary" />}
+                {(usernameStatus === "taken" || usernameStatus === "invalid") && (
+                  <X className="h-4 w-4 text-destructive" />
+                )}
+              </span>
+            </div>
+            <div className="mt-1 text-[11px]">
+              {usernameStatus === "checking" && (
+                <span className="text-muted-foreground">Checking availability…</span>
+              )}
+              {usernameStatus === "available" && (
+                <span className="text-primary">“{username.trim().toLowerCase()}” is available.</span>
+              )}
+              {usernameStatus === "taken" && (
+                <span className="text-destructive">“{username.trim().toLowerCase()}” is already taken.</span>
+              )}
+              {usernameStatus === "invalid" && (
+                <span className="text-destructive">Use 3–24 characters: a–z, 0–9, underscore.</span>
+              )}
+              {usernameStatus === "idle" && (
+                <span className="text-muted-foreground">
+                  Other Farmers can find you by @handle for P2P transfers.
+                </span>
+              )}
+            </div>
+          </label>
 
           {/* Country */}
           <label className="block">
@@ -425,7 +509,7 @@ function ProfilePage() {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || usernameStatus === "checking" || usernameStatus === "taken" || usernameStatus === "invalid"}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
