@@ -1,103 +1,79 @@
-## Scaffold Plan: All Phases (Skeleton + DB + Navigation)
 
-Build the complete app skeleton so each subsequent phase plugs into existing structure without restructuring. Each page renders a placeholder "Coming in Phase X" UI but is wired to routes, navigation, and (where relevant) real database tables with RLS.
+# Affiliate System + Header Logged-In State
 
----
+## 1. Database (single migration, awaits approval)
 
-### 1. Sidebar Navigation Shell
+**Extend `app_settings`** with affiliate config:
+- `aff_gen1_pct`, `aff_gen2_pct`, `aff_gen3_pct` — cycle commission %s
+- `aff_basis` enum (`profit` | `profit_plus_capital`) — admin-toggleable, default `profit`
+- `maint_fee_seed` (monthly amount), `maint_fee_day` (1–28)
+- `aff_maint_gen1_pct`, `aff_maint_gen2_pct`, `aff_maint_gen3_pct`
 
-Convert `_authenticated/route.tsx` into a layout with `SidebarProvider` + `AppSidebar` + topbar (avatar menu currently in dashboard). New file:
+**New tables**
+- `affiliate_commissions` — `user_id` (earner), `from_user_id` (downline), `generation` 1/2/3, `source` enum (`cycle` | `maintenance`), `source_id`, `basis_amount`, `pct`, `amount`, `paid_at`. RLS: owner SELECT, service_role ALL.
+- `maintenance_fees` — `user_id`, `period_start`, `period_end`, `amount`, `status` enum (`due` | `paid` | `waived` | `overdue`), `paid_at`. RLS: owner SELECT, admin ALL.
 
-- `src/components/app-sidebar.tsx` — collapsible sidebar with sections:
-  - **Wallet**: Dashboard, Wallets, Deposit, Withdraw
-  - **Earn**: Farm (cycles)
-  - **Transfer**: Send (P2P), Coupons, Escrow
-  - **Account**: Profile, Verify (KYC), Notifications
-  - **Admin** (only if `has_role(uid,'admin')`): Admin Console
-- Active route highlight via `useRouterState`.
-- Topbar keeps avatar dropdown + sidebar trigger.
+**Helper**: `get_uplines(_user_id uuid) returns table(user_id uuid, generation int)` — walks `profiles.referred_by` up to 3 levels.
 
-### 2. Database Migrations (one migration each, all skeletons with RLS + GRANTs)
+**RPCs (SECURITY DEFINER)**
+- `pay_cycle_commissions(p_cycle_id)` — called inside `reap_cycle`. Reads `aff_basis`; basis = reward (or reward+principal). Iterates uplines, inserts `affiliate_commissions`, credits each earner's primary wallet via `wallet_adjust` with new ledger kind `affiliate_commission`.
+- `pay_maintenance_fee(p_fee_id)` — debits payer's primary wallet, marks fee paid, then pays uplines using `aff_maint_*` pcts.
+- `admin_run_monthly_maintenance()` — admin-only; creates `due` rows for active farmers for the current period. (Hook to cron later.)
+- Update `handle_new_user()` trigger: read `raw_user_meta_data->>'referral_code'` and resolve to `profiles.referred_by` at signup.
 
-**Phase 4 — Farming**
-- `boosters` (code, label, duration_hours, reward_bps, cost_seed, active) — seeded with 1d/3d/5d/7d.
-- `cycles` (user_id, amount, duration_hours, reward_bps, booster_id?, status enum, started_at, matures_at, reaped_at).
+New `ledger_kind` enum value: `affiliate_commission`, `maintenance_fee`.
 
-**Phase 5 — P2P + Coupons**
-- `p2p_transfers` (sender_id, receiver_id, amount, fee, note, status).
-- `coupons` (code unique, amount, max_redemptions, redemptions_count, expires_at, created_by, active).
-- `coupon_redemptions` (coupon_id, user_id, redeemed_at; unique per pair).
+## 2. Server Functions (`src/lib/affiliate.functions.ts`)
+- `lookupReferrer(code)` — public-readable RPC returning `{ display_name, username, avatar_url }` for a valid code (used live on the signup form).
+- `getMyAffiliateSummary()` — totals earned, downline counts per generation, last 20 commissions.
+- `getMyDownlines()` — paginated list grouped by generation.
+- `getMyMaintenanceStatus()` + `payMaintenanceFee(feeId)`.
+- Admin: `adminSetAffiliateSettings(...)`, `adminRunMonthlyMaintenance()`, `adminListCommissions()`.
 
-**Phase 6 — Escrow**
-- `escrows` (seller_id, buyer_id, amount, status enum, terms, resolved_at).
-- `escrow_events` (escrow_id, actor_id, kind, payload jsonb).
+## 3. UI
 
-**Phase 7 — Admin**
-- `app_role` enum (`admin`, `moderator`, `user`).
-- `user_roles` (user_id, role; unique pair).
-- `has_role(uid, role)` SECURITY DEFINER function.
-- Replace stub `is_admin(uid)` with real `has_role`-backed version.
-- `admin_audit` (admin_id, action, target_table, target_id, payload jsonb).
+**Signup (`src/routes/auth.tsx`)**
+- Add "Affiliate code (optional)" field. Pre-fill from `?ref=CODE` query param.
+- On blur/change, call `lookupReferrer` → show inline card "Referred by **Display Name** (@username)" with avatar; red message if invalid.
+- Pass `referral_code` in `signUp` user metadata so the trigger links `referred_by`.
 
-**Phase 8 — Notifications**
-- `notifications` (user_id, kind, title, body, payload jsonb, read_at).
+**New page `/affiliate`** (sidebar entry under Earn)
+- Summary cards: total earned, gen1/2/3 downlines, this-month commissions.
+- **Share link block**: `https://<site>/auth?ref=<code>` with copy button + WhatsApp/Telegram/X/Facebook share buttons preloaded with a catchy sales message ("I'm growing Seeds on VFarmers 🌱 — join me with my code and start earning. {link}"). Editable message field.
+- Downline tree (3 tabs by generation).
+- Commission history table.
+- Maintenance fee panel: current due, pay button, history.
 
-**Phase 9 — Compliance**
-- Extend `profiles` with `tos_accepted_at`, `risk_accepted_at`.
-- `kyc_submissions` (user_id, id_doc_path, selfie_path, status, reviewer_id, reviewed_at, notes).
-- Storage bucket `kyc` (private; owner-write, admin-read).
+**Admin (`/admin/settings`)** — replace placeholder with form for: affiliate gen %s, profit basis toggle, maintenance fee amount/day, maintenance gen %s. Plus a "Run monthly maintenance now" button.
+**Admin (`/admin/affiliates`)** — new page: top earners, all commissions, downline lookup.
 
-All tables: RLS enabled, owner-read/write policies for user-owned rows, admin full-access via `has_role`, GRANTs to `authenticated` + `service_role`.
+**Header**
+- Landing (`src/routes/index.tsx`): on mount check `supabase.auth.getSession()`. If signed in → hide "Sign in" / "Become a Farmer", show avatar + name chip + primary "Go to Dashboard" button. Signed-out → unchanged.
+- Authenticated `AppTopbar` is already correct (avatar + name).
 
-### 3. Route Skeletons
+## 4. Files
 
-All new routes render a consistent `<PagePlaceholder phase=X title=... description=... />` component until their phase is implemented.
+**Create**
+- `supabase/migrations/<ts>_affiliate.sql`
+- `src/lib/affiliate.functions.ts`
+- `src/routes/_authenticated/affiliate.tsx`
+- `src/routes/_authenticated/admin/affiliates.tsx`
+- `src/components/affiliate/ShareLink.tsx`, `ReferrerPreview.tsx`
 
-**Public routes**
-- `src/routes/terms.tsx`
-- `src/routes/privacy.tsx`
-- `src/routes/risk-disclosure.tsx`
-- `src/routes/aml.tsx`
+**Edit**
+- `src/routes/auth.tsx` (referral field + preview + metadata)
+- `src/routes/index.tsx` (logged-in-aware header)
+- `src/components/app-sidebar.tsx` (Affiliate link; Affiliates under Admin)
+- `src/routes/_authenticated/admin/settings.tsx` (real form)
+- `src/integrations/supabase/types.ts` regenerates after migration
 
-**Authenticated routes**
-- `_authenticated/wallets.tsx` — already exists as `wallet.tsx`; rename to `wallets.index.tsx` and add `wallets.$kind.tsx` detail.
-- `_authenticated/deposit.tsx`
-- `_authenticated/withdraw.tsx`
-- `_authenticated/farm.tsx`
-- `_authenticated/send.tsx`
-- `_authenticated/coupons.tsx`
-- `_authenticated/escrow.tsx` + `escrow.$id.tsx`
-- `_authenticated/notifications.tsx`
-- `_authenticated/verify.tsx` (KYC)
+## 5. Order of execution
+1. Submit migration → wait for approval.
+2. Build server fns + UI + header changes.
+3. Verify: signup with `?ref=`, reap cycle credits uplines, admin run maintenance creates fees, paying a fee credits uplines.
 
-**Admin routes** (gated by `has_role`)
-- `_authenticated/admin/route.tsx` — guard layout
-- `_authenticated/admin/index.tsx` — overview
-- `_authenticated/admin/farmers.tsx`
-- `_authenticated/admin/requests.tsx`
-- `_authenticated/admin/cycles.tsx`
-- `_authenticated/admin/escrow.tsx`
-- `_authenticated/admin/settings.tsx`
-- `_authenticated/admin/coupons.tsx`
-- `_authenticated/admin/audit.tsx`
-
-### 4. Shared UI
-
-- `src/components/PagePlaceholder.tsx` — consistent skeleton card with phase badge, title, description, "Coming soon" CTA.
-- `src/hooks/use-admin.ts` — `useQuery` calling a `checkIsAdmin` serverFn (uses `has_role`).
-
-### 5. Out of Scope (deferred to phase work)
-
-- Business logic for any new feature (cycles math, escrow lifecycle, P2P transfer SQL fn, KYC review flow, notifications triggers, admin actions).
-- Real-time subscriptions.
-- Payment provider integration.
-
----
-
-### Build Safety
-- One migration per phase domain to keep approvals reviewable.
-- All admin pages render placeholder until Phase 7 wires the gate; layout still calls `has_role` so non-admins get 403 today.
-- No `<Link to=...>` will reference a route before its file exists — sidebar items are added in the same pass as the route files.
-- No protected loaders on public routes.
-
-Approve and I'll execute migrations first, then code in parallel.
+## Assumptions
+- Commissions paid instantly into the earner's **primary** wallet (USDT-denominated Seed).
+- Maintenance fee charged in Seed from the primary wallet; auto-marked `overdue` after 7 days (cron later).
+- No self-referral; circular chains blocked by `referred_by` check at signup.
+- Generation counted by chain depth, not date.
