@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   UserCircle,
   Shield,
+  Users,
 } from "lucide-react";
 
 import logo from "@/assets/vfarm-logo.png";
@@ -40,6 +41,7 @@ const wallet: Item[] = [
 
 const earn: Item[] = [
   { title: "Farm", url: "/farm", icon: Sprout },
+  { title: "Affiliate", url: "/affiliate", icon: Users },
 ];
 
 const transfer: Item[] = [
@@ -100,7 +102,10 @@ export function AppSidebar() {
         {renderGroup("Earn", earn)}
         {renderGroup("Transfer", transfer)}
         {renderGroup("Account", account)}
-        {isAdmin && renderGroup("Admin", [{ title: "Admin Console", url: "/admin", icon: Shield }])}
+        {isAdmin && renderGroup("Admin", [
+          { title: "Admin Console", url: "/admin", icon: Shield },
+          { title: "Affiliates", url: "/admin/affiliates", icon: Users },
+        ])}
       </SidebarContent>
     </Sidebar>
   );
