@@ -1,11 +1,16 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sprout, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Sprout, Mail, Lock, ArrowRight, Loader2, Ticket } from "lucide-react";
+import { z } from "zod";
 import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { ReferrerPreview } from "@/components/affiliate/ReferrerPreview";
+
+const searchSchema = z.object({ ref: z.string().optional() });
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "Sign in · VFarmers" },
