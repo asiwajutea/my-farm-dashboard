@@ -25,7 +25,7 @@ function AdminHome() {
       </div>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Operations</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Full admin tooling lands in Phase 7. The structure and access gate are wired today.
+        Manage requests, farmers, cycles, escrow disputes, coupons, and review the audit trail.
       </p>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       affiliate_commissions: {
         Row: {
           amount: number
@@ -512,6 +542,7 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
+          frozen: boolean
           id: string
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           phone: string | null
@@ -526,6 +557,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          frozen?: boolean
           id: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone?: string | null
@@ -540,6 +572,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          frozen?: boolean
           id?: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone?: string | null
@@ -650,7 +683,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_balance: {
+        Args: { p_amount: number; p_memo?: string; p_user: string }
+        Returns: undefined
+      }
+      admin_cancel_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      admin_create_coupon: {
+        Args: {
+          p_amount: number
+          p_code: string
+          p_expires?: string
+          p_max: number
+        }
+        Returns: string
+      }
+      admin_force_mature_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      admin_review_request: {
+        Args: { p_approve: boolean; p_id: string; p_note?: string; p_type: string }
+        Returns: undefined
+      }
       admin_run_monthly_maintenance: { Args: never; Returns: number }
+      admin_set_coupon_active: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
+      admin_set_frozen: { Args: { p_frozen: boolean; p_user: string }; Returns: undefined }
       escrow_accept: { Args: { p_id: string }; Returns: undefined }
       escrow_cancel: { Args: { p_id: string }; Returns: undefined }
       escrow_create: {

@@ -14,6 +14,9 @@ import {
   UserCircle,
   Shield,
   Users,
+  Inbox,
+  FileText,
+  Settings,
   ChevronDown,
 } from "lucide-react";
 
@@ -148,7 +151,14 @@ export function AppSidebar() {
           {renderGroup("Account", account)}
           {isAdmin && renderGroup("Admin", [
             { title: "Admin Console", url: "/admin", icon: Shield },
+            { title: "Requests", url: "/admin/requests", icon: Inbox },
+            { title: "Farmers", url: "/admin/farmers", icon: Users },
+            { title: "Cycles", url: "/admin/cycles", icon: Sprout },
+            { title: "Escrow", url: "/admin/escrow", icon: Handshake },
+            { title: "Coupons", url: "/admin/coupons", icon: Ticket },
             { title: "Affiliates", url: "/admin/affiliates", icon: Users },
+            { title: "Settings", url: "/admin/settings", icon: Settings },
+            { title: "Audit Log", url: "/admin/audit", icon: FileText },
           ])}
         </SidebarContent>
 
