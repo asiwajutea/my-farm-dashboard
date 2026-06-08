@@ -9,8 +9,6 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Search,
-  Wallet as WalletIcon,
-  ArrowRightLeft,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +52,6 @@ function SendPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [balance, setBalance] = useState(0);
-  const [rate, setRate] = useState(1); // seed_to_usdt: USDT value of 1 Seed
 
   // Recipient confirmation popup state
   const [pending, setPending] = useState<RecipientPreview | null>(null);
@@ -71,17 +68,13 @@ function SendPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const [{ data: w }, { data: settings }] = await Promise.all([
-      supabase
-        .from("wallets")
-        .select("balance")
-        .eq("user_id", user.id)
-        .eq("kind", "primary")
-        .maybeSingle(),
-      supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
-    ]);
+    const { data: w } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .eq("kind", "primary")
+      .maybeSingle();
     setBalance(Number(w?.balance ?? 0));
-    if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
   };
 
   useEffect(() => {
@@ -92,9 +85,11 @@ function SendPage() {
 
   const lookup = useMutation({
     mutationFn: (h: string) => lookupFn({ data: { handle: h } }),
-    onSuccess: (r) => {
+    onSuccess: (r, h) => {
       if (!r) {
-        toast.error("No farmer found with that handle.");
+        // No matching account for the entered username/referral code.
+        setRecipient(null);
+        toast.error(`No farmer matches "${h}". Check the username or referral code and try again.`);
         return;
       }
       // Surface the matched account for explicit confirmation before sending.
@@ -150,27 +145,6 @@ function SendPage() {
           Transfer Seeds to another farmer using their username or referral code.
         </p>
       </header>
-
-      {/* Minimalist wallet balance + rate */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="glass rounded-3xl p-5">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <WalletIcon className="h-4 w-4" />
-            Available Balance
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">
-              {fmt(balance)}
-            </span>
-            <span className="text-sm text-muted-foreground">Seed</span>
-          </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            ≈ {fmt(balance * rate)} USDT
-          </div>
-        </div>
-
-        <RateConverter rate={rate} />
-      </section>
 
       <form onSubmit={handleSubmit} className="glass space-y-5 rounded-3xl p-6">
         <div className="space-y-2">
@@ -242,7 +216,6 @@ function SendPage() {
           {amt > 0 && (
             <div className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-xs">
               Total debit: <span className="font-semibold">{total.toLocaleString()}</span> Seed
-              <span className="text-muted-foreground"> · ≈ {fmt(total * rate)} USDT</span>
             </div>
           )}
         </div>
@@ -344,44 +317,6 @@ function SendPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function RateConverter({ rate }: { rate: number }) {
-  // rate = USDT value of 1 Seed (seed_to_usdt). So 1 USDT = 1/rate Seed.
-  const [usdt, setUsdt] = useState("1");
-  const usdtNum = Number(usdt) || 0;
-  const seedOut = rate > 0 ? usdtNum / rate : 0;
-
-  return (
-    <div className="glass rounded-3xl p-5">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        <ArrowRightLeft className="h-4 w-4" />
-        USDT → Seed
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Input
-            inputMode="decimal"
-            value={usdt}
-            onChange={(e) => setUsdt(e.target.value)}
-            className="pr-14"
-            aria-label="USDT amount"
-          />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            USDT
-          </span>
-        </div>
-        <ArrowRightLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <div className="flex-1 rounded-md border border-border/60 bg-card/40 px-3 py-2 text-sm tabular-nums">
-          {fmt(seedOut, 4)}
-          <span className="ml-1 text-xs text-muted-foreground">Seed</span>
-        </div>
-      </div>
-      <div className="mt-2 text-xs text-muted-foreground">
-        1 Seed ≈ {fmt(rate, 4)} USDT · 1 USDT ≈ {rate > 0 ? fmt(1 / rate, 4) : "—"} Seed
-      </div>
     </div>
   );
 }
