@@ -3,10 +3,13 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 import type { RequestStatus } from "@/lib/requests.shared";
 import type { EscrowStatus } from "@/lib/escrow.functions";
+
+// Admin detection now lives in its own isolated module; re-exported here for
+// backwards compatibility with any existing importers.
+export { checkIsAdmin } from "@/lib/is-admin.functions";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -105,6 +108,16 @@ export type AdminAuditRow = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// IMPORTANT: the service-role client is loaded lazily INSIDE handlers via this
+// helper. It must never be imported at module scope here, because this module
+// is also imported by client code (e.g. the `useIsAdmin` hook → `checkIsAdmin`).
+// A static `import { supabaseAdmin } from ".../client.server"` would pull a
+// server-only module into the client bundle and break admin detection.
+async function adminDb(): Promise<Db> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
 async function ensureAdmin(supabase: Db, userId: string): Promise<void> {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
@@ -113,33 +126,17 @@ async function ensureAdmin(supabase: Db, userId: string): Promise<void> {
   if (error || data !== true) throw new Error("Admin only");
 }
 
-async function fetchFarmerMap(ids: string[]): Promise<Map<string, FarmerLite>> {
+async function fetchFarmerMap(sb: Db, ids: string[]): Promise<Map<string, FarmerLite>> {
   const map = new Map<string, FarmerLite>();
   const unique = Array.from(new Set(ids)).filter(Boolean);
   if (!unique.length) return map;
-  const { data } = await supabaseAdmin
+  const { data } = await sb
     .from("profiles")
     .select("id, display_name, username, avatar_url")
     .in("id", unique);
   for (const p of data ?? []) map.set(p.id, p as FarmerLite);
   return map;
 }
-
-// ---------------------------------------------------------------------------
-// Admin check (used by useIsAdmin hook + route guard)
-// ---------------------------------------------------------------------------
-
-export const checkIsAdmin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ isAdmin: boolean }> => {
-    const { supabase, userId } = context;
-    const { data, error } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (error) return { isAdmin: false };
-    return { isAdmin: data === true };
-  });
 
 // ---------------------------------------------------------------------------
 // Requests — list + approve/reject + proof URL
@@ -154,6 +151,7 @@ export const adminListRequests = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => listRequestsInput.parse(d))
   .handler(async ({ data, context }): Promise<AdminRequestRow[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
 
     const select = "id, user_id, amount, method, status, proof_url, admin_note, created_at";
     const applyStatus = <T,>(q: T): T => {
@@ -163,12 +161,12 @@ export const adminListRequests = createServerFn({ method: "GET" })
     };
 
     const [dep, wd] = await Promise.all([
-      applyStatus(
-        supabaseAdmin.from("deposit_requests").select(select),
-      ).order("created_at", { ascending: false }).limit(100),
-      applyStatus(
-        supabaseAdmin.from("withdrawal_requests").select(select),
-      ).order("created_at", { ascending: false }).limit(100),
+      applyStatus(sb.from("deposit_requests").select(select))
+        .order("created_at", { ascending: false })
+        .limit(100),
+      applyStatus(sb.from("withdrawal_requests").select(select))
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
     if (dep.error) throw new Error(dep.error.message);
     if (wd.error) throw new Error(wd.error.message);
@@ -177,7 +175,7 @@ export const adminListRequests = createServerFn({ method: "GET" })
       ...(dep.data ?? []).map((r) => ({ ...r, type: "deposit" as const })),
       ...(wd.data ?? []).map((r) => ({ ...r, type: "withdrawal" as const })),
     ];
-    const farmers = await fetchFarmerMap(rows.map((r) => r.user_id));
+    const farmers = await fetchFarmerMap(sb, rows.map((r) => r.user_id));
 
     return rows
       .map((r) => ({
@@ -223,7 +221,8 @@ export const adminGetProofUrl = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => proofInput.parse(d))
   .handler(async ({ data, context }): Promise<{ url: string | null }> => {
     await ensureAdmin(context.supabase as Db, context.userId);
-    const { data: signed, error } = await supabaseAdmin.storage
+    const sb = await adminDb();
+    const { data: signed, error } = await sb.storage
       .from("proofs")
       .createSignedUrl(data.path, 60 * 10);
     if (error || !signed?.signedUrl) return { url: null };
@@ -241,8 +240,9 @@ export const adminListFarmers = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => listFarmersInput.parse(d))
   .handler(async ({ data, context }): Promise<AdminFarmerRow[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
 
-    let q = supabaseAdmin
+    let q = sb
       .from("profiles")
       .select("id, display_name, username, avatar_url, country, frozen, kyc_status, created_at")
       .order("created_at", { ascending: false })
@@ -259,7 +259,7 @@ export const adminListFarmers = createServerFn({ method: "GET" })
 
     const balances = new Map<string, { primary: number; farming: number }>();
     if (ids.length) {
-      const { data: wallets } = await supabaseAdmin
+      const { data: wallets } = await sb
         .from("wallets")
         .select("user_id, kind, balance")
         .in("user_id", ids);
@@ -292,8 +292,9 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => farmerIdInput.parse(d))
   .handler(async ({ data, context }): Promise<AdminFarmerDetail | null> => {
     await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
 
-    const { data: p, error } = await supabaseAdmin
+    const { data: p, error } = await sb
       .from("profiles")
       .select(
         "id, display_name, username, avatar_url, country, frozen, kyc_status, created_at, referral_code, phone",
@@ -304,9 +305,9 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
     if (!p) return null;
 
     const [{ data: wallets }, { data: roles }, { data: ledger }] = await Promise.all([
-      supabaseAdmin.from("wallets").select("kind, balance").eq("user_id", data.userId),
-      supabaseAdmin.from("user_roles").select("role").eq("user_id", data.userId).eq("role", "admin"),
-      supabaseAdmin
+      sb.from("wallets").select("kind, balance").eq("user_id", data.userId),
+      sb.from("user_roles").select("role").eq("user_id", data.userId).eq("role", "admin"),
+      sb
         .from("ledger_entries")
         .select("id, kind, amount, memo, created_at")
         .eq("user_id", data.userId)
@@ -393,8 +394,9 @@ export const adminListCycles = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => listCyclesInput.parse(d))
   .handler(async ({ data, context }): Promise<AdminCycleRow[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
 
-    let q = supabaseAdmin
+    let q = sb
       .from("cycles")
       .select("id, user_id, amount, status, started_at, matures_at, reward_bps")
       .order("started_at", { ascending: false })
@@ -403,7 +405,7 @@ export const adminListCycles = createServerFn({ method: "GET" })
 
     const { data: cycles, error } = await q;
     if (error) throw new Error(error.message);
-    const farmers = await fetchFarmerMap((cycles ?? []).map((c) => c.user_id));
+    const farmers = await fetchFarmerMap(sb, (cycles ?? []).map((c) => c.user_id));
 
     return (cycles ?? []).map((c) => ({
       id: c.id,
@@ -445,7 +447,8 @@ export const adminListEscrowDisputes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminEscrowDispute[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
-    const { data: rows, error } = await supabaseAdmin
+    const sb = await adminDb();
+    const { data: rows, error } = await sb
       .from("escrow_trades")
       .select("id, amount, title, terms, dispute_reason, status, created_at, payer_id, payee_id")
       .eq("status", "disputed")
@@ -453,6 +456,7 @@ export const adminListEscrowDisputes = createServerFn({ method: "GET" })
       .limit(100);
     if (error) throw new Error(error.message);
     const farmers = await fetchFarmerMap(
+      sb,
       (rows ?? []).flatMap((r) => [r.payer_id, r.payee_id]),
     );
     return (rows ?? []).map((r) => ({
@@ -485,7 +489,8 @@ export const adminResolveEscrow = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     // Audit (best-effort; escrow_resolve itself is the source of truth).
-    await supabaseAdmin.from("admin_audit_log").insert({
+    const sb = await adminDb();
+    await sb.from("admin_audit_log").insert({
       actor_id: context.userId,
       action: data.release ? "escrow_released" : "escrow_refunded",
       target_type: "escrow",
@@ -503,7 +508,8 @@ export const adminListCoupons = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminCouponRow[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
-    const { data: rows, error } = await supabaseAdmin
+    const sb = await adminDb();
+    const { data: rows, error } = await sb
       .from("coupons")
       .select("id, code, amount, max_redemptions, used_redemptions, active, expires_at, created_at")
       .order("created_at", { ascending: false })
@@ -564,13 +570,14 @@ export const adminListAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminAuditRow[]> => {
     await ensureAdmin(context.supabase as Db, context.userId);
-    const { data: rows, error } = await supabaseAdmin
+    const sb = await adminDb();
+    const { data: rows, error } = await sb
       .from("admin_audit_log")
       .select("id, action, target_type, target_id, detail, created_at, actor_id")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
-    const actors = await fetchFarmerMap((rows ?? []).map((r) => r.actor_id));
+    const actors = await fetchFarmerMap(sb, (rows ?? []).map((r) => r.actor_id));
     return (rows ?? []).map((r) => ({
       id: r.id,
       action: r.action,
