@@ -82,6 +82,9 @@ export type Database = {
           id: boolean
           maint_fee_day: number
           maint_fee_seed: number
+          maint_message: string
+          maint_mode_global: boolean
+          maint_pages: Json
           max_cycle_seed: number
           min_cycle_seed: number
           min_deposit_seed: number
@@ -89,6 +92,8 @@ export type Database = {
           p2p_fee_pct: number
           referral_bonus_pct: number
           seed_to_usdt: number
+          ticker_enabled: boolean
+          ticker_items: Json
           updated_at: string
           withdraw_fee_pct: number
         }
@@ -105,6 +110,9 @@ export type Database = {
           id?: boolean
           maint_fee_day?: number
           maint_fee_seed?: number
+          maint_message?: string
+          maint_mode_global?: boolean
+          maint_pages?: Json
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -112,6 +120,8 @@ export type Database = {
           p2p_fee_pct?: number
           referral_bonus_pct?: number
           seed_to_usdt?: number
+          ticker_enabled?: boolean
+          ticker_items?: Json
           updated_at?: string
           withdraw_fee_pct?: number
         }
@@ -128,6 +138,9 @@ export type Database = {
           id?: boolean
           maint_fee_day?: number
           maint_fee_seed?: number
+          maint_message?: string
+          maint_mode_global?: boolean
+          maint_pages?: Json
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -135,6 +148,8 @@ export type Database = {
           p2p_fee_pct?: number
           referral_bonus_pct?: number
           seed_to_usdt?: number
+          ticker_enabled?: boolean
+          ticker_items?: Json
           updated_at?: string
           withdraw_fee_pct?: number
         }
@@ -606,6 +621,14 @@ export type Database = {
     }
     Functions: {
       admin_run_monthly_maintenance: { Args: never; Returns: number }
+      admin_set_maintenance: {
+        Args: { p_global: boolean; p_message: string; p_pages: Json }
+        Returns: undefined
+      }
+      admin_set_ticker: {
+        Args: { p_enabled: boolean; p_items: Json }
+        Returns: undefined
+      }
       find_profile_by_handle: {
         Args: { handle: string }
         Returns: {
