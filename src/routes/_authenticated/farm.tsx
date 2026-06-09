@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useSeedRate } from "@/components/wallet/RequestForm";
+import { seedToUsdt, fmtAmount } from "@/lib/currency";
 import {
   listBoosters,
   listMyCycles,
@@ -34,6 +36,11 @@ function bpsToPct(bps: number) {
   return (bps / 100).toFixed(2) + "%";
 }
 
+/** "1,234.00 Seed (≈ 12.34 USDT)" — users see Seed primary, USDT equivalent. */
+function seedWithUsdt(seed: number, rate: number) {
+  return `${fmt(seed)} Seed (≈ ${fmtAmount(seedToUsdt(seed, rate))} USDT)`;
+}
+
 function FarmPage() {
   const qc = useQueryClient();
   const fnBoosters = useServerFn(listBoosters);
@@ -45,6 +52,7 @@ function FarmPage() {
   const boostersQ = useQuery({ queryKey: ["boosters"], queryFn: () => fnBoosters() });
   const cyclesQ = useQuery({ queryKey: ["cycles"], queryFn: () => fnCycles(), refetchInterval: 30_000 });
   const balanceQ = useQuery({ queryKey: ["farming-balance"], queryFn: () => fnBalance() });
+  const { data: rate = 1 } = useSeedRate();
 
   const [boosterId, setBoosterId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -98,14 +106,14 @@ function FarmPage() {
               <span className="text-muted-foreground inline-flex items-center gap-1.5">
                 <WalletIcon className="h-3.5 w-3.5" /> Farming balance
               </span>
-              <span className="font-medium">{fmt(balance)} Seed</span>
+              <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
             </div>
 
             <div className="space-y-2">
               <Label>Plan</Label>
               <div className="grid grid-cols-2 gap-2">
                 {boostersQ.data?.map((b) => (
-                  <BoosterTile key={b.id} booster={b} selected={b.id === boosterId} onSelect={() => setBoosterId(b.id)} />
+                  <BoosterTile key={b.id} booster={b} rate={rate} selected={b.id === boosterId} onSelect={() => setBoosterId(b.id)} />
                 ))}
                 {!boostersQ.data?.length && boostersQ.isLoading && (
                   <div className="skeleton col-span-2 h-20 rounded-lg" />
@@ -125,9 +133,14 @@ function FarmPage() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 100"
               />
+              {amt > 0 && (
+                <p className="text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(amt, rate))} USDT</p>
+              )}
               {selected && amt > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Projected reward at maturity: <span className="font-medium text-foreground">{fmt(projectedReward)} Seed</span> ({bpsToPct(selected.reward_bps)})
+                  Projected reward at maturity:{" "}
+                  <span className="font-medium text-foreground">{seedWithUsdt(projectedReward, rate)}</span>{" "}
+                  ({bpsToPct(selected.reward_bps)})
                 </p>
               )}
               {amt > balance && (
@@ -153,7 +166,7 @@ function FarmPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <FarmingStats cycles={cyclesQ.data ?? []} balance={balance} />
+            <FarmingStats cycles={cyclesQ.data ?? []} balance={balance} rate={rate} />
           </CardContent>
         </Card>
       </div>
@@ -173,7 +186,7 @@ function FarmPage() {
             </div>
           )}
           {cyclesQ.data?.map((c) => (
-            <CycleCard key={c.id} cycle={c} onReap={() => reapMut.mutate(c.id)} reaping={reapMut.isPending} />
+            <CycleCard key={c.id} cycle={c} rate={rate} onReap={() => reapMut.mutate(c.id)} reaping={reapMut.isPending} />
           ))}
         </div>
       </div>
@@ -181,7 +194,8 @@ function FarmPage() {
   );
 }
 
-function BoosterTile({ booster, selected, onSelect }: { booster: Booster; selected: boolean; onSelect: () => void }) {
+function BoosterTile({ booster, rate, selected, onSelect }: { booster: Booster; rate: number; selected: boolean; onSelect: () => void }) {
+  const cost = Number(booster.cost_seed);
   return (
     <button
       type="button"
@@ -199,11 +213,16 @@ function BoosterTile({ booster, selected, onSelect }: { booster: Booster; select
         </span>
         <span className="font-medium text-primary">{bpsToPct(booster.reward_bps)}</span>
       </div>
+      {cost > 0 && (
+        <div className="mt-1 text-[11px] text-muted-foreground">
+          Cost: {fmt(cost)} Seed (≈ {fmtAmount(seedToUsdt(cost, rate))} USDT)
+        </div>
+      )}
     </button>
   );
 }
 
-function FarmingStats({ cycles, balance }: { cycles: Cycle[]; balance: number }) {
+function FarmingStats({ cycles, balance, rate }: { cycles: Cycle[]; balance: number; rate: number }) {
   const active = cycles.filter((c) => c.status === "active" || c.status === "matured");
   const locked = active.reduce((s, c) => s + Number(c.amount), 0);
   const pendingReward = active.reduce((s, c) => s + (Number(c.amount) * c.reward_bps) / 10000, 0);
@@ -212,19 +231,20 @@ function FarmingStats({ cycles, balance }: { cycles: Cycle[]; balance: number })
     .reduce((s, c) => s + (Number(c.amount) * c.reward_bps) / 10000, 0);
   return (
     <dl className="grid grid-cols-2 gap-4 text-sm">
-      <Stat label="Farming balance" value={`${fmt(balance)} Seed`} />
-      <Stat label="Locked in cycles" value={`${fmt(locked)} Seed`} />
-      <Stat label="Pending rewards" value={`${fmt(pendingReward)} Seed`} />
-      <Stat label="Lifetime rewards" value={`${fmt(reapedReward)} Seed`} />
+      <Stat label="Farming balance" value={`${fmt(balance)} Seed`} sub={`≈ ${fmtAmount(seedToUsdt(balance, rate))} USDT`} />
+      <Stat label="Locked in cycles" value={`${fmt(locked)} Seed`} sub={`≈ ${fmtAmount(seedToUsdt(locked, rate))} USDT`} />
+      <Stat label="Pending rewards" value={`${fmt(pendingReward)} Seed`} sub={`≈ ${fmtAmount(seedToUsdt(pendingReward, rate))} USDT`} />
+      <Stat label="Lifetime rewards" value={`${fmt(reapedReward)} Seed`} sub={`≈ ${fmtAmount(seedToUsdt(reapedReward, rate))} USDT`} />
     </dl>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 text-base font-semibold">{value}</dd>
+      {sub && <dd className="text-[11px] text-muted-foreground">{sub}</dd>}
     </div>
   );
 }
@@ -250,10 +270,11 @@ function formatRemaining(ms: number) {
   return `${m}m ${sec}s`;
 }
 
-function CycleCard({ cycle, onReap, reaping }: { cycle: Cycle; onReap: () => void; reaping: boolean }) {
+function CycleCard({ cycle, rate, onReap, reaping }: { cycle: Cycle; rate: number; onReap: () => void; reaping: boolean }) {
   const remaining = useCountdown(cycle.matures_at);
   const matured = remaining === 0 && cycle.status !== "reaped" && cycle.status !== "cancelled";
-  const reward = (Number(cycle.amount) * cycle.reward_bps) / 10000;
+  const amount = Number(cycle.amount);
+  const reward = (amount * cycle.reward_bps) / 10000;
   const total = cycle.duration_hours * 3600 * 1000;
   const elapsed = Math.min(total, total - remaining);
   const pct = total > 0 ? Math.round((elapsed / total) * 100) : 100;
@@ -263,7 +284,8 @@ function CycleCard({ cycle, onReap, reaping }: { cycle: Cycle; onReap: () => voi
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{fmt(Number(cycle.amount))} Seed</span>
+            <span className="font-medium">{fmt(amount)} Seed</span>
+            <span className="text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(amount, rate))} USDT</span>
             <Badge variant={cycle.status === "reaped" ? "secondary" : matured ? "default" : "outline"}>
               {cycle.status === "reaped" ? "Reaped" : matured ? "Matured" : "Active"}
             </Badge>
@@ -279,7 +301,7 @@ function CycleCard({ cycle, onReap, reaping }: { cycle: Cycle; onReap: () => voi
                 ? `Reaped ${cycle.reaped_at ? new Date(cycle.reaped_at).toLocaleDateString() : ""}`
                 : formatRemaining(remaining)}
             </span>
-            <span>Reward: {fmt(reward)} Seed</span>
+            <span>Reward: {fmt(reward)} Seed (≈ {fmtAmount(seedToUsdt(reward, rate))} USDT)</span>
           </div>
         </div>
         <div className="shrink-0">

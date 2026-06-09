@@ -772,6 +772,17 @@ export type Database = {
         Returns: undefined
       }
       admin_cancel_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      admin_create_booster: {
+        Args: {
+          p_active?: boolean
+          p_code: string
+          p_cost_seed?: number
+          p_duration_hours: number
+          p_label: string
+          p_reward_bps: number
+        }
+        Returns: string
+      }
       admin_create_coupon: {
         Args: {
           p_amount: number
@@ -803,11 +814,27 @@ export type Database = {
         Returns: undefined
       }
       admin_run_monthly_maintenance: { Args: never; Returns: number }
+      admin_delete_booster: { Args: { p_id: string }; Returns: undefined }
+      admin_set_booster_active: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
       admin_set_coupon_active: {
         Args: { p_active: boolean; p_id: string }
         Returns: undefined
       }
       admin_set_frozen: { Args: { p_frozen: boolean; p_user: string }; Returns: undefined }
+      admin_update_booster: {
+        Args: {
+          p_active: boolean
+          p_cost_seed: number
+          p_duration_hours: number
+          p_id: string
+          p_label: string
+          p_reward_bps: number
+        }
+        Returns: undefined
+      }
       escrow_accept: { Args: { p_id: string }; Returns: undefined }
       escrow_cancel: { Args: { p_id: string }; Returns: undefined }
       escrow_create: {
