@@ -1,5 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Settings, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { Settings, Users, Zap } from "lucide-react";
+
+import {
+  getPlatformSettings,
+  adminUpdatePlatformSettings,
+  adminListBoosters,
+  type PlatformSettings,
+} from "@/lib/settings.functions";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loadable } from "@/components/ui/loadable";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Settings · Admin" }] }),
@@ -7,22 +20,303 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 });
 
 function AdminSettingsPage() {
+  const getFn = useServerFn(getPlatformSettings);
+  const saveFn = useServerFn(adminUpdatePlatformSettings);
+  const boostersFn = useServerFn(adminListBoosters);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["platform-settings"],
+    queryFn: () => getFn(),
+  });
+  const boostersQ = useQuery({ queryKey: ["admin-boosters"], queryFn: () => boostersFn() });
+
+  const [form, setForm] = useState<PlatformSettings | null>(null);
+
+  useEffect(() => {
+    if (data && !form) setForm(data);
+  }, [data, form]);
+
+  const save = useMutation({
+    mutationFn: (f: PlatformSettings) => saveFn({ data: f }),
+    onSuccess: () => {
+      toast.success("Platform settings saved");
+      refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (isLoading || !form) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6 p-5">
+        <Skeleton className="h-8 w-56" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <section key={i} className="rounded-2xl border border-border bg-card/40 p-5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="mt-2 h-3 w-64" />
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <Skeleton key={j} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          </section>
+        ))}
+        <Skeleton className="h-10 w-44 rounded-lg" />
+      </div>
+    );
+  }
+
+  const set = <K extends keyof PlatformSettings>(k: K, v: PlatformSettings[K]) =>
+    setForm({ ...form, [k]: v });
+  const pct = (v: number) => (v * 100).toFixed(2);
+  const fromPct = (v: string) => Math.max(0, Math.min(100, Number(v) || 0)) / 100;
+  const cycleInvalid = form.max_cycle_seed < form.min_cycle_seed;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
+    <div className="mx-auto max-w-3xl space-y-6 p-5">
       <div className="flex items-center gap-2">
         <Settings className="h-5 w-5" />
         <h1 className="text-2xl font-semibold tracking-tight">Platform Settings</h1>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Configure affiliate commissions, profit basis, and maintenance fees.
+      <p className="-mt-3 text-sm text-muted-foreground">
+        Core economic parameters. Affiliate commissions & maintenance fees are managed separately.
       </p>
-      <Link
-        to="/admin/affiliates"
-        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-semibold text-primary-foreground"
-      >
-        <Users className="h-4 w-4" />
-        Open Affiliate Settings
-      </Link>
+
+      {/* Conversion */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <h2 className="text-sm font-semibold">Conversion</h2>
+        <p className="text-xs text-muted-foreground">USDT value of 1 Seed, used across wallet & P2P.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <NumField
+            label="1 Seed = USDT"
+            step="0.00000001"
+            value={form.seed_to_usdt}
+            onChange={(v) => set("seed_to_usdt", v)}
+          />
+        </div>
+      </section>
+
+      {/* Deposits & withdrawals */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <h2 className="text-sm font-semibold">Deposits & withdrawals</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <NumField
+            label="Min deposit (Seed)"
+            value={form.min_deposit_seed}
+            onChange={(v) => set("min_deposit_seed", v)}
+          />
+          <NumField
+            label="Min withdraw (Seed)"
+            value={form.min_withdraw_seed}
+            onChange={(v) => set("min_withdraw_seed", v)}
+          />
+          <PctField
+            label="Withdraw fee %"
+            value={pct(form.withdraw_fee_pct)}
+            onChange={(v) => set("withdraw_fee_pct", fromPct(v))}
+          />
+        </div>
+      </section>
+
+      {/* Transfers */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <h2 className="text-sm font-semibold">Transfers</h2>
+        <p className="text-xs text-muted-foreground">Fee applied to peer-to-peer Seed transfers.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <PctField
+            label="P2P fee %"
+            value={pct(form.p2p_fee_pct)}
+            onChange={(v) => set("p2p_fee_pct", fromPct(v))}
+          />
+        </div>
+      </section>
+
+      {/* Farming cycles */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <h2 className="text-sm font-semibold">Farming cycles</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <NumField
+            label="Duration (days)"
+            step="1"
+            value={form.cycle_duration_days}
+            onChange={(v) => set("cycle_duration_days", Math.max(1, Math.round(v)))}
+          />
+          <PctField
+            label="Base reward %"
+            value={pct(form.cycle_base_reward_pct)}
+            onChange={(v) => set("cycle_base_reward_pct", fromPct(v))}
+          />
+          <NumField
+            label="Min cycle (Seed)"
+            value={form.min_cycle_seed}
+            onChange={(v) => set("min_cycle_seed", v)}
+          />
+          <NumField
+            label="Max cycle (Seed)"
+            value={form.max_cycle_seed}
+            onChange={(v) => set("max_cycle_seed", v)}
+            invalid={cycleInvalid}
+          />
+        </div>
+        {cycleInvalid && (
+          <p className="mt-2 text-xs text-destructive">
+            Max cycle amount must be greater than or equal to the minimum.
+          </p>
+        )}
+      </section>
+
+      {/* Referral */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <h2 className="text-sm font-semibold">Referral</h2>
+        <p className="text-xs text-muted-foreground">One-off signup bonus basis for referrals.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <PctField
+            label="Referral bonus %"
+            value={pct(form.referral_bonus_pct)}
+            onChange={(v) => set("referral_bonus_pct", fromPct(v))}
+          />
+        </div>
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => save.mutate(form)}
+          disabled={save.isPending || cycleInvalid}
+          className="rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {save.isPending ? "Saving…" : "Save settings"}
+        </button>
+        <Link
+          to="/admin/affiliates"
+          className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-4 py-2 text-sm hover:bg-card"
+        >
+          <Users className="h-4 w-4" />
+          Affiliate & maintenance settings
+        </Link>
+      </div>
+
+      {/* Boosters (read-only) */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Farming boosters</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Read-only. Editing boosters is not yet available here.
+        </p>
+        <div className="mt-3">
+          <Loadable
+            loading={boostersQ.isLoading}
+            skeleton={
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 rounded-lg" />
+                ))}
+              </div>
+            }
+          >
+            {(boostersQ.data ?? []).length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">No boosters configured.</p>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-border/60">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">Booster</th>
+                      <th className="px-3 py-2 text-right font-medium">Reward</th>
+                      <th className="px-3 py-2 text-right font-medium">Duration</th>
+                      <th className="px-3 py-2 text-right font-medium">Cost</th>
+                      <th className="px-3 py-2 text-right font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {(boostersQ.data ?? []).map((b) => (
+                      <tr key={b.id}>
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{b.label}</div>
+                          <div className="text-xs text-muted-foreground">{b.code}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {(b.reward_bps / 100).toFixed(2)}%
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{b.duration_hours}h</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {b.cost_seed.toLocaleString()} Seed
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                              b.active
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-border bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {b.active ? "Active" : "Disabled"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Loadable>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function NumField({
+  label,
+  value,
+  onChange,
+  step = "0.01",
+  invalid = false,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  step?: string;
+  invalid?: boolean;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground">{label}</label>
+      <input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className={`mt-1 w-full rounded-lg border bg-background/60 px-3 py-2 text-sm outline-none ${
+          invalid ? "border-destructive" : "border-border focus:border-primary/60"
+        }`}
+      />
+    </div>
+  );
+}
+
+function PctField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground">{label}</label>
+      <div className="mt-1 flex items-center rounded-lg border border-border bg-background/60 px-3 py-2 focus-within:border-primary/60">
+        <input
+          type="number"
+          step="0.01"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm outline-none"
+        />
+        <span className="text-xs text-muted-foreground">%</span>
+      </div>
     </div>
   );
 }
