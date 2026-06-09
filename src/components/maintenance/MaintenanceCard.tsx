@@ -5,15 +5,19 @@ import { Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { getMyMaintenanceFees, payMaintenanceFee } from "@/lib/affiliate.functions";
+import { useSeedRate } from "@/components/wallet/RequestForm";
+import { seedToUsdt, fmtAmount } from "@/lib/currency";
 
 /**
  * Monthly maintenance fee panel: shows the current due/overdue fee with a pay
  * action plus a short payment history. Self-contained (fetches its own data via
- * react-query) so it can be dropped onto any page.
+ * react-query) so it can be dropped onto any page. Amounts are shown in Seed
+ * with a USDT equivalent for the farmer.
  */
 export function MaintenanceCard({ className }: { className?: string }) {
   const feesFn = useServerFn(getMyMaintenanceFees);
   const payFn = useServerFn(payMaintenanceFee);
+  const { data: rate = 1 } = useSeedRate();
 
   const fees = useQuery({ queryKey: ["aff-fees"], queryFn: () => feesFn() });
   const [paying, setPaying] = useState<string | null>(null);
@@ -43,13 +47,15 @@ export function MaintenanceCard({ className }: { className?: string }) {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/5 p-3">
           <div>
             <div className="text-sm font-medium">
-              {dueFee.amount} Seed ·{" "}
+              {fmtAmount(Number(dueFee.amount))} Seed ·{" "}
               {new Date(dueFee.period_start).toLocaleDateString(undefined, {
                 month: "long",
                 year: "numeric",
               })}
             </div>
-            <div className="text-xs text-muted-foreground">Status: {dueFee.status}</div>
+            <div className="text-xs text-muted-foreground">
+              ≈ {fmtAmount(seedToUsdt(Number(dueFee.amount), rate))} USDT · Status: {dueFee.status}
+            </div>
           </div>
           <button
             onClick={() => handlePay(dueFee.id)}
@@ -72,7 +78,7 @@ export function MaintenanceCard({ className }: { className?: string }) {
               })}
             </span>
             <span className="text-muted-foreground">
-              {f.amount} Seed · {f.status}
+              {fmtAmount(Number(f.amount))} Seed (≈ {fmtAmount(seedToUsdt(Number(f.amount), rate))} USDT) · {f.status}
             </span>
           </div>
         ))}

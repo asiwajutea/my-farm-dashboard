@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Users } from "lucide-react";
 import {
@@ -9,6 +9,8 @@ import {
   adminUpdateAffiliateSettings,
   adminRunMonthlyMaintenance,
 } from "@/lib/affiliate.functions";
+import { useSeedRate } from "@/components/wallet/RequestForm";
+import { seedToUsdt, usdtToSeed, fmtAmount } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/affiliates")({
@@ -32,6 +34,7 @@ function AdminAffiliates() {
   const getFn = useServerFn(getAffiliateSettings);
   const saveFn = useServerFn(adminUpdateAffiliateSettings);
   const runFn = useServerFn(adminRunMonthlyMaintenance);
+  const { data: rate = 1 } = useSeedRate();
 
   const { data, isLoading, refetch } = useQuery({ queryKey: ["aff-settings"], queryFn: () => getFn() });
   const [form, setForm] = useState<Form | null>(null);
@@ -130,14 +133,15 @@ function AdminAffiliates() {
         <h2 className="text-sm font-semibold">Maintenance fee</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground">Monthly amount (Seed)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.maint_fee_seed}
-              onChange={(e) => set("maint_fee_seed", Number(e.target.value) || 0)}
-              className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+            <label className="text-xs text-muted-foreground">Monthly amount (USDT)</label>
+            <UsdtAmountInput
+              seedValue={form.maint_fee_seed}
+              rate={rate}
+              onChangeSeed={(v) => set("maint_fee_seed", v)}
             />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              ≈ {fmtAmount(form.maint_fee_seed)} Seed
+            </p>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Charge day (1–28)</label>
@@ -184,6 +188,42 @@ function AdminAffiliates() {
         </button>
       </div>
     </div>
+  );
+}
+
+function UsdtAmountInput({
+  seedValue,
+  rate,
+  onChangeSeed,
+}: {
+  seedValue: number;
+  rate: number;
+  onChangeSeed: (seed: number) => void;
+}) {
+  // Edits in USDT while the form stores Seed. Keep local text so typing isn't
+  // disturbed by round-trip rounding; re-sync from props only when not focused
+  // (initial load / rate change).
+  const focused = useRef(false);
+  const [text, setText] = useState(() => seedToUsdt(seedValue, rate).toFixed(2));
+
+  useEffect(() => {
+    if (!focused.current) setText(seedToUsdt(seedValue, rate).toFixed(2));
+  }, [seedValue, rate]);
+
+  return (
+    <input
+      type="number"
+      step="0.01"
+      min={0}
+      value={text}
+      onFocus={() => (focused.current = true)}
+      onBlur={() => (focused.current = false)}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChangeSeed(usdtToSeed(Number(e.target.value) || 0, rate));
+      }}
+      className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+    />
   );
 }
 
