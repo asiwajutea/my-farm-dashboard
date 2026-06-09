@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { PRESET_AVATARS } from "@/lib/avatars";
 import { checkUsernameAvailable } from "@/lib/profile.functions";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileHeaderSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -254,9 +256,24 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-hero">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
+      <main className="mx-auto max-w-3xl px-5 py-8">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="mt-3 h-9 w-72" />
+        <Skeleton className="mt-2 h-4 w-80" />
+        <div className="mt-7">
+          <ProfileHeaderSkeleton />
+        </div>
+        <div className="glass mt-5 space-y-4 rounded-3xl p-7">
+          <Skeleton className="h-5 w-32" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-11 w-full rounded-xl" />
+            </div>
+          ))}
+          <Skeleton className="h-10 w-36 rounded-xl" />
+        </div>
+      </main>
     );
   }
 
@@ -264,7 +281,7 @@ function ProfilePage() {
   const kycMeta = KYC_META[kyc as keyof typeof KYC_META] ?? KYC_META.unverified;
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <main className="mx-auto max-w-3xl px-5 py-8">
 
         <div className="text-xs uppercase tracking-[0.2em] text-primary">Identity</div>

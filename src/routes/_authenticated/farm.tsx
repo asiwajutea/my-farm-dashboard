@@ -108,7 +108,7 @@ function FarmPage() {
                   <BoosterTile key={b.id} booster={b} selected={b.id === boosterId} onSelect={() => setBoosterId(b.id)} />
                 ))}
                 {!boostersQ.data?.length && boostersQ.isLoading && (
-                  <div className="col-span-2 h-20 animate-pulse rounded-lg bg-muted/40" />
+                  <div className="skeleton col-span-2 h-20 rounded-lg" />
                 )}
               </div>
             </div>
@@ -161,7 +161,12 @@ function FarmPage() {
       <div className="mt-8">
         <h2 className="mb-3 text-lg font-semibold">Your cycles</h2>
         <div className="space-y-3">
-          {cyclesQ.isLoading && <div className="h-24 animate-pulse rounded-lg bg-muted/40" />}
+          {cyclesQ.isLoading && (
+            <div className="space-y-3">
+              <div className="skeleton h-24 rounded-2xl" />
+              <div className="skeleton h-24 rounded-2xl" />
+            </div>
+          )}
           {!cyclesQ.isLoading && (cyclesQ.data?.length ?? 0) === 0 && (
             <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
               No cycles yet. Lock some Seeds above to plant your first one.

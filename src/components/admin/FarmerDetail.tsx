@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatCard } from "@/components/StatCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
@@ -60,8 +62,10 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
     return (
       <div className="space-y-6">
         {back}
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <DetailSkeleton />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Skeleton className="h-24 rounded-3xl" />
+          <Skeleton className="h-24 rounded-3xl" />
         </div>
       </div>
     );

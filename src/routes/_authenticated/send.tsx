@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 import {
   Dialog,
   DialogContent,
@@ -291,48 +293,46 @@ function SendPage() {
 
       <section className="glass rounded-3xl p-6">
         <h2 className="mb-3 text-lg font-semibold">Recent transfers</h2>
-        {transfersQ.isLoading ? (
-          <div className="flex justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : (transfersQ.data ?? []).length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No transfers yet.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {(transfersQ.data ?? []).map((t) => (
-              <li key={t.id} className="flex items-center justify-between py-3">
-                <div className="flex min-w-0 items-center gap-3">
+        <Loadable loading={transfersQ.isLoading} skeleton={<ListSkeleton rows={4} />}>
+          {(transfersQ.data ?? []).length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No transfers yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {(transfersQ.data ?? []).map((t) => (
+                <li key={t.id} className="flex items-center justify-between py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                        t.direction === "in" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {t.direction === "in" ? (
+                        <ArrowDownLeft className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {t.direction === "in" ? "From " : "To "}
+                        {t.counterparty?.display_name ?? t.counterparty?.username ?? "Farmer"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(t.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
                   <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                      t.direction === "in" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`font-mono text-sm tabular-nums ${t.direction === "in" ? "text-primary" : ""}`}
                   >
-                    {t.direction === "in" ? (
-                      <ArrowDownLeft className="h-4 w-4" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4" />
-                    )}
+                    {t.direction === "in" ? "+" : "−"}
+                    {t.amount.toLocaleString()}
                   </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      {t.direction === "in" ? "From " : "To "}
-                      {t.counterparty?.display_name ?? t.counterparty?.username ?? "Farmer"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(t.created_at).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={`font-mono text-sm tabular-nums ${t.direction === "in" ? "text-primary" : ""}`}
-                >
-                  {t.direction === "in" ? "+" : "−"}
-                  {t.amount.toLocaleString()}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Loadable>
       </section>
 
       {/* Recipient confirmation popup */}

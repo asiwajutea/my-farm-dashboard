@@ -26,6 +26,7 @@ import { EscrowStatusBadge } from "@/components/escrow/EscrowStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
 import {
   Dialog,
   DialogContent,
@@ -108,8 +109,8 @@ function EscrowDetailPage() {
 
   if (q.isLoading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-2xl space-y-6 px-5 py-8">
+        <DetailSkeleton />
       </div>
     );
   }
@@ -141,7 +142,7 @@ function EscrowDetailPage() {
     accept.isPending || release.isPending || cancel.isPending || dispute.isPending || resolve.isPending;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-5 py-8">
+    <div className="animate-fade-in mx-auto max-w-2xl space-y-6 px-5 py-8">
       <Link to="/escrow" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to escrows
       </Link>

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Coins, TrendingUp, Wrench, Loader2 } from "lucide-react";
+import { Users, Coins, TrendingUp, Wrench } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -11,6 +11,9 @@ import {
   payMaintenanceFee,
 } from "@/lib/affiliate.functions";
 import { ShareLink } from "@/components/affiliate/ShareLink";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loadable } from "@/components/ui/loadable";
+import { SimpleRowsSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/affiliate")({
   head: () => ({ meta: [{ title: "Affiliate · VFarmers" }] }),
@@ -54,12 +57,13 @@ function AffiliatePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={Coins} label="Total earned" value={summary.data ? summary.data.totalEarned.toFixed(2) + " Seed" : "—"} />
-        <Stat icon={TrendingUp} label="This month" value={summary.data ? summary.data.monthEarned.toFixed(2) + " Seed" : "—"} />
-        <Stat icon={Users} label="Direct (Gen 1)" value={summary.data ? String(summary.data.gen1Count) : "—"} />
+        <Stat icon={Coins} label="Total earned" loading={summary.isLoading} value={summary.data ? summary.data.totalEarned.toFixed(2) + " Seed" : "—"} />
+        <Stat icon={TrendingUp} label="This month" loading={summary.isLoading} value={summary.data ? summary.data.monthEarned.toFixed(2) + " Seed" : "—"} />
+        <Stat icon={Users} label="Direct (Gen 1)" loading={summary.isLoading} value={summary.data ? String(summary.data.gen1Count) : "—"} />
         <Stat
           icon={Users}
           label="Network (Gen 2 + 3)"
+          loading={summary.isLoading}
           value={summary.data ? String(summary.data.gen2Count + summary.data.gen3Count) : "—"}
         />
       </div>
@@ -84,18 +88,20 @@ function AffiliatePage() {
           </div>
         </div>
         <div className="mt-3 space-y-2">
-          {downlines.isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {downlines.data?.filter((d) => d.generation === genTab).length === 0 && (
-            <p className="text-xs text-muted-foreground">No farmers in this generation yet.</p>
-          )}
-          {downlines.data
-            ?.filter((d) => d.generation === genTab)
-            .map((d) => (
-              <div key={d.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm">
-                <span>{d.display_name || d.username || "Farmer"}</span>
-                <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</span>
-              </div>
-            ))}
+          <Loadable loading={downlines.isLoading} skeleton={<SimpleRowsSkeleton rows={3} />}>
+            {downlines.data?.filter((d) => d.generation === genTab).length === 0 ? (
+              <p className="text-xs text-muted-foreground">No farmers in this generation yet.</p>
+            ) : (
+              downlines.data
+                ?.filter((d) => d.generation === genTab)
+                .map((d) => (
+                  <div key={d.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm">
+                    <span>{d.display_name || d.username || "Farmer"}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))
+            )}
+          </Loadable>
         </div>
       </div>
 
@@ -153,14 +159,18 @@ function AffiliatePage() {
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+function Stat({ icon: Icon, label, value, loading }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; loading?: boolean }) {
   return (
     <div className="rounded-2xl border border-border bg-card/40 p-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
-      <div className="mt-1 text-xl font-semibold">{value}</div>
+      {loading ? (
+        <Skeleton className="mt-2 h-6 w-24" />
+      ) : (
+        <div className="animate-fade-in mt-1 text-xl font-semibold">{value}</div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { listMyRequests } from "@/lib/api/requests.functions";
 import { StatusBadge } from "@/components/wallet/StatusBadge";
 import type { RequestType } from "@/lib/requests.shared";
-import { Loader2 } from "lucide-react";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 const METHOD_LABEL: Record<string, string> = {
   bank_transfer: "Bank Transfer",
@@ -19,45 +20,40 @@ export function RequestsHistory({ filter }: { filter?: RequestType }) {
     queryFn: () => fn({ data: { limit: 20 } }),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-      </div>
-    );
-  }
   if (isError) {
     return <p className="text-sm text-destructive">Failed to load history.</p>;
   }
 
   const items = (data?.items ?? []).filter((r) => !filter || r.type === filter);
 
-  if (items.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No requests yet.</p>;
-  }
-
   return (
-    <ul className="divide-y divide-border/40">
-      {items.map((r) => (
-        <li key={`${r.type}-${r.id}`} className="flex items-center justify-between py-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <span className="capitalize">{r.type}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">
-                {METHOD_LABEL[r.method] ?? r.method}
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {new Date(r.created_at).toLocaleString()}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <span className="font-mono text-sm tabular-nums">{r.amount}</span>
-            <StatusBadge status={r.status} />
-          </div>
-        </li>
-      ))}
-    </ul>
+    <Loadable loading={isLoading} skeleton={<ListSkeleton rows={4} leading="none" />}>
+      {items.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">No requests yet.</p>
+      ) : (
+        <ul className="divide-y divide-border/40">
+          {items.map((r) => (
+            <li key={`${r.type}-${r.id}`} className="flex items-center justify-between py-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span className="capitalize">{r.type}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {METHOD_LABEL[r.method] ?? r.method}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="font-mono text-sm tabular-nums">{r.amount}</span>
+                <StatusBadge status={r.status} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Loadable>
   );
 }

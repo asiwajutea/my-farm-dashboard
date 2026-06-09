@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Sprout, Loader2, Clock, XCircle } from "lucide-react";
+import { Sprout, Clock, XCircle } from "lucide-react";
 
 import {
   adminListCycles,
@@ -11,6 +11,8 @@ import {
   adminForceMatureCycle,
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/cycles")({
   head: () => ({ meta: [{ title: "Cycles · Admin" }] }),
@@ -92,15 +94,12 @@ function AdminCycles() {
       </div>
 
       <div className="glass mt-4 rounded-3xl p-2 sm:p-4">
-        {q.isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No cycles.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {rows.map((c) => (
+        <Loadable loading={q.isLoading} skeleton={<div className="p-1"><ListSkeleton rows={4} leading="none" /></div>}>
+          {rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No cycles.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {rows.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm font-medium">
@@ -132,7 +131,8 @@ function AdminCycles() {
               </li>
             ))}
           </ul>
-        )}
+          )}
+        </Loadable>
       </div>
     </div>
   );

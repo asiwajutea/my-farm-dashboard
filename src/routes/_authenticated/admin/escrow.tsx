@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 import {
   Dialog,
   DialogContent,
@@ -67,41 +69,39 @@ function AdminEscrow() {
       </header>
 
       <div className="glass mt-6 rounded-3xl p-2 sm:p-4">
-        {q.isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No open disputes.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {rows.map((d) => (
-              <li key={d.id} className="space-y-2 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">
-                      {d.title ?? "Escrow trade"} · <span className="font-mono tabular-nums">{fmt(d.amount)} Seed</span>
+        <Loadable loading={q.isLoading} skeleton={<div className="p-1"><ListSkeleton rows={3} leading="none" /></div>}>
+          {rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No open disputes.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {rows.map((d) => (
+                <li key={d.id} className="space-y-2 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">
+                        {d.title ?? "Escrow trade"} · <span className="font-mono tabular-nums">{fmt(d.amount)} Seed</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Payer <span className="text-foreground">{name(d.payer)}</span> → Payee{" "}
+                        <span className="text-foreground">{name(d.payee)}</span> ·{" "}
+                        {new Date(d.created_at).toLocaleString()}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Payer <span className="text-foreground">{name(d.payer)}</span> → Payee{" "}
-                      <span className="text-foreground">{name(d.payee)}</span> ·{" "}
-                      {new Date(d.created_at).toLocaleString()}
+                    <Button size="sm" onClick={() => { setTarget(d); setResolution(""); }}>
+                      Resolve
+                    </Button>
+                  </div>
+                  {d.dispute_reason && (
+                    <div className="flex items-start gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">
+                      <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                      <span className="whitespace-pre-wrap">{d.dispute_reason}</span>
                     </div>
-                  </div>
-                  <Button size="sm" onClick={() => { setTarget(d); setResolution(""); }}>
-                    Resolve
-                  </Button>
-                </div>
-                {d.dispute_reason && (
-                  <div className="flex items-start gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">
-                    <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                    <span className="whitespace-pre-wrap">{d.dispute_reason}</span>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Loadable>
       </div>
 
       <Dialog open={!!target} onOpenChange={(o) => !o && setTarget(null)}>

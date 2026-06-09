@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Loader2, Search, Snowflake, ChevronRight } from "lucide-react";
+import { Users, Search, Snowflake, ChevronRight } from "lucide-react";
 
 import { adminListFarmers } from "@/lib/admin.functions";
 import { FarmerDetail } from "@/components/admin/FarmerDetail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/farmers")({
   head: () => ({ meta: [{ title: "Farmers · Admin" }] }),
@@ -67,51 +69,49 @@ function AdminFarmers() {
       </form>
 
       <div className="glass mt-4 rounded-3xl p-2 sm:p-4">
-        {q.isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No farmers found.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {rows.map((f) => (
-              <li key={f.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(f.id)}
-                  className="flex w-full items-center justify-between gap-3 p-3 text-left transition-colors hover:opacity-80"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-                      {(f.display_name ?? f.username ?? "?").slice(0, 1).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 truncate text-sm font-medium">
-                        {f.display_name ?? f.username ?? "Farmer"}
-                        {f.frozen && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-400">
-                            <Snowflake className="h-3 w-3" /> Frozen
-                          </span>
-                        )}
+        <Loadable loading={q.isLoading} skeleton={<div className="p-1"><ListSkeleton rows={5} /></div>}>
+          {rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No farmers found.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {rows.map((f) => (
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(f.id)}
+                    className="flex w-full items-center justify-between gap-3 p-3 text-left transition-colors hover:opacity-80"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+                        {(f.display_name ?? f.username ?? "?").slice(0, 1).toUpperCase()}
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {f.username ? `@${f.username}` : f.id.slice(0, 8)} · {f.country ?? "—"} · KYC {f.kyc_status}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 truncate text-sm font-medium">
+                          {f.display_name ?? f.username ?? "Farmer"}
+                          {f.frozen && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-400">
+                              <Snowflake className="h-3 w-3" /> Frozen
+                            </span>
+                          )}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {f.username ? `@${f.username}` : f.id.slice(0, 8)} · {f.country ?? "—"} · KYC {f.kyc_status}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right text-xs">
-                      <div className="font-mono tabular-nums">{fmt(f.primary_balance)} <span className="text-muted-foreground">Seed (primary)</span></div>
-                      <div className="font-mono tabular-nums text-muted-foreground">{fmt(f.farming_balance)} farming</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right text-xs">
+                        <div className="font-mono tabular-nums">{fmt(f.primary_balance)} <span className="text-muted-foreground">Seed (primary)</span></div>
+                        <div className="font-mono tabular-nums text-muted-foreground">{fmt(f.farming_balance)} farming</div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Loadable>
       </div>
     </div>
   );

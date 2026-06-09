@@ -14,6 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/coupons")({
   head: () => ({ meta: [{ title: "Coupons · Admin" }] }),
@@ -226,14 +228,11 @@ function AdminCoupons() {
       )}
 
       <div className="glass mt-4 rounded-3xl p-2 sm:p-4">
-        {q.isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No coupons yet.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
+        <Loadable loading={q.isLoading} skeleton={<div className="p-1"><ListSkeleton rows={4} leading="none" /></div>}>
+          {rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No coupons yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
             {rows.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
@@ -264,7 +263,8 @@ function AdminCoupons() {
               </li>
             ))}
           </ul>
-        )}
+          )}
+        </Loadable>
       </div>
     </div>
   );

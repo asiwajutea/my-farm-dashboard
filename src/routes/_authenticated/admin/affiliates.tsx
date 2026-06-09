@@ -9,6 +9,7 @@ import {
   adminUpdateAffiliateSettings,
   adminRunMonthlyMaintenance,
 } from "@/lib/affiliate.functions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/affiliates")({
   head: () => ({ meta: [{ title: "Affiliates · Admin" }] }),
@@ -66,7 +67,25 @@ function AdminAffiliates() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading || !form) return <div className="p-6">Loading…</div>;
+  if (isLoading || !form) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6 p-5">
+        <Skeleton className="h-8 w-56" />
+        {Array.from({ length: 2 }).map((_, i) => (
+          <section key={i} className="rounded-2xl border border-border bg-card/40 p-5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="mt-2 h-3 w-64" />
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <Skeleton key={j} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          </section>
+        ))}
+        <Skeleton className="h-10 w-44 rounded-lg" />
+      </div>
+    );
+  }
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm({ ...form, [k]: v });
   const pct = (v: number) => (v * 100).toFixed(2);

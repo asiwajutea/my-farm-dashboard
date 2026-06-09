@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import { adminListAuditLog } from "@/lib/admin.functions";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/audit")({
   head: () => ({ meta: [{ title: "Audit Log · Admin" }] }),
@@ -55,34 +57,32 @@ function AdminAudit() {
       </header>
 
       <div className="glass mt-6 rounded-3xl p-2 sm:p-4">
-        {q.isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No admin actions logged yet.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {rows.map((r) => {
-              const summary = summarize(r.detail);
-              return (
-                <li key={r.id} className="flex items-start justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{ACTION_LABEL[r.action] ?? r.action}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.target_type ? `${r.target_type}` : ""}
-                      {summary ? ` · ${summary}` : ""}
+        <Loadable loading={q.isLoading} skeleton={<div className="p-1"><ListSkeleton rows={5} leading="none" /></div>}>
+          {rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No admin actions logged yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {rows.map((r) => {
+                const summary = summarize(r.detail);
+                return (
+                  <li key={r.id} className="flex items-start justify-between gap-3 p-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{ACTION_LABEL[r.action] ?? r.action}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.target_type ? `${r.target_type}` : ""}
+                        {summary ? ` · ${summary}` : ""}
+                      </div>
                     </div>
-                  </div>
-                  <div className="shrink-0 text-right text-xs text-muted-foreground">
-                    <div>{r.actor?.display_name ?? r.actor?.username ?? "Admin"}</div>
-                    <div>{new Date(r.created_at).toLocaleString()}</div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <div className="shrink-0 text-right text-xs text-muted-foreground">
+                      <div>{r.actor?.display_name ?? r.actor?.username ?? "Admin"}</div>
+                      <div>{new Date(r.created_at).toLocaleString()}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Loadable>
       </div>
     </div>
   );

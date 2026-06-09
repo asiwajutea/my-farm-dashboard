@@ -5,11 +5,12 @@ import {
   ArrowUpFromLine,
   Wallet as WalletIcon,
   Sprout,
-  Loader2,
   Inbox,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({ meta: [{ title: "Wallet · VFarmers" }] }),
@@ -142,41 +143,39 @@ function WalletPage() {
 
       <section className="glass rounded-3xl p-6">
         <h2 className="mb-3 text-lg font-semibold">Recent activity</h2>
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : !ledger || ledger.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            <Inbox className="mx-auto mb-2 h-6 w-6" />
-            No activity yet.
-          </div>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {ledger.map((e) => {
-              const isPositive = e.amount > 0;
-              return (
-                <li key={e.id} className="flex items-center justify-between py-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{KIND_LABEL[e.kind] ?? e.kind}</div>
-                    {e.memo && <div className="truncate text-xs text-muted-foreground">{e.memo}</div>}
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(e.created_at).toLocaleString()}
+        <Loadable loading={loading} skeleton={<ListSkeleton rows={5} leading="none" />}>
+          {!ledger || ledger.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              <Inbox className="mx-auto mb-2 h-6 w-6" />
+              No activity yet.
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {ledger.map((e) => {
+                const isPositive = e.amount > 0;
+                return (
+                  <li key={e.id} className="flex items-center justify-between py-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{KIND_LABEL[e.kind] ?? e.kind}</div>
+                      {e.memo && <div className="truncate text-xs text-muted-foreground">{e.memo}</div>}
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(e.created_at).toLocaleString()}
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    className={`font-mono text-sm tabular-nums ${
-                      isPositive ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    {isPositive ? "+" : ""}
-                    {e.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <div
+                      className={`font-mono text-sm tabular-nums ${
+                        isPositive ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {isPositive ? "+" : ""}
+                      {e.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Loadable>
       </section>
     </div>
   );

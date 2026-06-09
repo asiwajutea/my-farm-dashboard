@@ -3,12 +3,14 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Ticket, Loader2, CheckCircle2 } from "lucide-react";
+import { Ticket, CheckCircle2, Loader2 } from "lucide-react";
 
 import { redeemCoupon, listMyRedemptions } from "@/lib/coupons.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loadable } from "@/components/ui/loadable";
+import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 
 export const Route = createFileRoute("/_authenticated/coupons")({
   head: () => ({ meta: [{ title: "Coupons · VFarmers" }] }),
@@ -72,28 +74,28 @@ function CouponsPage() {
 
       <section className="glass rounded-3xl p-6">
         <h2 className="mb-3 text-lg font-semibold">Redemption history</h2>
-        {redemptions.isLoading ? (
-          <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-        ) : (redemptions.data ?? []).length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No coupons redeemed yet.</p>
-        ) : (
-          <ul className="divide-y divide-border/40">
-            {(redemptions.data ?? []).map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-mono text-sm uppercase tracking-wider">{r.code ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(r.redeemed_at).toLocaleString()}</div>
+        <Loadable loading={redemptions.isLoading} skeleton={<ListSkeleton rows={3} />}>
+          {(redemptions.data ?? []).length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No coupons redeemed yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {(redemptions.data ?? []).map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <div>
+                      <div className="font-mono text-sm uppercase tracking-wider">{r.code ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(r.redeemed_at).toLocaleString()}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="font-mono text-sm tabular-nums text-primary">
-                  +{r.amount.toLocaleString()} Seed
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="font-mono text-sm tabular-nums text-primary">
+                    +{r.amount.toLocaleString()} Seed
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Loadable>
       </section>
     </div>
   );

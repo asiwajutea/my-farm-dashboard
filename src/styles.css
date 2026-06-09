@@ -186,3 +186,53 @@
     display: none;
   }
 }
+
+/* ---- Skeleton loaders -------------------------------------------------- */
+/* A continuous left-to-right sheen sweeping across a tinted base block.
+   The element keeps its own background-color (e.g. bg-primary/10) while this
+   utility layers an animated gradient highlight on top. */
+@keyframes skeleton-shimmer {
+  0% { background-position: -150% 0; }
+  100% { background-position: 150% 0; }
+}
+
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: oklch(1 0 0 / 0.06);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(1 0 0 / 0.09) 20%,
+    oklch(0.72 0.20 142 / 0.12) 50%,
+    oklch(1 0 0 / 0.09) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Respect reduced-motion: fall back to a gentle pulse instead of the sweep. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* ---- Fade transitions for skeleton -> content -------------------------- */
+@keyframes content-fade-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-fade-in {
+  animation: content-fade-in 0.35s var(--transition-smooth) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+  }
+}
