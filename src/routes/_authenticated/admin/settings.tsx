@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   adminListBoosters,
   type PlatformSettings,
 } from "@/lib/settings.functions";
+import { seedToUsdt, usdtToSeed, fmtAmount } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loadable } from "@/components/ui/loadable";
 
@@ -98,16 +99,19 @@ function AdminSettingsPage() {
       {/* Deposits & withdrawals */}
       <section className="rounded-2xl border border-border bg-card/40 p-5">
         <h2 className="text-sm font-semibold">Deposits & withdrawals</h2>
+        <p className="text-xs text-muted-foreground">Minimums are set in USDT.</p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <NumField
-            label="Min deposit (Seed)"
-            value={form.min_deposit_seed}
-            onChange={(v) => set("min_deposit_seed", v)}
+          <UsdtField
+            label="Min deposit (USDT)"
+            seedValue={form.min_deposit_seed}
+            rate={form.seed_to_usdt}
+            onChangeSeed={(v) => set("min_deposit_seed", v)}
           />
-          <NumField
-            label="Min withdraw (Seed)"
-            value={form.min_withdraw_seed}
-            onChange={(v) => set("min_withdraw_seed", v)}
+          <UsdtField
+            label="Min withdraw (USDT)"
+            seedValue={form.min_withdraw_seed}
+            rate={form.seed_to_usdt}
+            onChangeSeed={(v) => set("min_withdraw_seed", v)}
           />
           <PctField
             label="Withdraw fee %"
@@ -145,15 +149,17 @@ function AdminSettingsPage() {
             value={pct(form.cycle_base_reward_pct)}
             onChange={(v) => set("cycle_base_reward_pct", fromPct(v))}
           />
-          <NumField
-            label="Min cycle (Seed)"
-            value={form.min_cycle_seed}
-            onChange={(v) => set("min_cycle_seed", v)}
+          <UsdtField
+            label="Min cycle (USDT)"
+            seedValue={form.min_cycle_seed}
+            rate={form.seed_to_usdt}
+            onChangeSeed={(v) => set("min_cycle_seed", v)}
           />
-          <NumField
-            label="Max cycle (Seed)"
-            value={form.max_cycle_seed}
-            onChange={(v) => set("max_cycle_seed", v)}
+          <UsdtField
+            label="Max cycle (USDT)"
+            seedValue={form.max_cycle_seed}
+            rate={form.seed_to_usdt}
+            onChangeSeed={(v) => set("max_cycle_seed", v)}
             invalid={cycleInvalid}
           />
         </div>
@@ -291,6 +297,66 @@ function NumField({
           invalid ? "border-destructive" : "border-border focus:border-primary/60"
         }`}
       />
+    </div>
+  );
+}
+
+/**
+ * Edits an amount in USDT while the form stores it in Seed (the ledger's unit).
+ * The USDT input is the controlled value; on change we convert to Seed and push
+ * it up. We keep local text state so typing isn't disturbed by round-trip
+ * rounding, re-syncing from props only while the field is not focused (e.g.
+ * after the conversion rate is edited). The Seed equivalent is shown below.
+ */
+function UsdtField({
+  label,
+  seedValue,
+  rate,
+  onChangeSeed,
+  invalid = false,
+}: {
+  label: string;
+  seedValue: number;
+  rate: number;
+  onChangeSeed: (seed: number) => void;
+  invalid?: boolean;
+}) {
+  const focused = useRef(false);
+  const [text, setText] = useState(() => seedToUsdt(seedValue, rate).toFixed(2));
+
+  // Re-sync the displayed USDT from the stored Seed value when not actively
+  // editing (covers initial load and rate changes).
+  useEffect(() => {
+    if (!focused.current) {
+      setText(seedToUsdt(seedValue, rate).toFixed(2));
+    }
+  }, [seedValue, rate]);
+
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground">{label}</label>
+      <div
+        className={`mt-1 flex items-center rounded-lg border bg-background/60 px-3 py-2 ${
+          invalid ? "border-destructive" : "border-border focus-within:border-primary/60"
+        }`}
+      >
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={text}
+          onFocus={() => (focused.current = true)}
+          onBlur={() => (focused.current = false)}
+          onChange={(e) => {
+            setText(e.target.value);
+            const usdt = Number(e.target.value) || 0;
+            onChangeSeed(usdtToSeed(usdt, rate));
+          }}
+          className="w-full bg-transparent text-sm outline-none"
+        />
+        <span className="text-xs text-muted-foreground">USDT</span>
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">≈ {fmtAmount(seedValue)} Seed</p>
     </div>
   );
 }

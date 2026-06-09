@@ -17,9 +17,9 @@ function DepositPage() {
           <ArrowDownToLine className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Deposit Seeds</h1>
+          <h1 className="text-xl font-semibold">Deposit USDT</h1>
           <p className="text-sm text-muted-foreground">
-            Submit a deposit request. Seeds credit to your Primary wallet once approved.
+            Pay in USDT to buy Seeds. The equivalent credits to your Primary wallet once approved.
           </p>
         </div>
       </header>
@@ -27,10 +27,13 @@ function DepositPage() {
       <Card>
         <CardHeader>
           <CardTitle>New deposit</CardTitle>
-          <CardDescription>Attach a payment screenshot or receipt to speed up review.</CardDescription>
+          <CardDescription>
+            Enter the amount in USDT — you'll see the Seed equivalent before submitting. Attach a
+            payment screenshot or receipt to speed up review.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <RequestForm type="deposit" minAmount={0.01} hint="Minimum 0.01 Seeds." />
+          <RequestForm type="deposit" minUsdt={1} hint="Enter the USDT amount you're depositing." />
         </CardContent>
       </Card>
 
