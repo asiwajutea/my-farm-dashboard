@@ -215,7 +215,19 @@ function AuthPage() {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-muted-foreground">
-          By continuing you agree to VFarmers's Terms, Privacy Policy and Risk Disclosure.
+          By continuing you agree to VFarmers's{" "}
+          <a href="/terms" className="underline hover:text-foreground" target="_blank" rel="noreferrer">
+            Terms
+          </a>
+          ,{" "}
+          <a href="/privacy" className="underline hover:text-foreground" target="_blank" rel="noreferrer">
+            Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a href="/risk-disclosure" className="underline hover:text-foreground" target="_blank" rel="noreferrer">
+            Risk Disclosure
+          </a>
+          .
         </p>
       </div>
     </div>

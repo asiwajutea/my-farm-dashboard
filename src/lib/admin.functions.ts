@@ -105,6 +105,20 @@ export type AdminAuditRow = {
   actor: FarmerLite | null;
 };
 
+export type AdminKycRow = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  document_type: string;
+  document_path: string;
+  selfie_path: string;
+  status: "unverified" | "pending" | "verified" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  farmer: FarmerLite | null;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -616,4 +630,85 @@ export const adminListAuditLog = createServerFn({ method: "GET" })
       created_at: r.created_at,
       actor: actors.get(r.actor_id) ?? null,
     }));
+  });
+
+
+// ---------------------------------------------------------------------------
+// KYC — list submissions + signed document URL + approve/reject
+// ---------------------------------------------------------------------------
+
+const listKycInput = z.object({
+  status: z.enum(["pending", "verified", "rejected", "all"]).default("pending"),
+});
+
+export const adminListKyc = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => listKycInput.parse(d))
+  .handler(async ({ data, context }): Promise<AdminKycRow[]> => {
+    await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
+
+    let query = sb
+      .from("kyc_documents")
+      .select(
+        "id, user_id, full_name, document_type, document_path, selfie_path, status, admin_note, created_at, reviewed_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (data.status !== "all") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      query = (query as any).eq("status", data.status);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const farmers = await fetchFarmerMap(sb, (rows ?? []).map((r) => r.user_id));
+    return (rows ?? []).map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      full_name: r.full_name,
+      document_type: r.document_type,
+      document_path: r.document_path,
+      selfie_path: r.selfie_path,
+      status: r.status as AdminKycRow["status"],
+      admin_note: r.admin_note,
+      created_at: r.created_at,
+      reviewed_at: r.reviewed_at,
+      farmer: farmers.get(r.user_id) ?? null,
+    }));
+  });
+
+const kycFileInput = z.object({ path: z.string().min(1).max(2048) });
+
+export const adminGetKycFileUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => kycFileInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ url: string | null }> => {
+    await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
+    const { data: signed, error } = await sb.storage
+      .from("kyc")
+      .createSignedUrl(data.path, 60 * 10);
+    if (error || !signed?.signedUrl) return { url: null };
+    return { url: signed.signedUrl };
+  });
+
+const reviewKycInput = z.object({
+  id: z.string().uuid(),
+  approve: z.boolean(),
+  note: z.string().max(1000).optional(),
+});
+
+export const adminReviewKyc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => reviewKycInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("admin_review_kyc", {
+      p_id: data.id,
+      p_approve: data.approve,
+      p_note: data.note ?? undefined,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

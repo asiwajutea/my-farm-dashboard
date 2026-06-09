@@ -41,6 +41,7 @@ import { Route as AuthenticatedAdminCyclesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin/coupons'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedAdminAffiliatesRouteImport } from './routes/_authenticated/admin/affiliates'
+import { Route as AuthenticatedAdminKycRouteImport } from './routes/_authenticated/admin/kyc'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -210,6 +211,11 @@ const AuthenticatedAdminAffiliatesRoute =
     path: '/affiliates',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminKycRoute = AuthenticatedAdminKycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
+  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
+  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
   '/_authenticated/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
+  '/_authenticated/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/cycles': typeof AuthenticatedAdminCyclesRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/withdraw'
     | '/admin/affiliates'
+    | '/admin/kyc'
     | '/admin/audit'
     | '/admin/coupons'
     | '/admin/cycles'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/withdraw'
     | '/admin/affiliates'
+    | '/admin/kyc'
     | '/admin/audit'
     | '/admin/coupons'
     | '/admin/cycles'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
     | '/_authenticated/admin/affiliates'
+    | '/_authenticated/admin/kyc'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/cycles'
@@ -648,11 +660,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAffiliatesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/kyc': {
+      id: '/_authenticated/admin/kyc'
+      path: '/kyc'
+      fullPath: '/admin/kyc'
+      preLoaderRoute: typeof AuthenticatedAdminKycRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAffiliatesRoute: typeof AuthenticatedAdminAffiliatesRoute
+  AuthenticatedAdminKycRoute: typeof AuthenticatedAdminKycRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminCyclesRoute: typeof AuthenticatedAdminCyclesRoute
@@ -666,6 +686,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminAffiliatesRoute: AuthenticatedAdminAffiliatesRoute,
+    AuthenticatedAdminKycRoute: AuthenticatedAdminKycRoute,
     AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
     AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
     AuthenticatedAdminCyclesRoute: AuthenticatedAdminCyclesRoute,

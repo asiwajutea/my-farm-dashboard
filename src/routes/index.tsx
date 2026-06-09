@@ -296,10 +296,11 @@ function Landing() {
             <img src={logo} alt="" className="h-6 w-6" />
             <span>© {new Date().getFullYear()} VFarmers. Cultivated by the community.</span>
           </div>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-foreground">Terms</a>
-            <a href="#" className="hover:text-foreground">Privacy</a>
-            <a href="#" className="hover:text-foreground">Risk Disclosure</a>
+          <div className="flex flex-wrap gap-5">
+            <a href="/terms" className="hover:text-foreground">Terms</a>
+            <a href="/privacy" className="hover:text-foreground">Privacy</a>
+            <a href="/aml" className="hover:text-foreground">AML Policy</a>
+            <a href="/risk-disclosure" className="hover:text-foreground">Risk Disclosure</a>
           </div>
         </div>
       </footer>

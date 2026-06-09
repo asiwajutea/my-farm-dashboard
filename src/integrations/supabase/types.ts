@@ -461,6 +461,51 @@ export type Database = {
           },
         ]
       }
+      kyc_documents: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          document_path: string
+          document_type: string
+          full_name: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selfie_path: string
+          status: Database["public"]["Enums"]["kyc_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          document_path: string
+          document_type: string
+          full_name: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_path: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          document_path?: string
+          document_type?: string
+          full_name?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_path?: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       maintenance_fees: {
         Row: {
           amount: number
@@ -749,6 +794,10 @@ export type Database = {
         Returns: string[]
       }
       admin_force_mature_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      admin_review_kyc: {
+        Args: { p_approve: boolean; p_id: string; p_note?: string }
+        Returns: undefined
+      }
       admin_review_request: {
         Args: { p_approve: boolean; p_id: string; p_note?: string; p_type: string }
         Returns: undefined
@@ -803,6 +852,15 @@ export type Database = {
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      kyc_submit: {
+        Args: {
+          p_document_path: string
+          p_document_type: string
+          p_full_name: string
+          p_selfie_path: string
+        }
+        Returns: string
+      }
       lookup_referrer: {
         Args: { _code: string }
         Returns: {
