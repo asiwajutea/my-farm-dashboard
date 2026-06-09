@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpFromLine } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RequestForm } from "@/components/wallet/RequestForm";
+import { RequestForm, useSeedRate } from "@/components/wallet/RequestForm";
 import { RequestsHistory } from "@/components/wallet/RequestsHistory";
+import { fmtAmount } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authenticated/withdraw")({
@@ -31,7 +32,9 @@ function useAvailableBalance() {
 
 function WithdrawPage() {
   const { data } = useAvailableBalance();
-  const available = data?.available ?? 0;
+  const { data: rate = 1 } = useSeedRate();
+  const availableSeed = data?.available ?? 0;
+  const availableUsdt = availableSeed * rate;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
@@ -40,9 +43,10 @@ function WithdrawPage() {
           <ArrowUpFromLine className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Withdraw Seeds</h1>
+          <h1 className="text-xl font-semibold">Withdraw USDT</h1>
           <p className="text-sm text-muted-foreground">
-            Submit a withdrawal request. Funds release from your Primary wallet after approval.
+            Withdraw in USDT. The equivalent in Seeds is deducted from your Primary wallet after
+            approval.
           </p>
         </div>
       </header>
@@ -52,13 +56,19 @@ function WithdrawPage() {
           <CardTitle>New withdrawal</CardTitle>
           <CardDescription>
             Available balance:{" "}
-            <span className="font-mono tabular-nums text-foreground">{available.toFixed(2)}</span> Seeds
+            <span className="font-mono tabular-nums text-foreground">{fmtAmount(availableUsdt)}</span>{" "}
+            USDT
+            <span className="text-muted-foreground">
+              {" "}
+              (≈ {fmtAmount(availableSeed)} Seed)
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <RequestForm
             type="withdrawal"
-            minAmount={0.01}
+            minUsdt={1}
+            availableSeed={availableSeed}
             hint="Withdrawals are reviewed by the admin team."
           />
         </CardContent>

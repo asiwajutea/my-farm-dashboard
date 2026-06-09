@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+import { supabase } from "@/integrations/supabase/client";
 import { submitDepositRequest, submitWithdrawalRequest, RequestError } from "@/lib/api/requests.functions";
 import {
   DEPOSIT_METHODS,
@@ -13,6 +14,7 @@ import {
   type DepositMethod,
   type WithdrawalMethod,
 } from "@/lib/requests.shared";
+import { usdtToSeed, usdtToSeedString, fmtSeed } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,23 +51,47 @@ function pickMessage(err: unknown): string {
   return "Request failed.";
 }
 
+/** Shared rate hook: USDT value of 1 Seed (app_settings.seed_to_usdt). */
+export function useSeedRate() {
+  return useQuery({
+    queryKey: ["seed-rate"],
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("seed_to_usdt").maybeSingle();
+      const rate = Number(data?.seed_to_usdt ?? 0);
+      return rate > 0 ? rate : 1;
+    },
+  });
+}
+
 interface Props {
   type: "deposit" | "withdrawal";
-  minAmount: number;
+  /** Minimum amount expressed in USDT. */
+  minUsdt?: number;
+  /** Available primary-wallet balance in Seed, for withdrawal guards. */
+  availableSeed?: number;
   hint?: string;
 }
 
-export function RequestForm({ type, minAmount, hint }: Props) {
+export function RequestForm({ type, minUsdt = 0, availableSeed, hint }: Props) {
   const isDeposit = type === "deposit";
   const methods = isDeposit ? DEPOSIT_METHODS : WITHDRAWAL_METHODS;
 
   const submitDeposit = useServerFn(submitDepositRequest);
   const submitWithdraw = useServerFn(submitWithdrawalRequest);
   const qc = useQueryClient();
+  const { data: rate = 1 } = useSeedRate();
 
-  const [amount, setAmount] = useState("");
+  // Amount is entered in USDT; we submit the Seed equivalent to the API.
+  const [usdt, setUsdt] = useState("");
   const [method, setMethod] = useState<DepositMethod | WithdrawalMethod | "">("");
   const [file, setFile] = useState<File | null>(null);
+
+  const usdtNum = Number(usdt) || 0;
+  const seedEquivalent = usdtToSeed(usdtNum, rate);
+  const availableUsdt = availableSeed !== undefined ? availableSeed * rate : undefined;
+  const overBalance =
+    !isDeposit && availableUsdt !== undefined && usdtNum > availableUsdt + 1e-9;
+  const belowMin = usdtNum > 0 && usdtNum < minUsdt;
 
   const mutation = useMutation({
     mutationFn: async (fd: FormData) => {
@@ -78,7 +104,7 @@ export function RequestForm({ type, minAmount, hint }: Props) {
           ? "Duplicate detected — showing your existing pending request."
           : `${isDeposit ? "Deposit" : "Withdrawal"} request submitted.`,
       );
-      setAmount("");
+      setUsdt("");
       setMethod("");
       setFile(null);
       qc.invalidateQueries({ queryKey: ["my-requests"] });
@@ -92,6 +118,18 @@ export function RequestForm({ type, minAmount, hint }: Props) {
       toast.error("Choose a method.");
       return;
     }
+    if (usdtNum <= 0) {
+      toast.error("Enter an amount in USDT.");
+      return;
+    }
+    if (belowMin) {
+      toast.error(`Minimum is ${minUsdt} USDT.`);
+      return;
+    }
+    if (overBalance) {
+      toast.error("Amount exceeds your available balance.");
+      return;
+    }
     if (file && !(PROOF_MIME as readonly string[]).includes(file.type)) {
       toast.error(ERROR_MESSAGE.invalid_proof);
       return;
@@ -101,7 +139,8 @@ export function RequestForm({ type, minAmount, hint }: Props) {
       return;
     }
     const fd = new FormData();
-    fd.set("amount", amount);
+    // The API is Seed-denominated; submit the converted Seed amount (2 dp).
+    fd.set("amount", usdtToSeedString(usdtNum, rate));
     fd.set("method", method);
     if (file) fd.set("proof", file);
     mutation.mutate(fd);
@@ -110,18 +149,37 @@ export function RequestForm({ type, minAmount, hint }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={`${type}-amount`}>Amount (Seeds)</Label>
+        <Label htmlFor={`${type}-amount`}>Amount (USDT)</Label>
         <Input
           id={`${type}-amount`}
           inputMode="decimal"
           step="0.01"
-          min={minAmount}
+          min={minUsdt || undefined}
           placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          value={usdt}
+          onChange={(e) => setUsdt(e.target.value)}
           required
         />
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            {usdtNum > 0 ? (
+              <>≈ <span className="font-medium text-foreground">{fmtSeed(seedEquivalent)}</span></>
+            ) : (
+              hint
+            )}
+          </span>
+          {!isDeposit && availableUsdt !== undefined && (
+            <span className="text-muted-foreground">
+              Available: {availableUsdt.toFixed(2)} USDT
+            </span>
+          )}
+        </div>
+        {belowMin && (
+          <p className="text-xs text-destructive">Minimum is {minUsdt} USDT.</p>
+        )}
+        {overBalance && (
+          <p className="text-xs text-destructive">Amount exceeds your available balance.</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -151,7 +209,7 @@ export function RequestForm({ type, minAmount, hint }: Props) {
         <p className="text-xs text-muted-foreground">PNG, JPG, or PDF up to 10MB.</p>
       </div>
 
-      <Button type="submit" className="w-full" disabled={mutation.isPending}>
+      <Button type="submit" className="w-full" disabled={mutation.isPending || belowMin || overBalance}>
         {mutation.isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

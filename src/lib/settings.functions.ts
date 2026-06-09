@@ -92,8 +92,7 @@ export type BoosterRow = {
   active: boolean;
 };
 
-// Read-only listing of farming boosters for the admin settings page. Editing
-// boosters (CRUD) is intentionally out of scope here.
+// Read-only listing of farming boosters for the admin settings page.
 export const adminListBoosters = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BoosterRow[]> => {
@@ -116,4 +115,79 @@ export const adminListBoosters = createServerFn({ method: "GET" })
       cost_seed: Number(b.cost_seed),
       active: b.active,
     }));
+  });
+
+// Booster CRUD. cost_seed is stored in Seed (ledger unit); the admin UI presents
+// it in USDT and converts before calling these.
+const createBoosterInput = z.object({
+  code: z.string().trim().min(1).max(40),
+  label: z.string().trim().min(1).max(80),
+  duration_hours: z.number().int().min(1).max(87600),
+  reward_bps: z.number().int().min(0).max(1_000_000),
+  cost_seed: z.number().min(0).max(1_000_000_000),
+  active: z.boolean(),
+});
+
+export const adminCreateBooster = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => createBoosterInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ id: string }> => {
+    const { data: id, error } = await context.supabase.rpc("admin_create_booster", {
+      p_code: data.code,
+      p_label: data.label,
+      p_duration_hours: data.duration_hours,
+      p_reward_bps: data.reward_bps,
+      p_cost_seed: data.cost_seed,
+      p_active: data.active,
+    });
+    if (error) throw new Error(error.message);
+    return { id: String(id) };
+  });
+
+const updateBoosterInput = z.object({
+  id: z.string().uuid(),
+  label: z.string().trim().min(1).max(80),
+  duration_hours: z.number().int().min(1).max(87600),
+  reward_bps: z.number().int().min(0).max(1_000_000),
+  cost_seed: z.number().min(0).max(1_000_000_000),
+  active: z.boolean(),
+});
+
+export const adminUpdateBooster = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => updateBoosterInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("admin_update_booster", {
+      p_id: data.id,
+      p_label: data.label,
+      p_duration_hours: data.duration_hours,
+      p_reward_bps: data.reward_bps,
+      p_cost_seed: data.cost_seed,
+      p_active: data.active,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminSetBoosterActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), active: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("admin_set_booster_active", {
+      p_id: data.id,
+      p_active: data.active,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminDeleteBooster = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("admin_delete_booster", { p_id: data.id });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
