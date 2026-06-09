@@ -5,6 +5,7 @@ import {
   Sparkles, Globe, MapPin, Phone, FileText, X, Pencil,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
@@ -69,7 +70,6 @@ function ProfilePage() {
   const [autoDetected, setAutoDetected] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -177,7 +177,6 @@ function ProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
 
     const u = username.trim().toLowerCase();
     if (u && !/^[a-z0-9_]{3,24}$/.test(u)) {
@@ -223,7 +222,7 @@ function ProfilePage() {
       else setError(upErr.message);
       return;
     }
-    setSuccess("Profile saved.");
+    toast.success("Profile saved.");
     setAutoDetected(false);
     router.invalidate();
   };
@@ -244,7 +243,7 @@ function ProfilePage() {
     setSelectedAvatar(url);
     setAvatarUrl(await resolveAvatarUrl(url));
     setEditingAvatar(false);
-    setSuccess("Avatar updated.");
+    toast.success("Avatar updated.");
   };
 
   const copyReferral = async () => {
@@ -554,11 +553,6 @@ function ProfilePage() {
           {error && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
-            </div>
-          )}
-          {success && (
-            <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
-              {success}
             </div>
           )}
 
