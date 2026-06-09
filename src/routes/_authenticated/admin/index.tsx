@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText } from "lucide-react";
+import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText, ShieldCheck } from "lucide-react";
 
 const links = [
   { to: "/admin/farmers", label: "Farmers", desc: "Search, freeze, adjust balances", icon: Users },
   { to: "/admin/requests", label: "Requests", desc: "Approve deposits & withdrawals", icon: Inbox },
+  { to: "/admin/kyc", label: "KYC", desc: "Review identity verification", icon: ShieldCheck },
   { to: "/admin/cycles", label: "Cycles", desc: "Force-mature, cancel", icon: Sprout },
   { to: "/admin/escrow", label: "Escrow", desc: "Resolve disputes", icon: Handshake },
   { to: "/admin/settings", label: "Settings", desc: "Rates, fees, boosters", icon: Settings },
