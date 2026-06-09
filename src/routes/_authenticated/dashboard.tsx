@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sprout, Wallet, Coins, ArrowLeftRight, Zap, TrendingUp, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { MaintenanceCard } from "@/components/maintenance/MaintenanceCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · VFarmers" }] }),
@@ -73,6 +74,10 @@ function Dashboard() {
         <QuickAction to="/send" label="Transfer" icon={ArrowLeftRight} />
         <QuickAction to="/farm" label="Reap" icon={Coins} />
         <QuickAction to="/farm" label="Boost" icon={Zap} />
+      </section>
+
+      <section className="mt-6">
+        <MaintenanceCard />
       </section>
 
       <section className="glass mt-8 rounded-3xl p-8 text-center">
