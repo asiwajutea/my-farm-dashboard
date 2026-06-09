@@ -1,14 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Check, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
-  Sparkles, Globe, MapPin, Phone, FileText, X,
+  Check, CheckCircle2, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
+  Sparkles, Globe, MapPin, Phone, FileText, X, Pencil,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
-import { PRESET_AVATARS } from "@/lib/avatars";
+import { PRESET_AVATARS, findPresetAvatar } from "@/lib/avatars";
 import { checkUsernameAvailable } from "@/lib/profile.functions";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
@@ -55,6 +55,7 @@ function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [editingAvatar, setEditingAvatar] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
 
@@ -242,6 +243,7 @@ function ProfilePage() {
     }
     setSelectedAvatar(url);
     setAvatarUrl(await resolveAvatarUrl(url));
+    setEditingAvatar(false);
     setSuccess("Avatar updated.");
   };
 
@@ -262,6 +264,11 @@ function ProfilePage() {
 
   const kyc = profile?.kyc_status ?? "unverified";
   const kycMeta = KYC_META[kyc as keyof typeof KYC_META] ?? KYC_META.unverified;
+
+  // Collapse the picker once a Farmer has an avatar — only re-open when they
+  // explicitly choose to change it. This keeps the section compact.
+  const selectedAvatarMeta = findPresetAvatar(selectedAvatar);
+  const showAvatarGrid = editingAvatar || !selectedAvatar;
 
   return (
     <div>
@@ -312,36 +319,81 @@ function ProfilePage() {
           {/* Preset avatar chooser (no uploads — keeps storage/bandwidth at zero) */}
           <div className="mt-6 border-t border-border/40 pt-5">
             <div className="flex items-center justify-between">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Choose your avatar</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                {showAvatarGrid ? "Choose your avatar" : "Your avatar"}
+              </div>
               {savingAvatar && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             </div>
-            <div className="mt-3 grid grid-cols-6 gap-2.5 sm:grid-cols-12">
-              {PRESET_AVATARS.map((a) => {
-                const active = selectedAvatar === a.url;
-                return (
+
+            {showAvatarGrid ? (
+              <>
+                <div className="mt-3 grid grid-cols-6 gap-2.5 sm:grid-cols-12">
+                  {PRESET_AVATARS.map((a) => {
+                    const active = selectedAvatar === a.url;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => selectAvatar(a.url)}
+                        disabled={savingAvatar}
+                        title={a.label}
+                        aria-label={a.label}
+                        aria-pressed={active}
+                        className={`relative overflow-hidden rounded-xl border transition-all disabled:opacity-60 ${
+                          active
+                            ? "border-primary ring-2 ring-primary/50"
+                            : "border-border hover:border-primary/40"
+                        }`}
+                      >
+                        <img src={a.url} alt="" className="h-full w-full" />
+                        {active && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-primary/20">
+                            <Check className="h-4 w-4 text-white drop-shadow" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedAvatar && (
                   <button
-                    key={a.id}
                     type="button"
-                    onClick={() => selectAvatar(a.url)}
-                    disabled={savingAvatar}
-                    aria-label={`Avatar ${a.id}`}
-                    aria-pressed={active}
-                    className={`relative overflow-hidden rounded-xl border transition-all disabled:opacity-60 ${
-                      active
-                        ? "border-primary ring-2 ring-primary/50"
-                        : "border-border hover:border-primary/40"
-                    }`}
+                    onClick={() => setEditingAvatar(false)}
+                    className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   >
-                    <img src={a.url} alt="" className="h-full w-full" />
-                    {active && (
-                      <span className="absolute inset-0 flex items-center justify-center bg-primary/20">
-                        <Check className="h-4 w-4 text-white drop-shadow" />
-                      </span>
-                    )}
+                    Done
                   </button>
-                );
-              })}
-            </div>
+                )}
+              </>
+            ) : (
+              // Collapsed: show only the chosen avatar to save space. Farmers can
+              // re-open the full picker any time to change it.
+              <div className="mt-3 flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-primary ring-2 ring-primary/40">
+                  <img
+                    src={selectedAvatar ?? PRESET_AVATARS[0].url}
+                    alt={selectedAvatarMeta?.label ?? "Selected avatar"}
+                    className="h-full w-full"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">
+                    {selectedAvatarMeta?.label ?? "Selected"}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Your current avatar
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingAvatar(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/60 px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Change avatar
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -380,7 +432,7 @@ function ProfilePage() {
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
                 {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {usernameStatus === "available" && <Check className="h-4 w-4 text-primary" />}
+                {usernameStatus === "available" && <CheckCircle2 className="h-5 w-5 text-primary" />}
                 {(usernameStatus === "taken" || usernameStatus === "invalid") && (
                   <X className="h-4 w-4 text-destructive" />
                 )}
@@ -391,7 +443,10 @@ function ProfilePage() {
                 <span className="text-muted-foreground">Checking availability…</span>
               )}
               {usernameStatus === "available" && (
-                <span className="text-primary">“{username.trim().toLowerCase()}” is available.</span>
+                <span className="inline-flex items-center gap-1 text-primary">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  “{username.trim().toLowerCase()}” is available.
+                </span>
               )}
               {usernameStatus === "taken" && (
                 <span className="text-destructive">“{username.trim().toLowerCase()}” is already taken.</span>
