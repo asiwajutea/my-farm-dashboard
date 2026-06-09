@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_audit_log: {
-        Row: {
-          action: string
-          actor_id: string
-          created_at: string
-          detail: Json
-          id: string
-          target_id: string | null
-          target_type: string | null
-        }
-        Insert: {
-          action: string
-          actor_id: string
-          created_at?: string
-          detail?: Json
-          id?: string
-          target_id?: string | null
-          target_type?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string
-          created_at?: string
-          detail?: Json
-          id?: string
-          target_id?: string | null
-          target_type?: string | null
-        }
-        Relationships: []
-      }
       affiliate_commissions: {
         Row: {
           amount: number
@@ -245,7 +215,6 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
-          currency: string
           expires_at: string | null
           id: string
           max_redemptions: number
@@ -258,7 +227,6 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
-          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -271,7 +239,6 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
-          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -369,51 +336,6 @@ export type Database = {
         }
         Relationships: []
       }
-      escrow_trades: {
-        Row: {
-          amount: number
-          created_at: string
-          dispute_reason: string | null
-          id: string
-          payee_id: string
-          payer_id: string
-          resolution: string | null
-          resolved_by: string | null
-          status: Database["public"]["Enums"]["escrow_status"]
-          terms: string | null
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          dispute_reason?: string | null
-          id?: string
-          payee_id: string
-          payer_id: string
-          resolution?: string | null
-          resolved_by?: string | null
-          status?: Database["public"]["Enums"]["escrow_status"]
-          terms?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          dispute_reason?: string | null
-          id?: string
-          payee_id?: string
-          payer_id?: string
-          resolution?: string | null
-          resolved_by?: string | null
-          status?: Database["public"]["Enums"]["escrow_status"]
-          terms?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       ledger_entries: {
         Row: {
           amount: number
@@ -461,51 +383,6 @@ export type Database = {
           },
         ]
       }
-      kyc_documents: {
-        Row: {
-          admin_note: string | null
-          created_at: string
-          document_path: string
-          document_type: string
-          full_name: string
-          id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          selfie_path: string
-          status: Database["public"]["Enums"]["kyc_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          admin_note?: string | null
-          created_at?: string
-          document_path: string
-          document_type: string
-          full_name: string
-          id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          selfie_path: string
-          status?: Database["public"]["Enums"]["kyc_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          admin_note?: string | null
-          created_at?: string
-          document_path?: string
-          document_type?: string
-          full_name?: string
-          id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          selfie_path?: string
-          status?: Database["public"]["Enums"]["kyc_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       maintenance_fees: {
         Row: {
           amount: number
@@ -550,42 +427,6 @@ export type Database = {
           },
         ]
       }
-      notifications: {
-        Row: {
-          body: string | null
-          created_at: string
-          id: string
-          kind: Database["public"]["Enums"]["notification_kind"]
-          read_at: string | null
-          ref_id: string | null
-          ref_table: string | null
-          title: string
-          user_id: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          kind: Database["public"]["Enums"]["notification_kind"]
-          read_at?: string | null
-          ref_id?: string | null
-          ref_table?: string | null
-          title: string
-          user_id: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          kind?: Database["public"]["Enums"]["notification_kind"]
-          read_at?: string | null
-          ref_id?: string | null
-          ref_table?: string | null
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       p2p_transfers: {
         Row: {
           amount: number
@@ -626,7 +467,6 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
-          frozen: boolean
           id: string
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           phone: string | null
@@ -641,7 +481,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
-          frozen?: boolean
           id: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone?: string | null
@@ -656,7 +495,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
-          frozen?: boolean
           id?: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone?: string | null
@@ -767,91 +605,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_adjust_balance: {
-        Args: { p_amount: number; p_memo?: string; p_user: string }
-        Returns: undefined
-      }
-      admin_cancel_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
-      admin_create_booster: {
-        Args: {
-          p_active?: boolean
-          p_code: string
-          p_cost_seed?: number
-          p_duration_hours: number
-          p_label: string
-          p_reward_bps: number
-        }
-        Returns: string
-      }
-      admin_create_coupon: {
-        Args: {
-          p_amount: number
-          p_code: string
-          p_currency?: string
-          p_expires?: string
-          p_max: number
-        }
-        Returns: string
-      }
-      admin_create_coupons_bulk: {
-        Args: {
-          p_amount: number
-          p_count: number
-          p_currency?: string
-          p_expires?: string
-          p_max: number
-          p_prefix?: string
-        }
-        Returns: string[]
-      }
-      admin_force_mature_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
-      admin_review_kyc: {
-        Args: { p_approve: boolean; p_id: string; p_note?: string }
-        Returns: undefined
-      }
-      admin_review_request: {
-        Args: { p_approve: boolean; p_id: string; p_note?: string; p_type: string }
-        Returns: undefined
-      }
       admin_run_monthly_maintenance: { Args: never; Returns: number }
-      admin_delete_booster: { Args: { p_id: string }; Returns: undefined }
-      admin_set_booster_active: {
-        Args: { p_active: boolean; p_id: string }
-        Returns: undefined
-      }
-      admin_set_coupon_active: {
-        Args: { p_active: boolean; p_id: string }
-        Returns: undefined
-      }
-      admin_set_frozen: { Args: { p_frozen: boolean; p_user: string }; Returns: undefined }
-      admin_update_booster: {
-        Args: {
-          p_active: boolean
-          p_cost_seed: number
-          p_duration_hours: number
-          p_id: string
-          p_label: string
-          p_reward_bps: number
-        }
-        Returns: undefined
-      }
-      escrow_accept: { Args: { p_id: string }; Returns: undefined }
-      escrow_cancel: { Args: { p_id: string }; Returns: undefined }
-      escrow_create: {
-        Args: {
-          p_amount: number
-          p_payee_id: string
-          p_terms?: string
-          p_title?: string
-        }
-        Returns: string
-      }
-      escrow_dispute: { Args: { p_id: string; p_reason?: string }; Returns: undefined }
-      escrow_release: { Args: { p_id: string }; Returns: undefined }
-      escrow_resolve: {
-        Args: { p_id: string; p_release: boolean; p_resolution?: string }
-        Returns: undefined
-      }
       find_profile_by_handle: {
         Args: { handle: string }
         Returns: {
@@ -878,16 +632,6 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
-      is_username_available: { Args: { p_username: string }; Returns: boolean }
-      kyc_submit: {
-        Args: {
-          p_document_path: string
-          p_document_type: string
-          p_full_name: string
-          p_selfie_path: string
-        }
-        Returns: string
-      }
       lookup_referrer: {
         Args: { _code: string }
         Returns: {
@@ -897,8 +641,6 @@ export type Database = {
           username: string
         }[]
       }
-      mark_all_notifications_read: { Args: never; Returns: number }
-      mark_notification_read: { Args: { p_id: string }; Returns: undefined }
       p2p_send: {
         Args: { p_amount: number; p_note?: string; p_receiver_id: string }
         Returns: string
@@ -944,13 +686,6 @@ export type Database = {
       affiliate_source: "cycle" | "maintenance"
       app_role: "admin" | "moderator" | "user" | "farmer"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
-      escrow_status:
-        | "pending"
-        | "accepted"
-        | "released"
-        | "cancelled"
-        | "disputed"
-        | "refunded"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
       ledger_kind:
         | "deposit"
@@ -978,24 +713,6 @@ export type Database = {
         | "affiliate_commission"
         | "maintenance_fee"
       maintenance_status: "due" | "paid" | "waived" | "overdue"
-      notification_kind:
-        | "cycle_matured"
-        | "cycle_reaped"
-        | "deposit_approved"
-        | "deposit_rejected"
-        | "withdrawal_approved"
-        | "withdrawal_rejected"
-        | "transfer_received"
-        | "escrow_created"
-        | "escrow_accepted"
-        | "escrow_released"
-        | "escrow_cancelled"
-        | "escrow_disputed"
-        | "escrow_refunded"
-        | "affiliate_commission"
-        | "maintenance_due"
-        | "admin_balance_adjusted"
-        | "system"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -1130,14 +847,6 @@ export const Constants = {
       affiliate_source: ["cycle", "maintenance"],
       app_role: ["admin", "moderator", "user", "farmer"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
-      escrow_status: [
-        "pending",
-        "accepted",
-        "released",
-        "cancelled",
-        "disputed",
-        "refunded",
-      ],
       kyc_status: ["unverified", "pending", "verified", "rejected"],
       ledger_kind: [
         "deposit",

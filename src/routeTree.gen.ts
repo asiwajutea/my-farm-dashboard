@@ -35,13 +35,13 @@ import { Route as ApiPublicTestCreditRouteImport } from './routes/api/public/tes
 import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticated/escrow.$id'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin/requests'
+import { Route as AuthenticatedAdminKycRouteImport } from './routes/_authenticated/admin/kyc'
 import { Route as AuthenticatedAdminFarmersRouteImport } from './routes/_authenticated/admin/farmers'
 import { Route as AuthenticatedAdminEscrowRouteImport } from './routes/_authenticated/admin/escrow'
 import { Route as AuthenticatedAdminCyclesRouteImport } from './routes/_authenticated/admin/cycles'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin/coupons'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedAdminAffiliatesRouteImport } from './routes/_authenticated/admin/affiliates'
-import { Route as AuthenticatedAdminKycRouteImport } from './routes/_authenticated/admin/kyc'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -176,6 +176,11 @@ const AuthenticatedAdminRequestsRoute =
     path: '/requests',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminKycRoute = AuthenticatedAdminKycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminFarmersRoute =
   AuthenticatedAdminFarmersRouteImport.update({
     id: '/farmers',
@@ -211,11 +216,6 @@ const AuthenticatedAdminAffiliatesRoute =
     path: '/affiliates',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminKycRoute = AuthenticatedAdminKycRouteImport.update({
-  id: '/kyc',
-  path: '/kyc',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -238,12 +238,12 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
-  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
   '/admin/escrow': typeof AuthenticatedAdminEscrowRoute
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
@@ -270,12 +270,12 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
-  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/cycles': typeof AuthenticatedAdminCyclesRoute
   '/admin/escrow': typeof AuthenticatedAdminEscrowRoute
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
@@ -306,12 +306,12 @@ export interface FileRoutesById {
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
   '/_authenticated/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
-  '/_authenticated/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/cycles': typeof AuthenticatedAdminCyclesRoute
   '/_authenticated/admin/escrow': typeof AuthenticatedAdminEscrowRoute
   '/_authenticated/admin/farmers': typeof AuthenticatedAdminFarmersRoute
+  '/_authenticated/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/escrow/$id': typeof AuthenticatedEscrowIdRoute
@@ -342,12 +342,12 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/withdraw'
     | '/admin/affiliates'
-    | '/admin/kyc'
     | '/admin/audit'
     | '/admin/coupons'
     | '/admin/cycles'
     | '/admin/escrow'
     | '/admin/farmers'
+    | '/admin/kyc'
     | '/admin/requests'
     | '/admin/settings'
     | '/escrow/$id'
@@ -374,12 +374,12 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/withdraw'
     | '/admin/affiliates'
-    | '/admin/kyc'
     | '/admin/audit'
     | '/admin/coupons'
     | '/admin/cycles'
     | '/admin/escrow'
     | '/admin/farmers'
+    | '/admin/kyc'
     | '/admin/requests'
     | '/admin/settings'
     | '/escrow/$id'
@@ -409,12 +409,12 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
     | '/_authenticated/admin/affiliates'
-    | '/_authenticated/admin/kyc'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/cycles'
     | '/_authenticated/admin/escrow'
     | '/_authenticated/admin/farmers'
+    | '/_authenticated/admin/kyc'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
     | '/_authenticated/escrow/$id'
@@ -618,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/kyc': {
+      id: '/_authenticated/admin/kyc'
+      path: '/kyc'
+      fullPath: '/admin/kyc'
+      preLoaderRoute: typeof AuthenticatedAdminKycRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/farmers': {
       id: '/_authenticated/admin/farmers'
       path: '/farmers'
@@ -660,24 +667,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAffiliatesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/kyc': {
-      id: '/_authenticated/admin/kyc'
-      path: '/kyc'
-      fullPath: '/admin/kyc'
-      preLoaderRoute: typeof AuthenticatedAdminKycRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
   }
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAffiliatesRoute: typeof AuthenticatedAdminAffiliatesRoute
-  AuthenticatedAdminKycRoute: typeof AuthenticatedAdminKycRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminCyclesRoute: typeof AuthenticatedAdminCyclesRoute
   AuthenticatedAdminEscrowRoute: typeof AuthenticatedAdminEscrowRoute
   AuthenticatedAdminFarmersRoute: typeof AuthenticatedAdminFarmersRoute
+  AuthenticatedAdminKycRoute: typeof AuthenticatedAdminKycRoute
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -686,12 +686,12 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminAffiliatesRoute: AuthenticatedAdminAffiliatesRoute,
-    AuthenticatedAdminKycRoute: AuthenticatedAdminKycRoute,
     AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
     AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
     AuthenticatedAdminCyclesRoute: AuthenticatedAdminCyclesRoute,
     AuthenticatedAdminEscrowRoute: AuthenticatedAdminEscrowRoute,
     AuthenticatedAdminFarmersRoute: AuthenticatedAdminFarmersRoute,
+    AuthenticatedAdminKycRoute: AuthenticatedAdminKycRoute,
     AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
