@@ -2,7 +2,7 @@ import { Lock, CalendarClock } from "lucide-react";
 import type { PayoutLockState } from "@/lib/payout";
 
 /** Render a YYYY-MM-DD date as e.g. "Fri, Jun 12, 2026" (date-only, no TZ drift). */
-function fmtDate(ymd: string): string {
+export function fmtDate(ymd: string): string {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
     weekday: "short",
