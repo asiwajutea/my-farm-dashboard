@@ -13,6 +13,7 @@ import {
 import { seedToUsdt, usdtToSeed, fmtAmount } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BoosterManager } from "@/components/admin/BoosterManager";
+import { TickerEditor } from "@/components/admin/TickerEditor";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Settings · Admin" }] }),
@@ -199,6 +200,9 @@ function AdminSettingsPage() {
 
       {/* Boosters (full CRUD) */}
       <BoosterManager rate={form.seed_to_usdt} />
+
+      {/* Marquee ticker */}
+      <TickerEditor />
     </div>
   );
 }

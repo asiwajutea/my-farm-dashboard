@@ -95,12 +95,14 @@ export type AdminEscrowDispute = {
   payee: FarmerLite | null;
 };
 
+export type AuditDetail = string | number | boolean | null | { [k: string]: AuditDetail } | AuditDetail[];
+
 export type AdminAuditRow = {
   id: string;
   action: string;
   target_type: string | null;
   target_id: string | null;
-  detail: unknown;
+  detail: AuditDetail;
   created_at: string;
   actor: FarmerLite | null;
 };
@@ -365,7 +367,7 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
 
 const adjustInput = z.object({
   userId: z.string().uuid(),
-  amount: z.number().refine((n) => n !== 0, "Amount must be non-zero").gte(-1_000_000_000).lte(1_000_000_000),
+  amount: z.number().gte(-1_000_000_000).lte(1_000_000_000).refine((n) => n !== 0, "Amount must be non-zero"),
   memo: z.string().max(200).optional(),
 });
 
@@ -626,7 +628,7 @@ export const adminListAuditLog = createServerFn({ method: "GET" })
       action: r.action,
       target_type: r.target_type,
       target_id: r.target_id,
-      detail: r.detail,
+      detail: (r.detail ?? null) as AuditDetail,
       created_at: r.created_at,
       actor: actors.get(r.actor_id) ?? null,
     }));

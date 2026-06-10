@@ -149,6 +149,7 @@ export function AppSidebar() {
           {isAdmin && renderGroup("Admin", [
             { title: "Admin Console", url: "/admin", icon: Shield },
             { title: "Affiliates", url: "/admin/affiliates", icon: Users },
+            { title: "Maintenance", url: "/admin/maintenance", icon: Shield },
           ])}
         </SidebarContent>
 

@@ -68,11 +68,11 @@ export function BoosterManager({ rate }: { rate: number }) {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-boosters"] });
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async (): Promise<void> => {
       const cost_seed = usdtToSeed(draft.cost_usdt, rate);
       const reward_bps = Math.round(draft.reward_pct * 100);
       if (editing) {
-        return updateFn({
+        await updateFn({
           data: {
             id: editing.id,
             label: draft.label,
@@ -82,8 +82,9 @@ export function BoosterManager({ rate }: { rate: number }) {
             active: draft.active,
           },
         });
+        return;
       }
-      return createFn({
+      await createFn({
         data: {
           code: draft.code,
           label: draft.label,
