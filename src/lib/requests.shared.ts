@@ -51,6 +51,10 @@ export type RequestRow = {
   status: RequestStatus;
   proof_url: string | null;
   created_at: string; // ISO timestamp
+  // Withdrawals only: USDT payout + rate frozen at request time. Null for
+  // deposits and legacy rows. Optional so callers building rows can omit them.
+  amount_usdt?: string | null;
+  locked_rate?: string | null;
 };
 
 export type SubmitResult = { request: RequestRow; deduped?: boolean };
@@ -61,6 +65,7 @@ export type RequestErrorCode =
   | "invalid_method"
   | "invalid_proof"
   | "insufficient_balance"
+  | "withdrawals_locked"
   | "unauthorized"
   | "internal";
 

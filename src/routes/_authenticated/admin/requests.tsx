@@ -127,10 +127,17 @@ function AdminRequests() {
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
                       {r.farmer?.display_name ?? r.farmer?.username ?? "Farmer"}
-                      <span className="ml-2 font-mono tabular-nums">{fmt(r.amount)} Seed</span>
+                      <span className="ml-2 font-mono tabular-nums">
+                        {r.type === "withdrawal" && r.amount_usdt != null
+                          ? `${fmt(r.amount_usdt)} USDT`
+                          : `${fmt(r.amount)} Seed`}
+                      </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       <span className="capitalize">{r.type}</span> · {r.method} ·{" "}
+                      {r.type === "withdrawal" && r.amount_usdt != null && (
+                        <>{fmt(r.amount)} Seed · </>
+                      )}
                       {new Date(r.created_at).toLocaleString()}
                     </div>
                   </div>
@@ -194,6 +201,16 @@ function AdminRequests() {
                   {approve && target.type === "deposit" && " into the farmer's primary wallet."}
                   {approve && target.type === "withdrawal" && " out of the farmer's primary wallet."}
                   {!approve && " — the request is marked rejected."}
+                  {target.type === "withdrawal" && target.amount_usdt != null && (
+                    <>
+                      {" "}
+                      The locked payout is{" "}
+                      <span className="font-mono tabular-nums">
+                        {fmt(target.amount_usdt)} USDT
+                      </span>
+                      .
+                    </>
+                  )}
                 </>
               )}
             </DialogDescription>

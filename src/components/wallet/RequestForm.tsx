@@ -38,6 +38,8 @@ const ERROR_MESSAGE: Record<string, string> = {
   invalid_method: "Choose a valid method.",
   invalid_proof: `Proof must be PNG, JPG, or PDF, up to ${PROOF_MAX_BYTES / (1024 * 1024)}MB.`,
   insufficient_balance: "Insufficient available balance.",
+  withdrawals_locked:
+    "Withdrawals are locked for payout processing (Thursday–Friday). Please try again after the payout.",
   unauthorized: "Please sign in again.",
   internal: "Something went wrong. Please try again.",
 };

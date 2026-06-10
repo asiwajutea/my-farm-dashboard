@@ -37,7 +37,10 @@ export function RequestsHistory({ filter }: { filter?: RequestType }) {
         <ul className="divide-y divide-border/40">
           {items.map((r) => {
             const seed = Number(r.amount);
-            const usdt = seedToUsdt(seed, rate);
+            // Withdrawals show the USDT payout frozen at request time; deposits
+            // (and legacy rows) fall back to the live rate.
+            const lockedUsdt = r.amount_usdt != null ? Number(r.amount_usdt) : null;
+            const usdt = lockedUsdt ?? seedToUsdt(seed, rate);
             return (
               <li key={`${r.type}-${r.id}`} className="flex items-center justify-between py-3">
                 <div className="min-w-0">
@@ -56,7 +59,8 @@ export function RequestsHistory({ filter }: { filter?: RequestType }) {
                   <div className="text-right">
                     <div className="font-mono text-sm tabular-nums">{fmtAmount(usdt)} USDT</div>
                     <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                      ≈ {fmtAmount(seed)} Seed
+                      {lockedUsdt != null ? "locked · " : "≈ "}
+                      {fmtAmount(seed)} Seed
                     </div>
                   </div>
                   <StatusBadge status={r.status} />

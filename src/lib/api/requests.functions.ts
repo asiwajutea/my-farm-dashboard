@@ -21,6 +21,11 @@ import {
   findRecentDuplicateDeposit,
   uploadProof,
 } from "@/lib/requests.server";
+import {
+  DEFAULT_PAYOUT_ANCHOR,
+  DEFAULT_PAYOUT_TIMEZONE,
+  getPayoutLockState,
+} from "@/lib/payout";
 
 // ---------------------------------------------------------------------------
 // Typed error — the message carries the discriminated code so it survives
@@ -41,11 +46,18 @@ export class RequestError extends Error {
 // ---------------------------------------------------------------------------
 
 type DbRequestRow = Database["public"]["Tables"]["deposit_requests"]["Row"];
+type DbWithdrawalRow = Database["public"]["Tables"]["withdrawal_requests"]["Row"];
 
 export type Cursor = { created_at: string; id: string };
 
 /** Project a DB request row into the app-facing RequestRow shape. */
-export function projectRow(row: DbRequestRow, type: RequestType): RequestRow {
+export function projectRow(row: DbRequestRow | DbWithdrawalRow, type: RequestType): RequestRow {
+  // Withdrawal rows carry the USDT payout + rate frozen at request time;
+  // deposit (and legacy withdrawal) rows omit them.
+  const amountUsdt =
+    "amount_usdt" in row && row.amount_usdt != null ? Number(row.amount_usdt).toFixed(2) : null;
+  const lockedRate =
+    "locked_rate" in row && row.locked_rate != null ? Number(row.locked_rate).toFixed(8) : null;
   return {
     id: row.id,
     type,
@@ -54,6 +66,8 @@ export function projectRow(row: DbRequestRow, type: RequestType): RequestRow {
     status: row.status as RequestStatus,
     proof_url: row.proof_url,
     created_at: row.created_at,
+    amount_usdt: amountUsdt,
+    locked_rate: lockedRate,
   };
 }
 
@@ -201,6 +215,29 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
     const method = data.get("method");
     if (!isWithdrawalMethod(method)) throw new RequestError("invalid_method");
 
+    // b2. payout lock + conversion rate — read the settings singleton once.
+    // The lock is enforced server-side so it can't be bypassed by calling the
+    // API directly while the UI is gated.
+    const { data: settings, error: settingsErr } = await supabase
+      .from("app_settings")
+      .select("seed_to_usdt, payout_anchor, payout_lock_enabled, payout_timezone")
+      .eq("id", true)
+      .maybeSingle();
+    if (settingsErr) throw new RequestError("internal");
+
+    const lock = getPayoutLockState(new Date(), {
+      anchor: settings?.payout_anchor ?? DEFAULT_PAYOUT_ANCHOR,
+      lockEnabled: settings?.payout_lock_enabled ?? true,
+      timeZone: settings?.payout_timezone ?? DEFAULT_PAYOUT_TIMEZONE,
+    });
+    if (lock.locked) throw new RequestError("withdrawals_locked");
+
+    // Freeze the conversion rate + USDT payout at request time so a later rate
+    // change never alters this request.
+    const rate = Number(settings?.seed_to_usdt ?? 0) > 0 ? Number(settings!.seed_to_usdt) : 1;
+    const seedAmount = Number(parsed.value);
+    const amountUsdt = Math.round(seedAmount * rate * 100) / 100;
+
     // c. optional proof (Req 6.4)
     const rawFile = data.get("proof");
     const proofFile = rawFile instanceof File && rawFile.size > 0 ? rawFile : null;
@@ -236,9 +273,11 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
       .from("withdrawal_requests")
       .insert({
         user_id: userId,
-        amount: Number(parsed.value),
+        amount: seedAmount,
         method,
         proof_url: proofUrl,
+        locked_rate: rate,
+        amount_usdt: amountUsdt,
       })
       .select("*")
       .single();

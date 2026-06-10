@@ -29,6 +29,7 @@ export type AdminRequestRow = {
   type: "deposit" | "withdrawal";
   user_id: string;
   amount: number;
+  amount_usdt: number | null; // withdrawals only: USDT payout frozen at request time
   method: string;
   status: RequestStatus;
   proof_url: string | null;
@@ -181,7 +182,8 @@ export const adminListRequests = createServerFn({ method: "GET" })
       applyStatus(sb.from("deposit_requests").select(select))
         .order("created_at", { ascending: false })
         .limit(100),
-      applyStatus(sb.from("withdrawal_requests").select(select))
+      // Withdrawals also carry the USDT payout frozen at request time.
+      applyStatus(sb.from("withdrawal_requests").select(`${select}, amount_usdt`))
         .order("created_at", { ascending: false })
         .limit(100),
     ]);
@@ -200,6 +202,7 @@ export const adminListRequests = createServerFn({ method: "GET" })
         type: r.type,
         user_id: r.user_id,
         amount: Number(r.amount),
+        amount_usdt: "amount_usdt" in r && r.amount_usdt != null ? Number(r.amount_usdt) : null,
         method: r.method,
         status: r.status as RequestStatus,
         proof_url: r.proof_url,

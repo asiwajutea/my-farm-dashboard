@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestForm, useSeedRate } from "@/components/wallet/RequestForm";
 import { RequestsHistory } from "@/components/wallet/RequestsHistory";
+import { WithdrawalLockCard, PayoutScheduleHint } from "@/components/wallet/WithdrawalLockNotice";
+import { usePayoutLock } from "@/hooks/use-payout-lock";
 import { fmtAmount } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -33,8 +35,10 @@ function useAvailableBalance() {
 function WithdrawPage() {
   const { data } = useAvailableBalance();
   const { data: rate = 1 } = useSeedRate();
+  const { data: lock } = usePayoutLock();
   const availableSeed = data?.available ?? 0;
   const availableUsdt = availableSeed * rate;
+  const locked = lock?.locked ?? false;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
@@ -65,12 +69,19 @@ function WithdrawPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RequestForm
-            type="withdrawal"
-            minUsdt={1}
-            availableSeed={availableSeed}
-            hint="Withdrawals are reviewed by the admin team."
-          />
+          {locked && lock ? (
+            <WithdrawalLockCard state={lock} />
+          ) : (
+            <div className="space-y-4">
+              <RequestForm
+                type="withdrawal"
+                minUsdt={1}
+                availableSeed={availableSeed}
+                hint="Withdrawals are reviewed by the admin team."
+              />
+              {lock && <PayoutScheduleHint state={lock} />}
+            </div>
+          )}
         </CardContent>
       </Card>
 

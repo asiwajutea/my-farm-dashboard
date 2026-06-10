@@ -14,6 +14,7 @@ import { seedToUsdt, usdtToSeed, fmtAmount } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BoosterManager } from "@/components/admin/BoosterManager";
 import { TickerEditor } from "@/components/admin/TickerEditor";
+import { PayoutScheduleEditor } from "@/components/admin/PayoutScheduleEditor";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Settings · Admin" }] }),
@@ -197,6 +198,9 @@ function AdminSettingsPage() {
           Affiliate & maintenance settings
         </Link>
       </div>
+
+      {/* Payout schedule (self-contained save) */}
+      <PayoutScheduleEditor />
 
       {/* Boosters (full CRUD) */}
       <BoosterManager rate={form.seed_to_usdt} />
