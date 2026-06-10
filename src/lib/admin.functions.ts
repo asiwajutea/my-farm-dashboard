@@ -95,12 +95,14 @@ export type AdminEscrowDispute = {
   payee: FarmerLite | null;
 };
 
+export type AuditDetail = string | number | boolean | null | { [k: string]: AuditDetail } | AuditDetail[];
+
 export type AdminAuditRow = {
   id: string;
   action: string;
   target_type: string | null;
   target_id: string | null;
-  detail: Record<string, unknown> | null;
+  detail: AuditDetail;
   created_at: string;
   actor: FarmerLite | null;
 };
@@ -626,7 +628,7 @@ export const adminListAuditLog = createServerFn({ method: "GET" })
       action: r.action,
       target_type: r.target_type,
       target_id: r.target_id,
-      detail: r.detail,
+      detail: (r.detail ?? null) as AuditDetail,
       created_at: r.created_at,
       actor: actors.get(r.actor_id) ?? null,
     }));

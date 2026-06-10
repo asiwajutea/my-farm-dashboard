@@ -68,7 +68,7 @@ export function BoosterManager({ rate }: { rate: number }) {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-boosters"] });
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async (): Promise<void> => {
       const cost_seed = usdtToSeed(draft.cost_usdt, rate);
       const reward_bps = Math.round(draft.reward_pct * 100);
       if (editing) {
