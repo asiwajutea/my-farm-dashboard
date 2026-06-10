@@ -100,7 +100,7 @@ export type AdminAuditRow = {
   action: string;
   target_type: string | null;
   target_id: string | null;
-  detail: unknown;
+  detail: Record<string, unknown> | null;
   created_at: string;
   actor: FarmerLite | null;
 };
@@ -365,7 +365,7 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
 
 const adjustInput = z.object({
   userId: z.string().uuid(),
-  amount: z.number().refine((n) => n !== 0, "Amount must be non-zero").gte(-1_000_000_000).lte(1_000_000_000),
+  amount: z.number().gte(-1_000_000_000).lte(1_000_000_000).refine((n) => n !== 0, "Amount must be non-zero"),
   memo: z.string().max(200).optional(),
 });
 
