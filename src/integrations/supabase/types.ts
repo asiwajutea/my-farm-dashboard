@@ -260,6 +260,7 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          currency: string
           expires_at: string | null
           id: string
           max_redemptions: number
@@ -272,6 +273,7 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -284,6 +286,7 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           expires_at?: string | null
           id?: string
           max_redemptions?: number
@@ -423,6 +426,51 @@ export type Database = {
           terms?: string | null
           title?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      kyc_documents: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          document_path: string
+          document_type: string
+          full_name: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selfie_path: string
+          status: Database["public"]["Enums"]["kyc_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          document_path: string
+          document_type: string
+          full_name: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_path: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          document_path?: string
+          document_type?: string
+          full_name?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_path?: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -749,17 +797,45 @@ export type Database = {
         Returns: undefined
       }
       admin_cancel_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
+      admin_create_booster: {
+        Args: {
+          p_active: boolean
+          p_code: string
+          p_cost_seed: number
+          p_duration_hours: number
+          p_label: string
+          p_reward_bps: number
+        }
+        Returns: string
+      }
       admin_create_coupon: {
         Args: {
           p_amount: number
           p_code: string
+          p_currency?: string
           p_expires?: string
           p_max: number
         }
         Returns: string
       }
+      admin_create_coupons_bulk: {
+        Args: {
+          p_amount: number
+          p_count: number
+          p_currency?: string
+          p_expires?: string
+          p_max: number
+          p_prefix?: string
+        }
+        Returns: string[]
+      }
+      admin_delete_booster: { Args: { p_id: string }; Returns: undefined }
       admin_force_mature_cycle: {
         Args: { p_cycle_id: string }
+        Returns: undefined
+      }
+      admin_review_kyc: {
+        Args: { p_approve: boolean; p_id: string; p_note?: string }
         Returns: undefined
       }
       admin_review_request: {
@@ -772,6 +848,10 @@ export type Database = {
         Returns: undefined
       }
       admin_run_monthly_maintenance: { Args: never; Returns: number }
+      admin_set_booster_active: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
       admin_set_coupon_active: {
         Args: { p_active: boolean; p_id: string }
         Returns: undefined
@@ -786,6 +866,17 @@ export type Database = {
       }
       admin_set_ticker: {
         Args: { p_enabled: boolean; p_items: Json }
+        Returns: undefined
+      }
+      admin_update_booster: {
+        Args: {
+          p_active: boolean
+          p_cost_seed: number
+          p_duration_hours: number
+          p_id: string
+          p_label: string
+          p_reward_bps: number
+        }
         Returns: undefined
       }
       escrow_accept: { Args: { p_id: string }; Returns: undefined }
@@ -835,6 +926,16 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      is_username_available: { Args: { p_username: string }; Returns: boolean }
+      kyc_submit: {
+        Args: {
+          p_document_path: string
+          p_document_type: string
+          p_full_name: string
+          p_selfie_path: string
+        }
+        Returns: string
+      }
       lookup_referrer: {
         Args: { _code: string }
         Returns: {
