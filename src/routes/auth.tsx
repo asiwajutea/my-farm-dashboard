@@ -89,8 +89,18 @@ function AuthPage() {
         navigate({ to: "/verify-email", search: { email } });
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // If email not yet confirmed, send to verification page
+        // Supabase returns "Email not confirmed" error when confirmation is pending
+        if (error) {
+          if (
+            error.message.toLowerCase().includes("email not confirmed") ||
+            error.message.toLowerCase().includes("email_not_confirmed")
+          ) {
+            navigate({ to: "/verify-email", search: { email } });
+            return;
+          }
+          throw error;
+        }
+        // Belt-and-suspenders: also check the flag on the user object
         if (!data.user?.email_confirmed_at) {
           navigate({ to: "/verify-email", search: { email } });
           return;
