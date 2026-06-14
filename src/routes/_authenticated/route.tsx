@@ -12,6 +12,13 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) {
       throw redirect({ to: "/auth" });
     }
+    // Block access to the app until email is confirmed
+    if (!data.user.email_confirmed_at) {
+      throw redirect({
+        to: "/verify-email",
+        search: { email: data.user.email ?? "" },
+      });
+    }
     return { user: data.user };
   },
   component: AuthenticatedShell,

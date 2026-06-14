@@ -39,7 +39,16 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (!data.session) return;
+      // Confirmed → dashboard. Unconfirmed → verification page.
+      if (data.session.user.email_confirmed_at) {
+        navigate({ to: "/dashboard" });
+      } else {
+        navigate({
+          to: "/verify-email",
+          search: { email: data.session.user.email ?? "" },
+        });
+      }
     });
   }, [navigate]);
 
@@ -76,10 +85,16 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        navigate({ to: "/dashboard" });
+        // Always send to verification page — Supabase requires email confirmation
+        navigate({ to: "/verify-email", search: { email } });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // If email not yet confirmed, send to verification page
+        if (!data.user?.email_confirmed_at) {
+          navigate({ to: "/verify-email", search: { email } });
+          return;
+        }
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
