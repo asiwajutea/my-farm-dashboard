@@ -30,8 +30,14 @@ function Dashboard() {
         supabase.from("wallets").select("kind, balance, locked").eq("user_id", user.id),
         supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
       ]);
-      const fullName = prof?.display_name || user.email?.split("@")[0] || "Farmer";
-      setName(fullName.split(" ")[0]);
+      // Prefer profile display_name, then first word of full_name metadata, then email prefix
+      const raw =
+        prof?.display_name ||
+        (user.user_metadata?.full_name as string | undefined) ||
+        user.email?.split("@")[0] ||
+        "Farmer";
+      const fullName = raw.split(/\s+/)[0] || raw;
+      setName(fullName);
       if (ws) {
         const map: Partial<Record<WalletKind, WalletRow>> = {};
         for (const w of ws as WalletRow[]) map[w.kind] = w;

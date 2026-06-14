@@ -2,7 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Check, CheckCircle2, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
-  Sparkles, Globe, MapPin, Phone, FileText, X, Pencil,
+  Sparkles, Globe, MapPin, Phone, FileText, X, Pencil, User, Lock,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -63,6 +63,7 @@ function ProfilePage() {
   const [userId, setUserId] = useState<string>("");
 
   const [displayName, setDisplayName] = useState("");
+  const [fullName, setFullName] = useState<string>("");
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [countryCode, setCountryCode] = useState<string>(""); // ISO2
@@ -80,6 +81,9 @@ function ProfilePage() {
       if (!user) return;
       setUserId(user.id);
       setEmail(user.email ?? "");
+      // full_name is stored in auth user metadata at signup — read-only for KYC
+      const metaFullName: string = (user.user_metadata?.full_name as string) ?? "";
+      setFullName(metaFullName);
       const { data } = await supabase
         .from("profiles")
         .select("*")
@@ -309,7 +313,7 @@ function ProfilePage() {
               )}
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <div className="text-lg font-semibold">{displayName || "Farmer"}</div>
+              <div className="text-lg font-semibold">{displayName || fullName || "Farmer"}</div>
               <div className="text-xs text-muted-foreground">{email}</div>
               <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${kycMeta.color}`}>
                 <kycMeta.icon className={`h-3.5 w-3.5 ${kyc === "pending" ? "animate-spin" : ""}`} />
@@ -416,12 +420,35 @@ function ProfilePage() {
         {/* Edit form */}
         <form onSubmit={handleSave} className="glass mt-5 space-y-4 rounded-3xl p-7">
           <h2 className="text-base font-semibold">Edit details</h2>
+
+          {/* Full name — locked, used for KYC */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <Lock className="h-3.5 w-3.5" />
+              Full name
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                KYC locked
+              </span>
+            </div>
+            <input
+              type="text"
+              value={fullName || "—"}
+              readOnly
+              disabled
+              className="w-full cursor-not-allowed rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm text-muted-foreground opacity-70 outline-none"
+            />
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Your legal name as provided at signup. Cannot be changed for KYC purposes.
+            </div>
+          </div>
+
           <Field
             label="Display name"
             icon={Sparkles}
             value={displayName}
             onChange={setDisplayName}
-            placeholder="Your name on VFarmers"
+            placeholder="How you'd like to appear on VFarmers"
+            hint="Defaults to your first name. This is separate from your legal name."
             maxLength={60}
           />
           {/* Username with live availability feedback */}

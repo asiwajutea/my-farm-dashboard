@@ -28,7 +28,7 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>(search.ref ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [referralCode, setReferralCode] = useState((search.ref ?? "").toUpperCase());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,13 +45,16 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        const trimmedFull = fullName.trim();
+        const firstName = trimmedFull.split(/\s+/)[0] || trimmedFull || email.split("@")[0];
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
-              display_name: displayName || email.split("@")[0],
+              full_name: trimmedFull,
+              display_name: firstName,
               referral_code: referralCode.trim() || undefined,
             },
           },
@@ -133,9 +136,10 @@ function AuthPage() {
                 <Field
                   icon={Sprout}
                   type="text"
-                  placeholder="Farmer name"
-                  value={displayName}
-                  onChange={setDisplayName}
+                  placeholder="Farmer full name (First name + Surname)"
+                  value={fullName}
+                  onChange={setFullName}
+                  required
                 />
                 <Field
                   icon={Ticket}
