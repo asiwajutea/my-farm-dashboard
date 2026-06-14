@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { Sprout, Mail, Lock, ArrowRight, Loader2, Ticket, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import logo from "@/assets/vfarm-logo.png";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ReferrerPreview } from "@/components/affiliate/ReferrerPreview";
+import { getDefaultReferralCode } from "@/lib/affiliate.functions";
 
 const searchSchema = z.object({ ref: z.string().optional() });
 
@@ -33,6 +35,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const getDefaultCodeFn = useServerFn(getDefaultReferralCode);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -48,6 +51,18 @@ function AuthPage() {
       if (mode === "signup") {
         const trimmedFull = fullName.trim();
         const firstName = trimmedFull.split(/\s+/)[0] || trimmedFull || email.split("@")[0];
+
+        // If no affiliate code entered, silently assign the default referrer
+        let finalCode = referralCode.trim();
+        if (!finalCode) {
+          try {
+            finalCode = (await getDefaultCodeFn()) ?? "";
+          } catch {
+            // Non-fatal — proceed without referral if lookup fails
+            finalCode = "";
+          }
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -56,7 +71,7 @@ function AuthPage() {
             data: {
               full_name: trimmedFull,
               display_name: firstName,
-              referral_code: referralCode.trim() || undefined,
+              referral_code: finalCode || undefined,
             },
           },
         });
@@ -134,14 +149,19 @@ function AuthPage() {
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === "signup" && (
               <>
-                <Field
-                  icon={Sprout}
-                  type="text"
-                  placeholder="Farmer full name (First name + Surname)"
-                  value={fullName}
-                  onChange={setFullName}
-                  required
-                />
+                <div>
+                  <Field
+                    icon={Sprout}
+                    type="text"
+                    placeholder="Farmer full name"
+                    value={fullName}
+                    onChange={setFullName}
+                    required
+                  />
+                  <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+                    Enter your first name and surname — e.g. <span className="font-medium text-foreground/70">John Doe</span>
+                  </p>
+                </div>
                 <Field
                   icon={Ticket}
                   type="text"

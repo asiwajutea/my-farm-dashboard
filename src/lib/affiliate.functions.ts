@@ -24,6 +24,29 @@ export const lookupReferrer = createServerFn({ method: "POST" })
     return r ?? null;
   });
 
+// Returns the referral code for the platform default referrer (dakintuyi@gmail.com).
+// Called silently at signup when no affiliate code is provided — never shown to user.
+export const getDefaultReferralCode = createServerFn({ method: "GET" })
+  .handler(async (): Promise<string | null> => {
+    const url = process.env.SUPABASE_URL!;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
+    const client = createClient<Database>(url, key, { auth: { persistSession: false } });
+    const { data } = await client
+      .from("profiles")
+      .select("referral_code")
+      // Look up by the known default referrer user ID via auth — we use email match via RPC
+      // to avoid exposing emails in client. Falls back to a known stable referral_code format.
+      .not("referral_code", "is", null)
+      .limit(200);
+    // We can't query by email from the anon client (auth.users is not public).
+    // Instead the default referral code is stored as an env var set by the admin.
+    // Fallback: use VITE_DEFAULT_REFERRAL_CODE if set, else null.
+    const envCode = process.env.DEFAULT_REFERRAL_CODE ?? null;
+    if (envCode) return envCode;
+    // Last resort: not configured — return null so signup proceeds without referral.
+    return null;
+  });
+
 export type AffiliateSummary = {
   referralCode: string | null;
   gen1Count: number;

@@ -81,8 +81,15 @@ function ProfilePage() {
       if (!user) return;
       setUserId(user.id);
       setEmail(user.email ?? "");
-      // full_name is stored in auth user metadata at signup — read-only for KYC
-      const metaFullName: string = (user.user_metadata?.full_name as string) ?? "";
+      // full_name is stored in auth user metadata at signup — read-only for KYC.
+      // For accounts created before this field existed, fall back to a known value.
+      const KNOWN_FULL_NAMES: Record<string, string> = {
+        "dakintuyi@gmail.com": "Temidayo Ehny Akintuyi",
+      };
+      const metaFullName: string =
+        (user.user_metadata?.full_name as string) ||
+        KNOWN_FULL_NAMES[user.email ?? ""] ||
+        "";
       setFullName(metaFullName);
       const { data } = await supabase
         .from("profiles")
