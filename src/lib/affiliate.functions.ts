@@ -39,8 +39,8 @@ export const getDefaultReferralCode = createServerFn({ method: "GET" })
       .not("referral_code", "is", null)
       .limit(200);
     // We can't query by email from the anon client (auth.users is not public).
-    // Instead the default referral code is stored as an env var set by the admin.
-    // Fallback: use VITE_DEFAULT_REFERRAL_CODE if set, else null.
+    // Instead the default referral code is stored as a server-side env var set by the admin.
+    // Set DEFAULT_REFERRAL_CODE in .env to the platform owner's referral_code value.
     const envCode = process.env.DEFAULT_REFERRAL_CODE ?? null;
     if (envCode) return envCode;
     // Last resort: not configured — return null so signup proceeds without referral.
