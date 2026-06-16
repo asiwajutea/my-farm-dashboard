@@ -1,29 +1,49 @@
-## Continue: Maintenance Mode + Editable Ticker + Missing Migrations
+## Goal
 
-Backend schema for maintenance + ticker is already applied (`app_settings.maint_mode_global`, `maint_message`, `maint_pages`, `ticker_enabled`, `ticker_items` + `admin_set_maintenance` / `admin_set_ticker` RPCs). Remaining work is frontend + the last missing migration batch.
+Apply the 25 existing migration files in `supabase/migrations/` to your connected Supabase project so the app's backend (wallets, deposits/withdrawals, escrow, KYC, admin, coupons, notifications, affiliates, payout lock) matches what the route and `*.functions.ts` code already expects.
 
-### 1. Finish remaining backend bits
-- New migration: KYC table + RPCs, booster CRUD RPCs, coupon bulk-create RPC, `check_username_available` RPC (no storage SQL).
-- Create `kyc` storage bucket via the storage tool (private) + RLS policies on `storage.objects` in a follow-up migration.
+## Approach
 
-### 2. Maintenance mode (frontend)
-- `src/lib/maintenance.functions.ts` — `getMaintenanceState()` (public serverFn, reads `app_settings`) and `adminSetMaintenance()` (calls `admin_set_maintenance` RPC).
-- `src/hooks/use-maintenance.ts` — React Query hook, 30s stale.
-- `src/components/MaintenanceGate.tsx` — takes `pageKey`; if `maint_mode_global` or `maint_pages[pageKey]` is true AND user is not admin, render `MaintenanceCard` with admin's message. Admins always bypass (via `useIsAdmin`).
-- Wrap each user-facing route component in `<MaintenanceGate pageKey="...">`: dashboard, farm, wallet, deposit, withdraw, send, escrow, affiliate, coupons, notifications, profile, verify. Leave `/auth`, `/`, legal pages, and all `/admin/*` unwrapped — registration stays open.
-- New `/admin/maintenance` route: global toggle + per-page toggle grid + message textarea, saved via `adminSetMaintenance`.
-- Sidebar entry under Admin: "Maintenance".
+Run all 25 migration files **in their existing timestamp order** as a single batched migration submission through the migration tool. The files are already authored with grants + RLS + policies in the same file per project rules, so no rewriting is needed.
 
-### 3. Editable ticker (frontend)
-- Extend `src/lib/settings.functions.ts` with `getTickerSettings()` (public) and reuse `adminUpdatePlatformSettings` (or add `adminSetTicker`) to call `admin_set_ticker`.
-- Update `src/components/Ticker.tsx` to fetch via React Query; fall back to current hardcoded defaults; hide when `ticker_enabled=false`.
-- On `/admin/settings`: new "Ticker" card — enable toggle + editable list of `{ icon, label }` items (icon dropdown from a fixed lucide set, label input, add/remove/reorder up/down).
+Order (chronological):
 
-### 4. Files
-**Create:** `src/lib/maintenance.functions.ts`, `src/hooks/use-maintenance.ts`, `src/components/MaintenanceGate.tsx`, `src/routes/_authenticated/admin/maintenance.tsx`, one migration, one bucket.
-**Edit:** `src/components/Ticker.tsx`, `src/lib/settings.functions.ts`, `src/routes/_authenticated/admin/settings.tsx`, `src/components/app-sidebar.tsx`, and the ~12 user routes listed above (wrap component only).
+```
+20260606180427 → profiles + base
+20260606180434 → ...
+20260607002512, 002532, 002555
+20260607004431, 004455            (wallets, wallet_transfer/adjust SECURITY DEFINER)
+20260607100000_phase3_deposits_withdrawals
+20260607133816
+20260608001157, 001243, 005421
+20260608010000_phase6_escrow
+20260608020000_phase7_admin
+20260608030000_coupons_bulk_usdt
+20260608040000_preset_avatars_username_check
+20260609050000_phase8_notifications
+20260609060000_phase9_kyc
+20260609070000_booster_crud
+20260609225620, 225834, 225921, 230017
+20260610095931
+20260610120000_payout_lock_and_rate_freeze
+```
 
-### Assumptions
-- Registration (`/auth`) and landing (`/`) remain reachable during maintenance.
-- Admins bypass everywhere via `has_role`.
-- Ticker icons limited to a curated lucide set so admin doesn't need free-text icon names.
+Total: ~3,737 lines of SQL across 25 files.
+
+## Steps
+
+1. Submit all 25 migration files as one migration batch to your Supabase project, preserving filename order.
+2. After it applies, add the missing server-side secret `SUPABASE_SERVICE_ROLE_KEY` (required by `src/integrations/supabase/client.server.ts` for admin operations like the test-credit route, KYC admin, escrow admin, etc.). You'll paste it in a secure form — I won't see the value.
+3. Verify: load the preview, sign up a test user, confirm a profile + wallets row gets auto-created by the triggers, and that the dashboard loads without runtime errors.
+
+## Out of scope
+
+- No schema changes or consolidation.
+- No new features.
+- The blank landing page from the earlier turn stays blank — backend only.
+
+## Technical notes
+
+- Migrations create `auth.users`-linked tables (`profiles`, `wallets`, `wallet_ledger`, `deposit_requests`, `withdrawal_requests`, `escrow_*`, `kyc_*`, `notifications`, `affiliates`, `coupons`, `user_roles`, etc.), the `request_status` / `app_role` enums, the `proofs` storage bucket with uid-prefixed RLS, and SECURITY DEFINER money functions `wallet_transfer()` / `wallet_adjust()` granted to `service_role`.
+- Grants follow the project rule: `authenticated` + `service_role` on every public table; `anon` only where a public-read policy exists.
+- The service-role key is needed because several existing server functions (admin tooling, KYC admin, escrow admin, test-credit webhook) import `@/integrations/supabase/client.server` inside their handlers.
