@@ -13,9 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "VFarmers — Sow Seeds, Reap Rewards" },
-      { name: "description", content: "VFarmers is a community-driven farming ecosystem where members sow Seeds, earn rewards, and trade peer-to-peer with full transparency." },
-      { property: "og:title", content: "VFarmers — Sow Seeds, Reap Rewards" },
+      { title: "VFarmers — Grow Seeds, Reap Rewards" },
+      { name: "description", content: "VFarmers is a community-driven farming ecosystem where members grow Seeds, earn rewards, and trade peer-to-peer with full transparency." },
+      { property: "og:title", content: "VFarmers — Grow Seeds, Reap Rewards" },
       { property: "og:description", content: "Join thousands of Farmers cultivating value in a transparent, community-powered ecosystem." },
     ],
   }),

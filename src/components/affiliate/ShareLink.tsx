@@ -7,7 +7,7 @@ export function ShareLink({ code }: { code: string }) {
     return `${origin}/auth?ref=${code}`;
   }, [code]);
 
-  const defaultMsg = `🌱 I'm sowing Seeds on VFarmers and earning real rewards every cycle. Plant your first Seed with my link and let's farm together: ${link}`;
+  const defaultMsg = `🌱 I'm growing Seeds on VFarmers and earning real rewards every cycle. Plant your first Seed with my link and let's farm together: ${link}`;
   const [msg, setMsg] = useState(defaultMsg);
   const [copied, setCopied] = useState<"link" | "msg" | null>(null);
 
