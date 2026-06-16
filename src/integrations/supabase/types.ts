@@ -1020,7 +1020,7 @@ export type Database = {
     Enums: {
       aff_basis: "profit" | "profit_plus_capital"
       affiliate_source: "cycle" | "maintenance"
-      app_role: "admin" | "moderator" | "user" | "farmer"
+      app_role: "...existing_values..." | "farmer" | "admin"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
       escrow_status:
         | "pending"
@@ -1074,6 +1074,8 @@ export type Database = {
         | "maintenance_due"
         | "admin_balance_adjusted"
         | "system"
+        | "kyc_approved"
+        | "kyc_rejected"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -1206,7 +1208,7 @@ export const Constants = {
     Enums: {
       aff_basis: ["profit", "profit_plus_capital"],
       affiliate_source: ["cycle", "maintenance"],
-      app_role: ["admin", "moderator", "user", "farmer"],
+      app_role: ["...existing_values...", "farmer", "admin"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
       escrow_status: [
         "pending",
@@ -1262,6 +1264,8 @@ export const Constants = {
         "maintenance_due",
         "admin_balance_adjusted",
         "system",
+        "kyc_approved",
+        "kyc_rejected",
       ],
       request_status: ["pending", "approved", "rejected"],
       transfer_status: ["completed", "failed"],
