@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -44,6 +45,11 @@ import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedAdminAffiliatesRouteImport } from './routes/_authenticated/admin/affiliates'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/coupons': typeof AuthenticatedCouponsRoute
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
   '/_authenticated/coupons': typeof AuthenticatedCouponsRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
+    | '/verify-email'
     | '/admin'
     | '/affiliate'
     | '/coupons'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
+    | '/verify-email'
     | '/affiliate'
     | '/coupons'
     | '/dashboard'
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
+    | '/verify-email'
     | '/_authenticated/admin'
     | '/_authenticated/affiliate'
     | '/_authenticated/coupons'
@@ -444,11 +456,19 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RiskDisclosureRoute: typeof RiskDisclosureRoute
   TermsRoute: typeof TermsRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiPublicTestCreditRoute: typeof ApiPublicTestCreditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -780,6 +800,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RiskDisclosureRoute: RiskDisclosureRoute,
   TermsRoute: TermsRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiPublicTestCreditRoute: ApiPublicTestCreditRoute,
 }
 export const routeTree = rootRouteImport
