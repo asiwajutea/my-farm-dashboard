@@ -361,6 +361,7 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
         phone: p.phone,
         primary_balance: primary,
         farming_balance: farming,
+        is_admin: (roles ?? []).length > 0,
       },
       isAdmin: (roles ?? []).length > 0,
       recentLedger: (ledger ?? []).map((e) => ({
