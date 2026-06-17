@@ -930,6 +930,24 @@ export type Database = {
       }
       fmt_seed: { Args: { p_amount: number }; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_my_downline_counts: {
+        Args: never
+        Returns: {
+          gen1: number
+          gen2: number
+          gen3: number
+        }[]
+      }
+      get_my_downlines: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          generation: number
+          id: string
+          username: string
+        }[]
+      }
       get_uplines: {
         Args: { _user_id: string }
         Returns: {
