@@ -71,3 +71,16 @@ export const getFarmingBalance = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return { balance: Number(data?.balance ?? 0), locked: Number(data?.locked ?? 0) };
   });
+
+const transferInput = z.object({ amount: z.number().positive().max(1_000_000_000) });
+
+export const transferToFarmingFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => transferInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("transfer_to_farming", {
+      p_amount: data.amount,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
