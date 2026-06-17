@@ -74,22 +74,12 @@ export const getMyAffiliateSummary = createServerFn({ method: "GET" })
       .eq("id", userId)
       .maybeSingle();
 
-    // Gen 1: directly referred
-    const { data: g1 } = await supabase.from("profiles").select("id").eq("referred_by", userId);
-    const g1Ids = (g1 ?? []).map((r) => r.id);
-    let g2Ids: string[] = [];
-    if (g1Ids.length) {
-      const { data: g2 } = await supabase.from("profiles").select("id").in("referred_by", g1Ids);
-      g2Ids = (g2 ?? []).map((r) => r.id);
-    }
-    let g3Count = 0;
-    if (g2Ids.length) {
-      const { count } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .in("referred_by", g2Ids);
-      g3Count = count ?? 0;
-    }
+    // Counts via SECURITY DEFINER RPC so downline rows aren't blocked by RLS.
+    const { data: countsRows } = await supabase.rpc("get_my_downline_counts");
+    const counts = Array.isArray(countsRows) ? countsRows[0] : countsRows;
+    const gen1Count = Number(counts?.gen1 ?? 0);
+    const gen2Count = Number(counts?.gen2 ?? 0);
+    const gen3Count = Number(counts?.gen3 ?? 0);
 
     const { data: comms } = await supabase
       .from("affiliate_commissions")
@@ -113,9 +103,9 @@ export const getMyAffiliateSummary = createServerFn({ method: "GET" })
 
     return {
       referralCode: prof?.referral_code ?? null,
-      gen1Count: g1Ids.length,
-      gen2Count: g2Ids.length,
-      gen3Count: g3Count,
+      gen1Count,
+      gen2Count,
+      gen3Count,
       totalEarned: total,
       monthEarned: month,
       recent: (comms ?? []).map((c) => ({
