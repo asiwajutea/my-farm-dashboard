@@ -31,9 +31,11 @@ import { Route as AuthenticatedCouponsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAffiliateRouteImport } from './routes/_authenticated/affiliate'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedEscrowIndexRouteImport } from './routes/_authenticated/escrow.index'
+import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicTestCreditRouteImport } from './routes/api/public/test-credit'
 import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticated/escrow.$id'
+import { Route as AuthenticatedAffiliateDownlinesRouteImport } from './routes/_authenticated/affiliate.downlines'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin/requests'
 import { Route as AuthenticatedAdminMaintenanceRouteImport } from './routes/_authenticated/admin/maintenance'
@@ -156,6 +158,12 @@ const AuthenticatedEscrowIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedEscrowRoute,
   } as any)
+const AuthenticatedAffiliateIndexRoute =
+  AuthenticatedAffiliateIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAffiliateRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -171,6 +179,12 @@ const AuthenticatedEscrowIdRoute = AuthenticatedEscrowIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedEscrowRoute,
 } as any)
+const AuthenticatedAffiliateDownlinesRoute =
+  AuthenticatedAffiliateDownlinesRouteImport.update({
+    id: '/downlines',
+    path: '/downlines',
+    getParentRoute: () => AuthenticatedAffiliateRoute,
+  } as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/settings',
@@ -239,7 +253,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
-  '/affiliate': typeof AuthenticatedAffiliateRoute
+  '/affiliate': typeof AuthenticatedAffiliateRouteWithChildren
   '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deposit': typeof AuthenticatedDepositRoute
@@ -261,9 +275,11 @@ export interface FileRoutesByFullPath {
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/escrow/': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRoutesByTo {
@@ -274,7 +290,6 @@ export interface FileRoutesByTo {
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/affiliate': typeof AuthenticatedAffiliateRoute
   '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deposit': typeof AuthenticatedDepositRoute
@@ -295,9 +310,11 @@ export interface FileRoutesByTo {
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/affiliate': typeof AuthenticatedAffiliateIndexRoute
   '/escrow': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRoutesById {
@@ -311,7 +328,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
-  '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
+  '/_authenticated/affiliate': typeof AuthenticatedAffiliateRouteWithChildren
   '/_authenticated/coupons': typeof AuthenticatedCouponsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/deposit': typeof AuthenticatedDepositRoute
@@ -333,9 +350,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/_authenticated/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/_authenticated/escrow/': typeof AuthenticatedEscrowIndexRoute
 }
 export interface FileRouteTypes {
@@ -371,9 +390,11 @@ export interface FileRouteTypes {
     | '/admin/maintenance'
     | '/admin/requests'
     | '/admin/settings'
+    | '/affiliate/downlines'
     | '/escrow/$id'
     | '/api/public/test-credit'
     | '/admin/'
+    | '/affiliate/'
     | '/escrow/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -384,7 +405,6 @@ export interface FileRouteTypes {
     | '/risk-disclosure'
     | '/terms'
     | '/verify-email'
-    | '/affiliate'
     | '/coupons'
     | '/dashboard'
     | '/deposit'
@@ -405,9 +425,11 @@ export interface FileRouteTypes {
     | '/admin/maintenance'
     | '/admin/requests'
     | '/admin/settings'
+    | '/affiliate/downlines'
     | '/escrow/$id'
     | '/api/public/test-credit'
     | '/admin'
+    | '/affiliate'
     | '/escrow'
   id:
     | '__root__'
@@ -442,9 +464,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/maintenance'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/affiliate/downlines'
     | '/_authenticated/escrow/$id'
     | '/api/public/test-credit'
     | '/_authenticated/admin/'
+    | '/_authenticated/affiliate/'
     | '/_authenticated/escrow/'
   fileRoutesById: FileRoutesById
 }
@@ -616,6 +640,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEscrowIndexRouteImport
       parentRoute: typeof AuthenticatedEscrowRoute
     }
+    '/_authenticated/affiliate/': {
+      id: '/_authenticated/affiliate/'
+      path: '/'
+      fullPath: '/affiliate/'
+      preLoaderRoute: typeof AuthenticatedAffiliateIndexRouteImport
+      parentRoute: typeof AuthenticatedAffiliateRoute
+    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
@@ -636,6 +667,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/escrow/$id'
       preLoaderRoute: typeof AuthenticatedEscrowIdRouteImport
       parentRoute: typeof AuthenticatedEscrowRoute
+    }
+    '/_authenticated/affiliate/downlines': {
+      id: '/_authenticated/affiliate/downlines'
+      path: '/downlines'
+      fullPath: '/affiliate/downlines'
+      preLoaderRoute: typeof AuthenticatedAffiliateDownlinesRouteImport
+      parentRoute: typeof AuthenticatedAffiliateRoute
     }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
@@ -744,6 +782,22 @@ const AuthenticatedAdminRouteRouteWithChildren =
     AuthenticatedAdminRouteRouteChildren,
   )
 
+interface AuthenticatedAffiliateRouteChildren {
+  AuthenticatedAffiliateDownlinesRoute: typeof AuthenticatedAffiliateDownlinesRoute
+  AuthenticatedAffiliateIndexRoute: typeof AuthenticatedAffiliateIndexRoute
+}
+
+const AuthenticatedAffiliateRouteChildren: AuthenticatedAffiliateRouteChildren =
+  {
+    AuthenticatedAffiliateDownlinesRoute: AuthenticatedAffiliateDownlinesRoute,
+    AuthenticatedAffiliateIndexRoute: AuthenticatedAffiliateIndexRoute,
+  }
+
+const AuthenticatedAffiliateRouteWithChildren =
+  AuthenticatedAffiliateRoute._addFileChildren(
+    AuthenticatedAffiliateRouteChildren,
+  )
+
 interface AuthenticatedEscrowRouteChildren {
   AuthenticatedEscrowIdRoute: typeof AuthenticatedEscrowIdRoute
   AuthenticatedEscrowIndexRoute: typeof AuthenticatedEscrowIndexRoute
@@ -759,7 +813,7 @@ const AuthenticatedEscrowRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
-  AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRoute
+  AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRouteWithChildren
   AuthenticatedCouponsRoute: typeof AuthenticatedCouponsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDepositRoute: typeof AuthenticatedDepositRoute
@@ -775,7 +829,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
-  AuthenticatedAffiliateRoute: AuthenticatedAffiliateRoute,
+  AuthenticatedAffiliateRoute: AuthenticatedAffiliateRouteWithChildren,
   AuthenticatedCouponsRoute: AuthenticatedCouponsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDepositRoute: AuthenticatedDepositRoute,
@@ -806,3 +860,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
