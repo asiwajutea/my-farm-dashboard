@@ -6,11 +6,27 @@ import {
   Wallet as WalletIcon,
   Sprout,
   Inbox,
+  ArrowRightLeft,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { transferToFarmingFn } from "@/lib/farm.functions";
+import { toast } from "sonner";
+import { usdtToSeed, fmtAmount } from "@/lib/currency";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({ meta: [{ title: "Wallet · VFarmers" }] }),
@@ -61,6 +77,7 @@ function WalletPage() {
   const [rate, setRate] = useState<number>(1);
   const [ledger, setLedger] = useState<LedgerRow[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -91,10 +108,12 @@ function WalletPage() {
       );
       setLoading(false);
     })();
-  }, []);
+  }, [reloadKey]);
 
   const primarySeed = Number(wallets.primary?.balance ?? 0);
   const farmingSeed = Number(wallets.farming?.balance ?? 0);
+  const primaryAvailable =
+    Number(wallets.primary?.balance ?? 0) - Number(wallets.primary?.locked ?? 0);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-5 py-8">
@@ -132,6 +151,11 @@ function WalletPage() {
           <ArrowDownToLine className="h-4 w-4" />
           Deposit
         </Link>
+        <TransferToFarmingDialog
+          primaryAvailableSeed={primaryAvailable}
+          rate={rate}
+          onDone={() => setReloadKey((k) => k + 1)}
+        />
         <Link
           to="/withdraw"
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card/60 px-5 py-3 text-sm font-semibold transition-colors hover:bg-card"
