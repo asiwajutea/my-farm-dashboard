@@ -1010,6 +1010,7 @@ export type Database = {
         Args: { p_amount: number; p_booster_id: string }
         Returns: string
       }
+      transfer_to_farming: { Args: { p_amount: number }; Returns: undefined }
       wallet_adjust: {
         Args: {
           p_amount: number
