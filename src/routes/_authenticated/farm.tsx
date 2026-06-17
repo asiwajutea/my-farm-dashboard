@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Sprout, Clock, TrendingUp, Wallet as WalletIcon } from "lucide-react";
+import { Sprout, Clock, TrendingUp, Wallet as WalletIcon, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useSeedRate } from "@/components/wallet/RequestForm";
 import { seedToUsdt, fmtAmount } from "@/lib/currency";
@@ -56,16 +64,21 @@ function FarmPage() {
 
   const [boosterId, setBoosterId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startMut = useMutation({
     mutationFn: (vars: { boosterId: string; amount: number }) => fnStart({ data: vars }),
     onSuccess: () => {
       toast.success("Cycle started 🌱");
       setAmount("");
+      setConfirmOpen(false);
       qc.invalidateQueries({ queryKey: ["cycles"] });
       qc.invalidateQueries({ queryKey: ["farming-balance"] });
     },
-    onError: (e: Error) => toast.error(e.message ?? "Failed to start cycle"),
+    onError: (e: Error) => {
+      toast.error(e.message ?? "Failed to start cycle");
+      setConfirmOpen(false);
+    },
   });
 
   const reapMut = useMutation({
@@ -81,7 +94,16 @@ function FarmPage() {
   const balance = balanceQ.data?.balance ?? 0;
   const selected = boostersQ.data?.find((b) => b.id === boosterId);
   const amt = Number(amount) || 0;
+  const boosterCost = selected ? Number(selected.cost_seed) : 0;
+  // Total deducted from farming wallet = investment amount + booster cost
+  const totalRequired = amt + boosterCost;
   const projectedReward = selected ? (amt * selected.reward_bps) / 10000 : 0;
+  const insufficientFunds = totalRequired > balance;
+
+  const handleStartClick = () => {
+    if (!boosterId || amt <= 0 || insufficientFunds) return;
+    setConfirmOpen(true);
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
@@ -122,7 +144,7 @@ function FarmPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount (Seed)</Label>
+              <Label htmlFor="amount">Amount to invest (Seed)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -138,20 +160,47 @@ function FarmPage() {
               )}
               {selected && amt > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Projected reward at maturity:{" "}
+                  Projected reward:{" "}
                   <span className="font-medium text-foreground">{seedWithUsdt(projectedReward, rate)}</span>{" "}
                   ({bpsToPct(selected.reward_bps)})
                 </p>
               )}
-              {amt > balance && (
-                <p className="text-xs text-destructive">Amount exceeds your Farming balance.</p>
-              )}
             </div>
+
+            {/* Cost breakdown — shown when a booster with a cost is selected and amount is entered */}
+            {selected && amt > 0 && boosterCost > 0 && (
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Investment amount</span>
+                  <span>{fmt(amt)} Seed</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Booster cost ({selected.label})</span>
+                  <span>+ {fmt(boosterCost)} Seed</span>
+                </div>
+                <div className="flex justify-between font-semibold border-t border-border pt-1.5">
+                  <span>Total required</span>
+                  <span>{fmt(totalRequired)} Seed</span>
+                </div>
+              </div>
+            )}
+
+            {insufficientFunds && amt > 0 && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>
+                  Insufficient balance.{" "}
+                  {boosterCost > 0
+                    ? `You need ${fmt(totalRequired)} Seed (${fmt(amt)} investment + ${fmt(boosterCost)} booster cost) but only have ${fmt(balance)} Seed.`
+                    : `You need ${fmt(amt)} Seed but only have ${fmt(balance)} Seed.`}
+                </span>
+              </div>
+            )}
 
             <Button
               className="w-full"
-              disabled={!boosterId || amt <= 0 || amt > balance || startMut.isPending}
-              onClick={() => startMut.mutate({ boosterId, amount: amt })}
+              disabled={!boosterId || amt <= 0 || insufficientFunds || startMut.isPending}
+              onClick={handleStartClick}
             >
               {startMut.isPending ? "Starting…" : "Start cycle"}
             </Button>
@@ -190,7 +239,145 @@ function FarmPage() {
           ))}
         </div>
       </div>
+
+      {/* Confirmation dialog */}
+      {selected && (
+        <StartCycleDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          booster={selected}
+          amount={amt}
+          boosterCost={boosterCost}
+          totalRequired={totalRequired}
+          projectedReward={projectedReward}
+          balance={balance}
+          rate={rate}
+          isPending={startMut.isPending}
+          onConfirm={() => startMut.mutate({ boosterId, amount: amt })}
+        />
+      )}
     </div>
+  );
+}
+
+function StartCycleDialog({
+  open,
+  onOpenChange,
+  booster,
+  amount,
+  boosterCost,
+  totalRequired,
+  projectedReward,
+  balance,
+  rate,
+  isPending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  booster: Booster;
+  amount: number;
+  boosterCost: number;
+  totalRequired: number;
+  projectedReward: number;
+  balance: number;
+  rate: number;
+  isPending: boolean;
+  onConfirm: () => void;
+}) {
+  const maturesAt = new Date(Date.now() + booster.duration_hours * 3600 * 1000);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            Confirm farming cycle
+          </DialogTitle>
+          <DialogDescription>
+            Review the details below before locking your Seeds.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-1">
+          {/* Plan */}
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Plan</p>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-semibold">{booster.label}</span>
+              <span className="text-primary font-semibold">{bpsToPct(booster.reward_bps)} reward</span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3" /> {booster.duration_hours}h duration · matures ~{maturesAt.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </div>
+          </div>
+
+          {/* Cost breakdown */}
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-2 text-sm">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Cost breakdown</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Investment amount</span>
+              <div className="text-right">
+                <span className="font-medium">{fmt(amount)} Seed</span>
+                <span className="ml-1.5 text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(amount, rate))} USDT</span>
+              </div>
+            </div>
+            {boosterCost > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Booster cost</span>
+                <div className="text-right">
+                  <span className="font-medium">+ {fmt(boosterCost)} Seed</span>
+                  <span className="ml-1.5 text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(boosterCost, rate))} USDT</span>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold border-t border-border pt-2">
+              <span>Total deducted</span>
+              <div className="text-right">
+                <span>{fmt(totalRequired)} Seed</span>
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">≈ {fmtAmount(seedToUsdt(totalRequired, rate))} USDT</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Projected return */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 space-y-1.5 text-sm">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">At maturity you receive</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Principal back</span>
+              <span>{fmt(amount)} Seed</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reward ({bpsToPct(booster.reward_bps)})</span>
+              <span className="text-primary font-medium">+ {fmt(projectedReward)} Seed</span>
+            </div>
+            <div className="flex justify-between font-semibold border-t border-primary/20 pt-1.5">
+              <span>Total return</span>
+              <div className="text-right">
+                <span className="text-primary">{fmt(amount + projectedReward)} Seed</span>
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">≈ {fmtAmount(seedToUsdt(amount + projectedReward, rate))} USDT</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Balance after */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>Farming balance after</span>
+            <span className="font-medium text-foreground">{fmt(balance - totalRequired)} Seed</span>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button onClick={onConfirm} disabled={isPending}>
+            {isPending ? "Starting…" : "Confirm & start cycle"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
