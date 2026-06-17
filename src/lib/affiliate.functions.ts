@@ -130,30 +130,15 @@ export type DownlineRow = {
 export const getMyDownlines = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<DownlineRow[]> => {
-    const { supabase, userId } = context;
-    const rows: DownlineRow[] = [];
-    const { data: g1 } = await supabase
-      .from("profiles")
-      .select("id, display_name, username, created_at")
-      .eq("referred_by", userId);
-    (g1 ?? []).forEach((r) => rows.push({ ...r, generation: 1 }));
-    const g1Ids = (g1 ?? []).map((r) => r.id);
-    if (g1Ids.length) {
-      const { data: g2 } = await supabase
-        .from("profiles")
-        .select("id, display_name, username, created_at")
-        .in("referred_by", g1Ids);
-      (g2 ?? []).forEach((r) => rows.push({ ...r, generation: 2 }));
-      const g2Ids = (g2 ?? []).map((r) => r.id);
-      if (g2Ids.length) {
-        const { data: g3 } = await supabase
-          .from("profiles")
-          .select("id, display_name, username, created_at")
-          .in("referred_by", g2Ids);
-        (g3 ?? []).forEach((r) => rows.push({ ...r, generation: 3 }));
-      }
-    }
-    return rows;
+    const { data, error } = await context.supabase.rpc("get_my_downlines");
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => ({
+      id: r.id,
+      display_name: r.display_name,
+      username: r.username,
+      generation: r.generation,
+      created_at: r.created_at,
+    }));
   });
 
 export type MaintenanceFeeRow = {
