@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Coins, TrendingUp } from "lucide-react";
+import { Users, Coins, TrendingUp, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { getMyAffiliateSummary, getMyDownlines } from "@/lib/affiliate.functions";
 import { ShareLink } from "@/components/affiliate/ShareLink";
@@ -47,18 +47,27 @@ function AffiliatePage() {
       <div className="rounded-2xl border border-border bg-card/40 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Your downlines</h3>
-          <div className="flex gap-1 rounded-lg border border-border bg-background/60 p-0.5 text-xs">
-            {[1, 2, 3].map((g) => (
-              <button
-                key={g}
-                onClick={() => setGenTab(g as 1 | 2 | 3)}
-                className={`rounded-md px-3 py-1 ${
-                  genTab === g ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                Gen {g}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <Link
+              to="/affiliate/downlines"
+              className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View details
+            </Link>
+            <div className="flex gap-1 rounded-lg border border-border bg-background/60 p-0.5 text-xs">
+              {[1, 2, 3].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGenTab(g as 1 | 2 | 3)}
+                  className={`rounded-md px-3 py-1 ${
+                    genTab === g ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  Gen {g}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div className="mt-3 space-y-2">

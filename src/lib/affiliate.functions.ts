@@ -141,6 +141,183 @@ export const getMyDownlines = createServerFn({ method: "GET" })
     }));
   });
 
+// ---------------------------------------------------------------------------
+// Downline Network Report — detailed per-member stats for the report page
+// ---------------------------------------------------------------------------
+
+export type DownlineDetailRow = {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  generation: number;
+  joined_at: string;
+  country: string | null;
+  // Seeds they have invested across all active/completed cycles
+  total_seeds_invested: number;
+  // Commission earned by the current user FROM this specific downline member
+  commissions_from_member: number;
+  commission_count: number;
+  last_commission_at: string | null;
+};
+
+export type DownlineReportData = {
+  members: DownlineDetailRow[];
+  seed_to_usdt: number;
+  // Aggregated team analytics
+  team: {
+    total_members: number;
+    gen1_count: number;
+    gen2_count: number;
+    gen3_count: number;
+    total_commissions_seed: number;
+    this_month_seed: number;
+    most_active_gen: number;
+    avg_commission_per_member: number;
+    top_earner_id: string | null;
+  };
+};
+
+export const getDownlineReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<DownlineReportData> => {
+    const { supabase, userId } = context;
+
+    // Fetch all downlines via the existing SECURITY DEFINER RPC
+    const { data: dlRows, error: dlErr } = await supabase.rpc("get_my_downlines");
+    if (dlErr) throw new Error(dlErr.message);
+    const downlines = dlRows ?? [];
+
+    // Fetch seed_to_usdt rate
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("seed_to_usdt")
+      .eq("id", true)
+      .maybeSingle();
+    const seedToUsdtRate = Number(settings?.seed_to_usdt ?? 1);
+
+    if (downlines.length === 0) {
+      return {
+        members: [],
+        seed_to_usdt: seedToUsdtRate,
+        team: {
+          total_members: 0,
+          gen1_count: 0,
+          gen2_count: 0,
+          gen3_count: 0,
+          total_commissions_seed: 0,
+          this_month_seed: 0,
+          most_active_gen: 1,
+          avg_commission_per_member: 0,
+          top_earner_id: null,
+        },
+      };
+    }
+
+    const memberIds = downlines.map((d) => d.id);
+
+    // Fetch profile details (avatar, country) for all downline members
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, avatar_url, country")
+      .in("id", memberIds);
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    // Fetch cycles (seed investments) for all downline members
+    const { data: cycles } = await supabase
+      .from("cycles")
+      .select("user_id, amount")
+      .in("user_id", memberIds);
+    // Sum seeds invested per member
+    const cycleMap = new Map<string, number>();
+    (cycles ?? []).forEach((c) => {
+      cycleMap.set(c.user_id, (cycleMap.get(c.user_id) ?? 0) + Number(c.amount));
+    });
+
+    // Fetch all commissions earned by current user from each downline member
+    const { data: allComms } = await supabase
+      .from("affiliate_commissions")
+      .select("from_user_id, amount, created_at")
+      .eq("user_id", userId)
+      .in("from_user_id", memberIds)
+      .order("created_at", { ascending: false });
+
+    // Group commissions by from_user_id
+    const commMap = new Map<string, { total: number; count: number; last: string | null }>();
+    (allComms ?? []).forEach((c) => {
+      const entry = commMap.get(c.from_user_id) ?? { total: 0, count: 0, last: null };
+      entry.total += Number(c.amount);
+      entry.count += 1;
+      if (!entry.last) entry.last = c.created_at;
+      commMap.set(c.from_user_id, entry);
+    });
+
+    // Build member rows
+    const members: DownlineDetailRow[] = downlines.map((d) => {
+      const prof = profileMap.get(d.id);
+      const comm = commMap.get(d.id) ?? { total: 0, count: 0, last: null };
+      return {
+        id: d.id,
+        display_name: d.display_name,
+        username: d.username,
+        avatar_url: prof?.avatar_url ?? null,
+        generation: d.generation,
+        joined_at: d.created_at,
+        country: prof?.country ?? null,
+        total_seeds_invested: cycleMap.get(d.id) ?? 0,
+        commissions_from_member: comm.total,
+        commission_count: comm.count,
+        last_commission_at: comm.last,
+      };
+    });
+
+    // Team analytics
+    const gen1 = members.filter((m) => m.generation === 1);
+    const gen2 = members.filter((m) => m.generation === 2);
+    const gen3 = members.filter((m) => m.generation === 3);
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const thisMonthSeed = (allComms ?? [])
+      .filter((c) => new Date(c.created_at) >= monthStart)
+      .reduce((s, c) => s + Number(c.amount), 0);
+
+    const totalCommSeed = members.reduce((s, m) => s + m.commissions_from_member, 0);
+
+    // Generation with highest total commission
+    const genTotals = [1, 2, 3].map((g) => ({
+      gen: g,
+      total: members.filter((m) => m.generation === g).reduce((s, m) => s + m.commissions_from_member, 0),
+    }));
+    const mostActiveGen = genTotals.sort((a, b) => b.total - a.total)[0]?.gen ?? 1;
+
+    let topEarnerId: string | null = null;
+    let topEarnerAmount = -1;
+    members.forEach((m) => {
+      if (m.commissions_from_member > topEarnerAmount) {
+        topEarnerAmount = m.commissions_from_member;
+        topEarnerId = m.id;
+      }
+    });
+
+    return {
+      members,
+      seed_to_usdt: seedToUsdtRate,
+      team: {
+        total_members: members.length,
+        gen1_count: gen1.length,
+        gen2_count: gen2.length,
+        gen3_count: gen3.length,
+        total_commissions_seed: totalCommSeed,
+        this_month_seed: thisMonthSeed,
+        most_active_gen: mostActiveGen,
+        avg_commission_per_member: members.length > 0 ? totalCommSeed / members.length : 0,
+        top_earner_id: topEarnerAmount > 0 ? topEarnerId : null,
+      },
+    };
+  });
+
 export type MaintenanceFeeRow = {
   id: string;
   period_start: string;
