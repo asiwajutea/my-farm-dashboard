@@ -42,6 +42,8 @@ const META: Record<NotificationKind, Meta> = {
   affiliate_commission: { icon: Coins, tone: "text-emerald-400 bg-emerald-400/15", to: "/affiliate" },
   maintenance_due: { icon: CalendarClock, tone: "text-amber-400 bg-amber-400/15", to: "/affiliate" },
   admin_balance_adjusted: { icon: Coins, tone: "text-primary bg-primary/15", to: "/wallet" },
+  kyc_approved: { icon: CheckCircle2, tone: "text-emerald-400 bg-emerald-400/15", to: "/verify" },
+  kyc_rejected: { icon: XCircle, tone: "text-destructive bg-destructive/15", to: "/verify" },
   system: { icon: Bell, tone: "text-muted-foreground bg-muted" },
 };
 
