@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TransferToFarmingDialog } from "@/components/wallet/TransferToFarmingDialog";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +93,23 @@ function FarmPage() {
   });
 
   const balance = balanceQ.data?.balance ?? 0;
+  const primaryBalanceQ = useQuery({
+    queryKey: ["primary-balance"],
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { balance: 0, locked: 0 };
+      const { data } = await supabase
+        .from("wallets")
+        .select("balance, locked")
+        .eq("user_id", user.id)
+        .eq("kind", "primary")
+        .maybeSingle();
+      return { balance: Number(data?.balance ?? 0), locked: Number(data?.locked ?? 0) };
+    },
+  });
+  const primaryAvailable =
+    (primaryBalanceQ.data?.balance ?? 0) - (primaryBalanceQ.data?.locked ?? 0);
   const selected = boostersQ.data?.find((b) => b.id === boosterId);
   const amt = Number(amount) || 0;
   const boosterCost = selected ? Number(selected.cost_seed) : 0;
@@ -128,7 +146,22 @@ function FarmPage() {
               <span className="text-muted-foreground inline-flex items-center gap-1.5">
                 <WalletIcon className="h-3.5 w-3.5" /> Farming balance
               </span>
-              <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
+                <TransferToFarmingDialog
+                  primaryAvailableSeed={primaryAvailable}
+                  rate={rate}
+                  onDone={() => {
+                    qc.invalidateQueries({ queryKey: ["farming-balance"] });
+                    qc.invalidateQueries({ queryKey: ["primary-balance"] });
+                  }}
+                  trigger={
+                    <Button size="sm" variant="outline" type="button">
+                      Fund Wallet
+                    </Button>
+                  }
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -155,6 +188,22 @@ function FarmPage() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 100"
               />
+              <div className="flex flex-wrap gap-1.5">
+                {[10, 25, 50, 75, 100].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    disabled={balance <= 0}
+                    onClick={() => {
+                      const v = (balance * pct) / 100;
+                      setAmount(v > 0 ? v.toFixed(2) : "");
+                    }}
+                    className="rounded-md border border-border bg-card/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-40"
+                  >
+                    {pct === 100 ? "Max" : `${pct}%`}
+                  </button>
+                ))}
+              </div>
               {amt > 0 && (
                 <p className="text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(amt, rate))} USDT</p>
               )}
