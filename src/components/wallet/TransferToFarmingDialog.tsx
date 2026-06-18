@@ -15,18 +15,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { transferToFarmingFn } from "@/lib/farm.functions";
-import { usdtToSeed, fmtAmount } from "@/lib/currency";
+import { fmtAmount } from "@/lib/currency";
 
 export function TransferToFarmingDialog({
-  primaryAvailableSeed,
+  primaryAvailableUsdt,
   rate,
   onDone,
   trigger,
 }: {
-  primaryAvailableSeed: number;
+  primaryAvailableUsdt: number;
   rate: number;
   onDone?: () => void;
-  /** Custom trigger element; defaults to the wallet-page styled button. */
   trigger?: ReactNode;
 }) {
   const transferFn = useServerFn(transferToFarmingFn);
@@ -35,20 +34,17 @@ export function TransferToFarmingDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const usdt = Number(usdtStr);
-  const seedAmount =
-    Number.isFinite(usdt) && usdt > 0 ? usdtToSeed(usdt, rate) : 0;
-  const primaryAvailableUsdt = primaryAvailableSeed * rate;
-  const insufficient = seedAmount > 0 && seedAmount > primaryAvailableSeed;
-  const valid = seedAmount > 0 && !insufficient;
+  const seedEquivalent = rate > 0 ? usdt / rate : 0;
+  const insufficient = usdt > 0 && usdt > primaryAvailableUsdt;
+  const valid = usdt > 0 && !insufficient;
 
   async function handleSubmit() {
     if (!valid) return;
     setSubmitting(true);
     try {
-      await transferFn({ data: { amount: Number(seedAmount.toFixed(8)) } });
-      toast.success(
-        `Transferred ${fmtAmount(seedAmount)} Seed to farming wallet`,
-      );
+      // RPC now accepts USDT directly — no client-side Seed conversion needed
+      await transferFn({ data: { amount: Number(usdt.toFixed(2)) } });
+      toast.success(`Transferred ${fmtAmount(usdt)} USDT → ${fmtAmount(seedEquivalent)} Seed to farming wallet`);
       setOpen(false);
       setUsdtStr("");
       onDone?.();
@@ -85,8 +81,7 @@ export function TransferToFarmingDialog({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Primary available</span>
             <span className="tabular-nums">
-              {fmtAmount(primaryAvailableUsdt)} USDT ·{" "}
-              {fmtAmount(primaryAvailableSeed)} Seed
+              {fmtAmount(primaryAvailableUsdt)} USDT
             </span>
           </div>
           <div>
@@ -111,31 +106,23 @@ export function TransferToFarmingDialog({
               Use max
             </button>
           </div>
-          {seedAmount > 0 && (
+          {usdt > 0 && (
             <div className="rounded-lg border border-border bg-card/40 p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">You'll receive</span>
                 <span className="font-semibold tabular-nums text-primary">
-                  {fmtAmount(seedAmount)} Seed
+                  {fmtAmount(seedEquivalent)} Seed
                 </span>
               </div>
             </div>
           )}
           {insufficient && (
-            <p className="text-xs text-destructive">
-              Insufficient primary balance.
-            </p>
+            <p className="text-xs text-destructive">Insufficient primary balance.</p>
           )}
         </div>
 
         <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={!valid || submitting}>
             {submitting ? "Transferring…" : "Transfer"}
           </Button>

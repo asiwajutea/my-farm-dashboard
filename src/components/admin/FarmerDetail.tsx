@@ -104,8 +104,7 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
 
   const f = detail.farmer;
   const amtUsdt = Number(amount) || 0;
-  // The ledger and adjust RPC are Seed-denominated; convert USDT → Seed
-  const amtSeed = rate > 0 ? amtUsdt / rate : 0;
+  // admin_adjust_balance RPC now accepts USDT directly — no conversion needed
 
   return (
     <div className="space-y-6">
@@ -151,8 +150,8 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard icon={Wallet} label="Primary Wallet" value={`${fmtUsdt(f.primary_balance * rate)} USDT`} hint={`≈ ${fmt(f.primary_balance)} Seed`} accent="gold" />
-        <StatCard icon={Sprout} label="Farming Wallet" value={`${fmt(f.farming_balance)} Seed`} accent="primary" />
+        <StatCard icon={Wallet} label="Primary Wallet" value={`${fmtUsdt(f.primary_balance)} USDT`} hint={`≈ ${fmt(rate > 0 ? f.primary_balance / rate : 0)} Seed`} accent="gold" />
+        <StatCard icon={Sprout} label="Farming Wallet" value={`${fmt(f.farming_balance)} Seed`} hint={`≈ ${fmtUsdt(f.farming_balance * rate)} USDT`} accent="primary" />
       </div>
 
       <div className="glass rounded-3xl p-6">
@@ -176,7 +175,7 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
             </div>
             {amtUsdt > 0 && (
               <p className="text-[11px] text-muted-foreground">
-                ≈ {fmt(amtSeed)} Seed will be credited/debited from the ledger
+                {fmtUsdt(Math.abs(amtUsdt))} USDT will be credited/debited
               </p>
             )}
           </div>
@@ -185,14 +184,14 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
             <Input id="adj-memo" maxLength={200} value={memo} onChange={(e) => setMemo(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button className="flex-1" onClick={() => adjust.mutate(Math.abs(amtSeed))} disabled={adjust.isPending || amtUsdt <= 0}>
+            <Button className="flex-1" onClick={() => adjust.mutate(Math.abs(amtUsdt))} disabled={adjust.isPending || amtUsdt <= 0}>
               {adjust.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Credit +{fmtUsdt(Math.abs(amtUsdt))} USDT
             </Button>
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => adjust.mutate(-Math.abs(amtSeed))}
+              onClick={() => adjust.mutate(-Math.abs(amtUsdt))}
               disabled={adjust.isPending || amtUsdt <= 0}
             >
               Debit −{fmtUsdt(Math.abs(amtUsdt))} USDT
@@ -237,7 +236,7 @@ export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () =>
                   </div>
                   <div className={`text-right font-mono text-sm tabular-nums ${e.amount >= 0 ? "text-primary" : "text-muted-foreground"}`}>
                     {e.amount >= 0 ? "+" : ""}{fmt(e.amount)}
-                    <span className="ml-1 text-[11px] font-normal opacity-70">Seed</span>
+                    <span className="ml-1 text-[11px] font-normal opacity-70">USDT</span>
                   </div>
                 </li>
               ))}

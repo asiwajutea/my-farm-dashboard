@@ -85,9 +85,10 @@ function WalletPage() {
     })();
   }, [reloadKey]);
 
-  const primarySeed = Number(wallets.primary?.balance ?? 0);
+  // Primary wallet balance is now USDT-denominated
+  const primaryUsdt = Number(wallets.primary?.balance ?? 0);
   const farmingSeed = Number(wallets.farming?.balance ?? 0);
-  const primaryAvailable =
+  const primaryAvailableUsdt =
     Number(wallets.primary?.balance ?? 0) - Number(wallets.primary?.locked ?? 0);
 
   return (
@@ -98,15 +99,15 @@ function WalletPage() {
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <WalletCard title="Primary Wallet" mode="usdt" seed={primarySeed} rate={rate} icon={WalletIcon} accent="gold" sub="Deposits, withdrawals & P2P" />
-        <WalletCard title="Farming Wallet" mode="seed" seed={farmingSeed} rate={rate} icon={Sprout} accent="primary" sub="Cycles & rewards" />
+        <WalletCard title="Primary Wallet" mode="usdt" usdt={primaryUsdt} seed={primaryUsdt / rate} rate={rate} icon={WalletIcon} accent="gold" sub="Deposits, withdrawals & P2P" />
+        <WalletCard title="Farming Wallet" mode="seed" usdt={farmingSeed * rate} seed={farmingSeed} rate={rate} icon={Sprout} accent="primary" sub="Cycles & rewards" />
       </section>
 
       <section className="flex flex-col gap-3 sm:flex-row">
         <Link to="/deposit" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.01]">
           <ArrowDownToLine className="h-4 w-4" /> Deposit
         </Link>
-        <TransferToFarmingDialog primaryAvailableSeed={primaryAvailable} rate={rate} onDone={() => setReloadKey((k) => k + 1)} />
+        <TransferToFarmingDialog primaryAvailableUsdt={primaryAvailableUsdt} rate={rate} onDone={() => setReloadKey((k) => k + 1)} />
         <Link to="/withdraw" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card/60 px-5 py-3 text-sm font-semibold transition-colors hover:bg-card">
           <ArrowUpFromLine className="h-4 w-4" /> Withdraw
         </Link>
@@ -136,8 +137,9 @@ function WalletPage() {
   );
 }
 
-export function LedgerItem({ entry: e }: { entry: LedgerRow }) {
+export function LedgerItem({ entry: e, walletKind }: { entry: LedgerRow; walletKind?: string }) {
   const isPositive = e.amount > 0;
+  const unit = walletKind === "primary" ? "USDT" : "Seed";
   return (
     <li className="grid grid-cols-3 items-center gap-2 py-2.5">
       {/* Col 1: label + memo — left aligned */}
@@ -153,22 +155,21 @@ export function LedgerItem({ entry: e }: { entry: LedgerRow }) {
       {/* Col 3: amount + unit — right aligned */}
       <div className={`text-right font-mono text-sm tabular-nums ${isPositive ? "text-primary" : "text-muted-foreground"}`}>
         <span>{isPositive ? "+" : ""}{e.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-        <span className="ml-1 text-[11px] font-normal opacity-70">Seed</span>
+        <span className="ml-1 text-[11px] font-normal opacity-70">{unit}</span>
       </div>
     </li>
   );
 }
 
-export function WalletCard({ title, mode, seed, rate, sub, accent, icon: Icon }: {
-  title: string; mode: "usdt" | "seed"; seed: number; rate: number;
+export function WalletCard({ title, mode, usdt, seed, sub, accent, icon: Icon }: {
+  title: string; mode: "usdt" | "seed"; usdt: number; seed: number; rate?: number;
   sub: string; accent: "primary" | "gold"; icon: React.ComponentType<{ className?: string }>;
 }) {
-  const usdt = seed * rate;
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const main = mode === "usdt" ? fmt(usdt) : fmt(seed);
   const mainUnit = mode === "usdt" ? "USDT" : "Seed";
-  const subUnit = mode === "usdt" ? "Seed" : "USDT";
   const subVal = mode === "usdt" ? fmt(seed) : fmt(usdt);
+  const subUnit = mode === "usdt" ? "Seed" : "USDT";
   return (
     <div className="glass relative overflow-hidden rounded-3xl p-6">
       <div className={`pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full blur-3xl ${accent === "gold" ? "bg-gold/15" : "bg-primary/15"}`} />

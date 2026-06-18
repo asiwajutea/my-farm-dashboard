@@ -72,12 +72,12 @@ interface Props {
   type: "deposit" | "withdrawal";
   /** Minimum amount expressed in USDT. */
   minUsdt?: number;
-  /** Available primary-wallet balance in Seed, for withdrawal guards. */
-  availableSeed?: number;
+  /** Available primary-wallet balance in USDT (primary wallet is now USDT-denominated). */
+  availableUsdt?: number;
   hint?: string;
 }
 
-export function RequestForm({ type, minUsdt = 0, availableSeed, hint }: Props) {
+export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
   const isDeposit = type === "deposit";
   const methods = isDeposit ? DEPOSIT_METHODS : WITHDRAWAL_METHODS;
 
@@ -86,16 +86,14 @@ export function RequestForm({ type, minUsdt = 0, availableSeed, hint }: Props) {
   const qc = useQueryClient();
   const { data: rate = 1 } = useSeedRate();
 
-  // Amount is entered in USDT; we submit the Seed equivalent to the API.
   const [usdt, setUsdt] = useState("");
   const [method, setMethod] = useState<DepositMethod | WithdrawalMethod | "">("");
   const [file, setFile] = useState<File | null>(null);
 
   const usdtNum = Number(usdt) || 0;
+  // Seed equivalent shown as a hint only — not submitted
   const seedEquivalent = usdtToSeed(usdtNum, rate);
-  const availableUsdt = availableSeed !== undefined ? availableSeed * rate : undefined;
-  const overBalance =
-    !isDeposit && availableUsdt !== undefined && usdtNum > availableUsdt + 1e-9;
+  const overBalance = !isDeposit && availableUsdt !== undefined && usdtNum > availableUsdt + 1e-9;
   const belowMin = usdtNum > 0 && usdtNum < minUsdt;
 
   const mutation = useMutation({
@@ -119,32 +117,18 @@ export function RequestForm({ type, minUsdt = 0, availableSeed, hint }: Props) {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!method) {
-      toast.error("Choose a method.");
-      return;
-    }
-    if (usdtNum <= 0) {
-      toast.error("Enter an amount in USDT.");
-      return;
-    }
-    if (belowMin) {
-      toast.error(`Minimum is ${minUsdt} USDT.`);
-      return;
-    }
-    if (overBalance) {
-      toast.error("Amount exceeds your available balance.");
-      return;
-    }
+    if (!method) { toast.error("Choose a method."); return; }
+    if (usdtNum <= 0) { toast.error("Enter an amount in USDT."); return; }
+    if (belowMin) { toast.error(`Minimum is ${minUsdt} USDT.`); return; }
+    if (overBalance) { toast.error("Amount exceeds your available balance."); return; }
     if (file && !(PROOF_MIME as readonly string[]).includes(file.type)) {
-      toast.error(ERROR_MESSAGE.invalid_proof);
-      return;
+      toast.error(ERROR_MESSAGE.invalid_proof); return;
     }
     if (file && file.size > PROOF_MAX_BYTES) {
-      toast.error(ERROR_MESSAGE.invalid_proof);
-      return;
+      toast.error(ERROR_MESSAGE.invalid_proof); return;
     }
     const fd = new FormData();
-    // The API is Seed-denominated; submit the converted Seed amount (2 dp).
+    // Submit the Seed equivalent — the API and DB are Seed-denominated for requests
     fd.set("amount", usdtToSeedString(usdtNum, rate));
     fd.set("method", method);
     if (file) fd.set("proof", file);

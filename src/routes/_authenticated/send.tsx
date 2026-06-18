@@ -55,9 +55,9 @@ function SendPage() {
   const [recipient, setRecipient] = useState<RecipientPreview | null>(null);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [balance, setBalance] = useState(0);
-  const [rate, setRate] = useState(0); // seed_to_usdt: USDT value of 1 Seed
-  const [usdtIn, setUsdtIn] = useState("1"); // inline converter input
+  const [balance, setBalance] = useState(0); // USDT
+  const [rate, setRate] = useState(0);
+  const [usdtIn, setUsdtIn] = useState("1");
 
   // Recipient confirmation popup state
   const [pending, setPending] = useState<RecipientPreview | null>(null);
@@ -67,9 +67,9 @@ function SendPage() {
 
   const { data: feeData } = useQuery({ queryKey: ["p2p-fee"], queryFn: () => feeFn() });
   const feePct = feeData?.feePct ?? 0;
-  const amt = Number(amount) || 0;
-  const fee = +((amt * feePct) / 100).toFixed(8);
-  const total = +(amt + fee).toFixed(8);
+  const amt = Number(amount) || 0;  // USDT
+  const fee = +((amt * feePct) / 100).toFixed(2);
+  const total = +(amt + fee).toFixed(2);
 
   // Inline USDT -> Seed conversion (1 Seed = `rate` USDT, so 1 USDT = 1/rate Seed).
   const usdtNum = Number(usdtIn) || 0;
@@ -135,7 +135,7 @@ function SendPage() {
     mutationFn: () =>
       sendFn({ data: { receiverId: recipient!.id, amount: amt, note: note || undefined } }),
     onSuccess: () => {
-      toast.success(`Sent ${amt} Seed to ${recipient?.username ?? recipient?.display_name}.`);
+      toast.success(`Sent ${fmt(amt)} USDT to ${recipient?.username ?? recipient?.display_name}.`);
       setAmount("");
       setNote("");
       setRecipient(null);
@@ -251,7 +251,7 @@ function SendPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount (Seed)</Label>
+          <Label htmlFor="amount">Amount (USDT)</Label>
           <Input
             id="amount"
             inputMode="decimal"
@@ -261,16 +261,16 @@ function SendPage() {
             required
           />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {fmt(balance)} Seed</span>
+            <span>Available: {fmt(balance)} USDT</span>
             <span>
-              Fee: {fmt(fee)} Seed ({feePct}%)
+              Fee: {fmt(fee)} USDT ({feePct}%)
             </span>
           </div>
           {amt > 0 && (
             <div className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-xs">
-              Total debit: <span className="font-semibold">{total.toLocaleString()}</span> Seed
+              Total debit: <span className="font-semibold">{fmt(total)}</span> USDT
               {rate > 0 && (
-                <span className="text-muted-foreground"> ≈ {fmt(total * rate)} USDT</span>
+                <span className="text-muted-foreground"> ≈ {fmt(total / rate)} Seed</span>
               )}
             </div>
           )}
@@ -326,7 +326,7 @@ function SendPage() {
                     className={`font-mono text-sm tabular-nums ${t.direction === "in" ? "text-primary" : ""}`}
                   >
                     {t.direction === "in" ? "+" : "−"}
-                    {t.amount.toLocaleString()}
+                    {fmt(t.amount)} USDT
                   </div>
                 </li>
               ))}

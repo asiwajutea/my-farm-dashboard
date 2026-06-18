@@ -74,6 +74,10 @@ function Dashboard() {
     })();
   }, []);
 
+  // Primary wallet is USDT-denominated; farming wallet is Seed-denominated
+  const primaryUsdt = Number(wallets.primary?.balance ?? 0);
+  const farmingSeed = Number(wallets.farming?.balance ?? 0);
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -100,10 +104,10 @@ function Dashboard() {
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
         <Link to="/wallet" className="block">
-          <WalletCard title="Primary Wallet" mode="usdt" seed={Number(wallets.primary?.balance ?? 0)} rate={rate} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
+          <WalletCard title="Primary Wallet" mode="usdt" usdt={primaryUsdt} seed={rate > 0 ? primaryUsdt / rate : 0} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
         </Link>
         <Link to="/wallet" className="block">
-          <WalletCard title="Farming Wallet" mode="seed" seed={Number(wallets.farming?.balance ?? 0)} rate={rate} sub="Active farming activity" accent="primary" icon={Sprout} />
+          <WalletCard title="Farming Wallet" mode="seed" usdt={farmingSeed * rate} seed={farmingSeed} sub="Active farming activity" accent="primary" icon={Sprout} />
         </Link>
       </section>
 
@@ -219,18 +223,17 @@ function QuickAction({
 }
 
 function WalletCard({
-  title, mode, seed, rate, sub, accent, icon: Icon,
+  title, mode, usdt, seed, sub, accent, icon: Icon,
 }: {
   title: string;
   mode: "usdt" | "seed";
+  usdt: number;
   seed: number;
-  rate: number;
   sub: string;
   accent: "primary" | "gold";
   icon: React.ComponentType<{ className?: string }>;
 }) {
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const usdt = seed * rate;
   const main = mode === "usdt" ? fmt(usdt) : fmt(seed);
   const mainUnit = mode === "usdt" ? "USDT" : "Seed";
   const subUnit = mode === "usdt" ? "Seed" : "USDT";

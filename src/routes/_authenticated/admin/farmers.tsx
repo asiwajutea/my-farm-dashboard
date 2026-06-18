@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
-import { useSeedRate } from "@/components/wallet/RequestForm";
 
 export const Route = createFileRoute("/_authenticated/admin/farmers")({
   head: () => ({ meta: [{ title: "Farmers · Admin" }] }),
@@ -25,7 +24,6 @@ function AdminFarmers() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data: rate = 1 } = useSeedRate();
 
   const q = useQuery({
     queryKey: ["admin-farmers", search],
@@ -111,7 +109,7 @@ function AdminFarmers() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right text-xs">
-                        <div className="font-mono tabular-nums">{fmtUsdt(f.primary_balance * rate)} <span className="text-muted-foreground">USDT</span></div>
+                        <div className="font-mono tabular-nums">{fmtUsdt(f.primary_balance)} <span className="text-muted-foreground">USDT</span></div>
                         <div className="font-mono tabular-nums text-muted-foreground">{fmt(f.farming_balance)} Seed farming</div>
                       </div>
                       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

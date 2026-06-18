@@ -30,6 +30,7 @@ function useAvailableBalance() {
         .eq("user_id", user.id)
         .eq("kind", "primary")
         .maybeSingle();
+      // Primary wallet is now USDT-denominated
       const available = Number(data?.balance ?? 0) - Number(data?.locked ?? 0);
       return { available };
     },
@@ -40,8 +41,9 @@ function WithdrawPage() {
   const { data } = useAvailableBalance();
   const { data: rate = 1 } = useSeedRate();
   const { data: lock } = usePayoutLock();
-  const availableSeed = data?.available ?? 0;
-  const availableUsdt = availableSeed * rate;
+  // Primary wallet is USDT — no conversion needed
+  const availableUsdt = data?.available ?? 0;
+  const availableSeedDisplay = rate > 0 ? availableUsdt / rate : 0;
   const locked = lock?.locked ?? false;
 
   return (
@@ -81,7 +83,7 @@ function WithdrawPage() {
             USDT
             <span className="text-muted-foreground">
               {" "}
-              (≈ {fmtAmount(availableSeed)} Seed)
+              (≈ {fmtAmount(availableSeedDisplay)} Seed)
             </span>
           </CardDescription>
         </CardHeader>
@@ -93,7 +95,7 @@ function WithdrawPage() {
               <RequestForm
                 type="withdrawal"
                 minUsdt={1}
-                availableSeed={availableSeed}
+                availableUsdt={availableUsdt}
                 hint="Withdrawals are reviewed by the admin team."
               />
               {lock && <PayoutScheduleHint state={lock} />}

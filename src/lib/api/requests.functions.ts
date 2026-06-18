@@ -247,6 +247,7 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
     }
 
     // d. available-balance guard (Req 6.7, 9.4) — never moves money
+    // Primary wallet is now USDT-denominated — compare directly in USDT
     const { data: wallet, error: walletErr } = await supabase
       .from("wallets")
       .select("balance, locked")
@@ -255,9 +256,9 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
       .maybeSingle();
     if (walletErr) throw new RequestError("internal");
 
-    const available =
+    const availableUsdt =
       Number(wallet?.balance ?? 0) - Number(wallet?.locked ?? 0);
-    if (Number(parsed.value) > available) {
+    if (usdtNum > availableUsdt + 1e-9) {
       throw new RequestError("insufficient_balance");
     }
 
