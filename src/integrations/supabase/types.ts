@@ -1095,6 +1095,15 @@ export type Database = {
         | "system"
         | "kyc_approved"
         | "kyc_rejected"
+        | "welcome"
+        | "email_verified"
+        | "affiliate_signup"
+        | "p2p_sent"
+        | "cycle_started"
+        | "coupon_redeemed"
+        | "kyc_submitted"
+        | "maintenance_paid"
+        | "transfer_to_farming"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -1285,6 +1294,15 @@ export const Constants = {
         "system",
         "kyc_approved",
         "kyc_rejected",
+        "welcome",
+        "email_verified",
+        "affiliate_signup",
+        "p2p_sent",
+        "cycle_started",
+        "coupon_redeemed",
+        "kyc_submitted",
+        "maintenance_paid",
+        "transfer_to_farming",
       ],
       request_status: ["pending", "approved", "rejected"],
       transfer_status: ["completed", "failed"],
