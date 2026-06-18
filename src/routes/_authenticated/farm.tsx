@@ -108,7 +108,7 @@ function FarmPage() {
       return { balance: Number(data?.balance ?? 0), locked: Number(data?.locked ?? 0) };
     },
   });
-  const primaryAvailable =
+  const primaryAvailableUsdt =
     (primaryBalanceQ.data?.balance ?? 0) - (primaryBalanceQ.data?.locked ?? 0);
   const selected = boostersQ.data?.find((b) => b.id === boosterId);
   const amt = Number(amount) || 0;
@@ -149,7 +149,7 @@ function FarmPage() {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
                 <TransferToFarmingDialog
-                  primaryAvailableSeed={primaryAvailable}
+                  primaryAvailableUsdt={primaryAvailableUsdt}
                   rate={rate}
                   onDone={() => {
                     qc.invalidateQueries({ queryKey: ["farming-balance"] });
