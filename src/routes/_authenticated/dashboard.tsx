@@ -1,8 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sprout, Wallet, Coins, ArrowLeftRight, Zap, TrendingUp, Plus } from "lucide-react";
+import { Sprout, Wallet, Coins, ArrowLeftRight, History as HistoryIcon, TrendingUp, Plus, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MaintenanceCard } from "@/components/maintenance/MaintenanceCard";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { listMyCycles, reapCycleFn, type Cycle } from "@/lib/farm.functions";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { fmtAmount, seedToUsdt } from "@/lib/currency";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · VFarmers" }] }),
@@ -20,6 +26,27 @@ function Dashboard() {
   const [name, setName] = useState("Farmer");
   const [wallets, setWallets] = useState<Partial<Record<WalletKind, WalletRow>>>({});
   const [rate, setRate] = useState<number>(1);
+
+  const fnCycles = useServerFn(listMyCycles);
+  const fnReap = useServerFn(reapCycleFn);
+  const cyclesQ = useQuery({
+    queryKey: ["dashboard-cycles"],
+    queryFn: () => fnCycles(),
+    refetchInterval: 30_000,
+  });
+  const activeCycles = (cyclesQ.data ?? []).filter(
+    (c) => c.status === "active" || c.status === "matured",
+  );
+
+  async function handleReap(id: string) {
+    try {
+      await fnReap({ data: { cycleId: id } });
+      toast.success("Reaped! Rewards added to your Farming wallet 🎉");
+      cyclesQ.refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to reap");
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -72,44 +99,117 @@ function Dashboard() {
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
-        <WalletCard title="Primary Wallet" mode="usdt" seed={Number(wallets.primary?.balance ?? 0)} rate={rate} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
-        <WalletCard title="Farming Wallet" mode="seed" seed={Number(wallets.farming?.balance ?? 0)} rate={rate} sub="Active farming activity" accent="primary" icon={Sprout} />
+        <Link to="/wallet" className="block">
+          <WalletCard title="Primary Wallet" mode="usdt" seed={Number(wallets.primary?.balance ?? 0)} rate={rate} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
+        </Link>
+        <Link to="/wallet" className="block">
+          <WalletCard title="Farming Wallet" mode="seed" seed={Number(wallets.farming?.balance ?? 0)} rate={rate} sub="Active farming activity" accent="primary" icon={Sprout} />
+        </Link>
       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickAction to="/deposit" label="Deposit" icon={Plus} />
-        <QuickAction to="/send" label="Transfer" icon={ArrowLeftRight} />
+        <QuickAction to="/send" label="P2P Transfer" icon={ArrowLeftRight} />
         <QuickAction to="/farm" label="Reap" icon={Coins} />
-        <QuickAction to="/farm" label="Boost" icon={Zap} />
+        <QuickAction to="/history" label="History" icon={HistoryIcon} />
       </section>
 
       <section className="mt-6">
         <MaintenanceCard />
       </section>
 
-      <section className="glass mt-8 rounded-3xl p-8 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <TrendingUp className="h-6 w-6" />
+      <section className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Active farming cycles</h2>
+          <Link to="/farm" className="text-xs text-primary hover:underline">View all</Link>
         </div>
-        <h2 className="mt-4 text-lg font-semibold">No active farming cycles</h2>
-        <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
-          Move Seeds to your Farming Wallet and start a cycle to begin harvesting rewards.
-        </p>
-        <Link
-          to="/farm"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-medium transition-colors hover:bg-card"
-        >
-          <Sprout className="h-4 w-4 text-primary" />
-          Go to Farm
-        </Link>
+        {cyclesQ.isLoading ? (
+          <div className="space-y-3">
+            <div className="skeleton h-24 rounded-2xl" />
+            <div className="skeleton h-24 rounded-2xl" />
+          </div>
+        ) : activeCycles.length === 0 ? (
+          <div className="glass rounded-3xl p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <TrendingUp className="h-6 w-6" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold">No active farming cycles</h3>
+            <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
+              Move Seeds to your Farming Wallet and start a cycle to begin harvesting rewards.
+            </p>
+            <Link
+              to="/farm"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-medium transition-colors hover:bg-card"
+            >
+              <Sprout className="h-4 w-4 text-primary" />
+              Go to Farm
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeCycles.slice(0, 5).map((c) => (
+              <ActiveCycleRow key={c.id} cycle={c} rate={rate} onReap={() => handleReap(c.id)} />
+            ))}
+          </div>
+        )}
       </section>
+    </div>
+  );
+}
+
+function ActiveCycleRow({
+  cycle,
+  rate,
+  onReap,
+}: {
+  cycle: Cycle;
+  rate: number;
+  onReap: () => void;
+}) {
+  const amount = Number(cycle.amount);
+  const reward = (amount * cycle.reward_bps) / 10000;
+  const startMs = new Date(cycle.start_at).getTime();
+  const maturesMs = new Date(cycle.mature_at).getTime();
+  const now = Date.now();
+  const total = Math.max(1, maturesMs - startMs);
+  const elapsed = Math.max(0, Math.min(total, now - startMs));
+  const pct = Math.round((elapsed / total) * 100);
+  const matured = cycle.status === "matured" || now >= maturesMs;
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Sprout className="h-4 w-4 text-primary" />
+            {fmtAmount(amount)} Seed
+            <span className="text-xs font-normal text-muted-foreground">
+              ≈ {fmtAmount(seedToUsdt(amount, rate))} USDT
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            {matured ? "Matured" : `Matures ${new Date(cycle.mature_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+            <span>· Reward {fmtAmount(reward)} Seed</span>
+          </div>
+        </div>
+        {matured ? (
+          <Button size="sm" onClick={onReap}>Reap</Button>
+        ) : (
+          <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            Active
+          </span>
+        )}
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-full bg-gradient-to-r from-primary to-accent transition-all" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
 
 function QuickAction({
   to, label, icon: Icon,
-}: { to: "/deposit" | "/send" | "/farm"; label: string; icon: React.ComponentType<{ className?: string }> }) {
+}: { to: "/deposit" | "/send" | "/farm" | "/history"; label: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
     <Link to={to} className="glass flex flex-col items-center gap-1.5 rounded-2xl py-4 text-xs transition-colors hover:border-primary/50 hover:text-primary">
       <Icon className="h-5 w-5" />
