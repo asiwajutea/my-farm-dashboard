@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/admin/farmers")({
   head: () => ({ meta: [{ title: "Farmers · Admin" }] }),
@@ -17,12 +19,25 @@ export const Route = createFileRoute("/_authenticated/admin/farmers")({
 });
 
 const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+const fmtUsdt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function AdminFarmers() {
   const listFn = useServerFn(adminListFarmers);
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [rate, setRate] = useState<number>(1);
+
+  useEffect(() => {
+    supabase
+      .from("app_settings")
+      .select("seed_to_usdt")
+      .eq("id", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.seed_to_usdt) setRate(Number(data.seed_to_usdt));
+      });
+  }, []);
 
   const q = useQuery({
     queryKey: ["admin-farmers", search],
@@ -34,7 +49,7 @@ function AdminFarmers() {
   if (selectedId) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-8">
-        <FarmerDetail userId={selectedId} onBack={() => setSelectedId(null)} />
+        <FarmerDetail userId={selectedId} onBack={() => setSelectedId(null)} rate={rate} />
       </div>
     );
   }
@@ -108,8 +123,8 @@ function AdminFarmers() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right text-xs">
-                        <div className="font-mono tabular-nums">{fmt(f.primary_balance)} <span className="text-muted-foreground">Seed (primary)</span></div>
-                        <div className="font-mono tabular-nums text-muted-foreground">{fmt(f.farming_balance)} farming</div>
+                        <div className="font-mono tabular-nums">{fmtUsdt(f.primary_balance * rate)} <span className="text-muted-foreground">USDT</span></div>
+                        <div className="font-mono tabular-nums text-muted-foreground">{fmt(f.farming_balance)} Seed farming</div>
                       </div>
                       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </div>

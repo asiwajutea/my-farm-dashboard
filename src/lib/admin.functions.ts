@@ -374,6 +374,35 @@ export const adminGetFarmer = createServerFn({ method: "GET" })
     };
   });
 
+const farmerLedgerInput = z.object({
+  userId: z.string().uuid(),
+  offset: z.number().int().min(0).default(0),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+export const adminGetFarmerLedger = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => farmerLedgerInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ rows: AdminLedgerRow[]; hasMore: boolean }> => {
+    await ensureAdmin(context.supabase as Db, context.userId);
+    const sb = await adminDb();
+    const { data: ledger, error } = await sb
+      .from("ledger_entries")
+      .select("id, kind, amount, memo, created_at")
+      .eq("user_id", data.userId)
+      .order("created_at", { ascending: false })
+      .range(data.offset, data.offset + data.limit - 1);
+    if (error) throw new Error(error.message);
+    const rows = (ledger ?? []).map((e) => ({
+      id: e.id,
+      kind: e.kind as string,
+      amount: Number(e.amount),
+      memo: e.memo,
+      created_at: e.created_at,
+    }));
+    return { rows, hasMore: rows.length === data.limit };
+  });
+
 const adjustInput = z.object({
   userId: z.string().uuid(),
   amount: z.number().gte(-1_000_000_000).lte(1_000_000_000).refine((n) => n !== 0, "Amount must be non-zero"),
