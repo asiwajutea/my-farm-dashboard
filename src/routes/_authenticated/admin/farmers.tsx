@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useSeedRate } from "@/components/wallet/RequestForm";
 
 export const Route = createFileRoute("/_authenticated/admin/farmers")({
   head: () => ({ meta: [{ title: "Farmers · Admin" }] }),
@@ -26,18 +25,7 @@ function AdminFarmers() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [rate, setRate] = useState<number>(1);
-
-  useEffect(() => {
-    supabase
-      .from("app_settings")
-      .select("seed_to_usdt")
-      .eq("id", true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.seed_to_usdt) setRate(Number(data.seed_to_usdt));
-      });
-  }, []);
+  const { data: rate = 1 } = useSeedRate();
 
   const q = useQuery({
     queryKey: ["admin-farmers", search],
@@ -49,7 +37,7 @@ function AdminFarmers() {
   if (selectedId) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-8">
-        <FarmerDetail userId={selectedId} onBack={() => setSelectedId(null)} rate={rate} />
+        <FarmerDetail userId={selectedId} onBack={() => setSelectedId(null)} />
       </div>
     );
   }

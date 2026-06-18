@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 import { TransferToFarmingDialog } from "@/components/wallet/TransferToFarmingDialog";
+import { useSeedRate } from "@/components/wallet/RequestForm";
 
 export const Route = createFileRoute("/_authenticated/wallet/")({
   head: () => ({ meta: [{ title: "Wallet · VFarmers" }] }),
@@ -50,18 +51,17 @@ export const KIND_LABEL: Record<string, string> = {
 
 function WalletPage() {
   const [wallets, setWallets] = useState<Partial<Record<WalletKind, WalletRow>>>({});
-  const [rate, setRate] = useState<number>(1);
   const [ledger, setLedger] = useState<LedgerRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const { data: rate = 1 } = useSeedRate();
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const [{ data: ws }, { data: settings }, { data: entries }] = await Promise.all([
+      const [{ data: ws }, { data: entries }] = await Promise.all([
         supabase.from("wallets").select("kind, balance, locked").eq("user_id", user.id),
-        supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
         supabase
           .from("ledger_entries")
           .select("id, kind, amount, memo, created_at")
@@ -72,7 +72,6 @@ function WalletPage() {
       const map: Partial<Record<WalletKind, WalletRow>> = {};
       for (const w of (ws ?? []) as WalletRow[]) map[w.kind] = w;
       setWallets(map);
-      if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
       setLedger(
         (entries ?? []).map((e) => ({
           id: e.id,

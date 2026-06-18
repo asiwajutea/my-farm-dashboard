@@ -62,6 +62,9 @@ export function useSeedRate() {
       const rate = Number(data?.seed_to_usdt ?? 0);
       return rate > 0 ? rate : 1;
     },
+    staleTime: 0,                // always recheck on mount
+    refetchInterval: 30_000,     // poll every 30s so a rate change propagates quickly
+    refetchOnWindowFocus: true,
   });
 }
 

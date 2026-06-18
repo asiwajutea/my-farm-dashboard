@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { StatCard } from "@/components/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
+import { useSeedRate } from "@/components/wallet/RequestForm";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 const fmtUsdt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,12 +30,13 @@ const KIND_LABEL: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
-export function FarmerDetail({ userId, onBack, rate = 1 }: { userId: string; onBack: () => void; rate?: number }) {
+export function FarmerDetail({ userId, onBack }: { userId: string; onBack: () => void }) {
   const getFn = useServerFn(adminGetFarmer);
   const adjustFn = useServerFn(adminAdjustBalance);
   const freezeFn = useServerFn(adminSetFrozen);
   const ledgerFn = useServerFn(adminGetFarmerLedger);
   const qc = useQueryClient();
+  const { data: rate = 1 } = useSeedRate();
 
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
