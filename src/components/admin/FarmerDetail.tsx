@@ -101,7 +101,9 @@ export function FarmerDetail({ userId, onBack, rate = 1 }: { userId: string; onB
   }
 
   const f = detail.farmer;
-  const amt = Number(amount) || 0;
+  const amtUsdt = Number(amount) || 0;
+  // The ledger and adjust RPC are Seed-denominated; convert USDT → Seed
+  const amtSeed = rate > 0 ? amtUsdt / rate : 0;
 
   return (
     <div className="space-y-6">
@@ -158,31 +160,40 @@ export function FarmerDetail({ userId, onBack, rate = 1 }: { userId: string; onB
         </p>
         <div className="mt-4 space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="adj-amount">Amount (Seed)</Label>
-            <Input
-              id="adj-amount"
-              inputMode="decimal"
-              placeholder="100"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+            <Label htmlFor="adj-amount">Amount (USDT)</Label>
+            <div className="flex items-center rounded-xl border border-border bg-background/60 px-3 py-2 focus-within:border-primary/60">
+              <input
+                id="adj-amount"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <span className="ml-2 shrink-0 text-xs text-muted-foreground">USDT</span>
+            </div>
+            {amtUsdt > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                ≈ {fmt(amtSeed)} Seed will be credited/debited from the ledger
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="adj-memo">Memo (optional)</Label>
             <Input id="adj-memo" maxLength={200} value={memo} onChange={(e) => setMemo(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button className="flex-1" onClick={() => adjust.mutate(Math.abs(amt))} disabled={adjust.isPending || amt <= 0}>
+            <Button className="flex-1" onClick={() => adjust.mutate(Math.abs(amtSeed))} disabled={adjust.isPending || amtUsdt <= 0}>
               {adjust.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Credit +{fmt(Math.abs(amt))}
+              Credit +{fmtUsdt(Math.abs(amtUsdt))} USDT
             </Button>
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => adjust.mutate(-Math.abs(amt))}
-              disabled={adjust.isPending || amt <= 0}
+              onClick={() => adjust.mutate(-Math.abs(amtSeed))}
+              disabled={adjust.isPending || amtUsdt <= 0}
             >
-              Debit −{fmt(Math.abs(amt))}
+              Debit −{fmtUsdt(Math.abs(amtUsdt))} USDT
             </Button>
           </div>
         </div>
