@@ -168,8 +168,8 @@ function ActiveCycleRow({
 }) {
   const amount = Number(cycle.amount);
   const reward = (amount * cycle.reward_bps) / 10000;
-  const startMs = new Date(cycle.start_at).getTime();
-  const maturesMs = new Date(cycle.mature_at).getTime();
+  const startMs = new Date(cycle.started_at).getTime();
+  const maturesMs = new Date(cycle.matures_at).getTime();
   const now = Date.now();
   const total = Math.max(1, maturesMs - startMs);
   const elapsed = Math.max(0, Math.min(total, now - startMs));
@@ -188,7 +188,7 @@ function ActiveCycleRow({
           </div>
           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            {matured ? "Matured" : `Matures ${new Date(cycle.mature_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+            {matured ? "Matured" : `Matures ${new Date(cycle.matures_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
             <span>· Reward {fmtAmount(reward)} Seed</span>
           </div>
         </div>
