@@ -699,6 +699,24 @@ export type Database = {
           },
         ]
       }
+      rate_history: {
+        Row: {
+          id: string
+          recorded_at: string
+          seed_to_usdt: number
+        }
+        Insert: {
+          id?: string
+          recorded_at?: string
+          seed_to_usdt: number
+        }
+        Update: {
+          id?: string
+          recorded_at?: string
+          seed_to_usdt?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
