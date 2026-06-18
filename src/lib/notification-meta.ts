@@ -16,7 +16,6 @@ import {
   Ticket,
   FileCheck,
   ArrowRightLeft,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 
