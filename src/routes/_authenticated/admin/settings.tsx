@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Settings, Users } from "lucide-react";
@@ -24,23 +24,38 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 function AdminSettingsPage() {
   const getFn = useServerFn(getPlatformSettings);
   const saveFn = useServerFn(adminUpdatePlatformSettings);
+  const qc = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["platform-settings"],
     queryFn: () => getFn(),
+    staleTime: 0,
   });
 
   const [form, setForm] = useState<PlatformSettings | null>(null);
 
+  // Sync form from server data on initial load only (not on every refetch,
+  // since that would discard in-progress edits).
+  const initialised = useRef(false);
   useEffect(() => {
-    if (data && !form) setForm(data);
-  }, [data, form]);
+    if (data && !initialised.current) {
+      setForm(data);
+      initialised.current = true;
+    }
+  }, [data]);
 
   const save = useMutation({
     mutationFn: (f: PlatformSettings) => saveFn({ data: f }),
-    onSuccess: () => {
+    onSuccess: async (_, submitted) => {
       toast.success("Platform settings saved");
-      refetch();
+      // Apply the saved values back to the form so the UI reflects
+      // what was actually persisted, then hard-refetch from the server.
+      setForm(submitted);
+      await refetch();
+      // Bust the shared rate cache so wallets/farm page pick up the new rate
+      // without waiting for the 30s polling interval.
+      qc.invalidateQueries({ queryKey: ["seed-rate"] });
+      qc.invalidateQueries({ queryKey: ["rate-history"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

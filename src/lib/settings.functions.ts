@@ -72,12 +72,17 @@ export const adminUpdatePlatformSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => platformSchema.parse(d))
   .handler(async ({ data, context }) => {
+    // Verify the caller is an admin using the user-scoped client (RLS-safe).
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Admin only");
-    const { error } = await context.supabase.from("app_settings").update(data).eq("id", true);
+
+    // app_settings UPDATE is restricted to service_role by RLS.
+    // Import the admin client lazily to avoid bundling server-only code on the client.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("app_settings").update(data).eq("id", true);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
