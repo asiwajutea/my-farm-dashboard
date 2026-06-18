@@ -6,27 +6,12 @@ import {
   Wallet as WalletIcon,
   Sprout,
   Inbox,
-  ArrowRightLeft,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { useServerFn } from "@tanstack/react-start";
-import { transferToFarmingFn } from "@/lib/farm.functions";
-import { toast } from "sonner";
-import { usdtToSeed, fmtAmount } from "@/lib/currency";
+import { TransferToFarmingDialog } from "@/components/wallet/TransferToFarmingDialog";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({ meta: [{ title: "Wallet · VFarmers" }] }),
