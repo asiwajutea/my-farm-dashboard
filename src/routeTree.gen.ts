@@ -23,6 +23,7 @@ import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSendRouteImport } from './routes/_authenticated/send'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedFarmRouteImport } from './routes/_authenticated/farm'
 import { Route as AuthenticatedEscrowRouteImport } from './routes/_authenticated/escrow'
 import { Route as AuthenticatedDepositRouteImport } from './routes/_authenticated/deposit'
@@ -117,6 +118,11 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFarmRoute = AuthenticatedFarmRouteImport.update({
   id: '/farm',
   path: '/farm',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/deposit': typeof AuthenticatedDepositRoute
   '/escrow': typeof AuthenticatedEscrowRouteWithChildren
   '/farm': typeof AuthenticatedFarmRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deposit': typeof AuthenticatedDepositRoute
   '/farm': typeof AuthenticatedFarmRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
@@ -334,6 +342,7 @@ export interface FileRoutesById {
   '/_authenticated/deposit': typeof AuthenticatedDepositRoute
   '/_authenticated/escrow': typeof AuthenticatedEscrowRouteWithChildren
   '/_authenticated/farm': typeof AuthenticatedFarmRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/send': typeof AuthenticatedSendRoute
@@ -374,6 +383,7 @@ export interface FileRouteTypes {
     | '/deposit'
     | '/escrow'
     | '/farm'
+    | '/history'
     | '/notifications'
     | '/profile'
     | '/send'
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/deposit'
     | '/farm'
+    | '/history'
     | '/notifications'
     | '/profile'
     | '/send'
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | '/_authenticated/deposit'
     | '/_authenticated/escrow'
     | '/_authenticated/farm'
+    | '/_authenticated/history'
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/send'
@@ -582,6 +594,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/farm': {
@@ -819,6 +838,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDepositRoute: typeof AuthenticatedDepositRoute
   AuthenticatedEscrowRoute: typeof AuthenticatedEscrowRouteWithChildren
   AuthenticatedFarmRoute: typeof AuthenticatedFarmRoute
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSendRoute: typeof AuthenticatedSendRoute
@@ -835,6 +855,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDepositRoute: AuthenticatedDepositRoute,
   AuthenticatedEscrowRoute: AuthenticatedEscrowRouteWithChildren,
   AuthenticatedFarmRoute: AuthenticatedFarmRoute,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSendRoute: AuthenticatedSendRoute,
