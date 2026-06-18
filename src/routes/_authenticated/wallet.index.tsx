@@ -116,7 +116,7 @@ function WalletPage() {
       <section className="glass rounded-3xl p-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Recent activity</h2>
-          <Link to="/wallet/history" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <Link to="/history" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
             See more <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -140,17 +140,21 @@ function WalletPage() {
 export function LedgerItem({ entry: e }: { entry: LedgerRow }) {
   const isPositive = e.amount > 0;
   return (
-    <li className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2">
+    <li className="grid grid-cols-3 items-center gap-2 py-2.5">
+      {/* Col 1: label + memo — left aligned */}
       <div className="min-w-0">
         <div className="truncate text-sm font-medium">{KIND_LABEL[e.kind] ?? e.kind}</div>
         {e.memo && <div className="truncate text-xs text-muted-foreground">{e.memo}</div>}
       </div>
-      <div className="shrink-0 text-center text-[11px] leading-tight text-muted-foreground">
+      {/* Col 2: date + time — centred */}
+      <div className="text-center text-[11px] leading-tight text-muted-foreground">
         <div>{new Date(e.created_at).toLocaleDateString()}</div>
         <div>{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
       </div>
-      <div className={`shrink-0 font-mono text-sm tabular-nums ${isPositive ? "text-primary" : "text-muted-foreground"}`}>
-        {isPositive ? "+" : ""}{e.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      {/* Col 3: amount + unit — right aligned */}
+      <div className={`text-right font-mono text-sm tabular-nums ${isPositive ? "text-primary" : "text-muted-foreground"}`}>
+        <span>{isPositive ? "+" : ""}{e.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+        <span className="ml-1 text-[11px] font-normal opacity-70">Seed</span>
       </div>
     </li>
   );

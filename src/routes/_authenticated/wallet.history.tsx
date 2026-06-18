@@ -127,7 +127,7 @@ function WalletHistoryPage() {
         ) : (
           <>
             {/* Column headers */}
-            <div className="mb-1 grid grid-cols-[1fr_auto_auto] gap-3 px-0 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="mb-1 grid grid-cols-3 gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
               <span>Activity</span>
               <span className="text-center">Date / Time</span>
               <span className="text-right">Amount</span>
