@@ -122,6 +122,7 @@ END $$;
 -- 3. transfer_to_farming — debit USDT from primary, credit Seed to farming --
 -- The caller passes a USDT amount. We debit the primary wallet in USDT, then
 -- compute the Seed equivalent and credit the farming wallet.
+DROP FUNCTION IF EXISTS public.transfer_to_farming(numeric);
 CREATE OR REPLACE FUNCTION public.transfer_to_farming(p_amount_usdt numeric)
 RETURNS void
 LANGUAGE plpgsql
@@ -167,6 +168,7 @@ END $$;
 GRANT EXECUTE ON FUNCTION public.transfer_to_farming(numeric) TO authenticated;
 
 -- 4. p2p_send — operates on primary wallets in USDT -----------------------
+DROP FUNCTION IF EXISTS public.p2p_send(uuid, numeric, text);
 CREATE OR REPLACE FUNCTION public.p2p_send(
   p_receiver_id uuid,
   p_amount_usdt numeric,
