@@ -15,6 +15,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileHeaderSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { hasPasscode } from "@/lib/passcode.functions";
+import { PasscodeSetupDialog } from "@/components/passcode/PasscodeSetupDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -616,8 +620,40 @@ function ProfilePage() {
             Save changes
           </button>
         </form>
+
+        <PasscodeSection />
       </main>
     </div>
+  );
+}
+
+function PasscodeSection() {
+  const hasFn = useServerFn(hasPasscode);
+  const { data } = useQuery({ queryKey: ["has-passcode"], queryFn: () => hasFn() });
+  const [open, setOpen] = useState(false);
+  const isSet = data?.has ?? false;
+  return (
+    <section className="glass mt-5 rounded-3xl p-7">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <Lock className="h-4 w-4 text-primary" /> Transaction passcode
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            6-digit code required to authorise withdrawals and transfers to other farmers.
+            Transfers between your own wallets do not require it.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="shrink-0 rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-medium hover:bg-card"
+        >
+          {isSet ? "Change" : "Set passcode"}
+        </button>
+      </div>
+      <PasscodeSetupDialog open={open} onOpenChange={setOpen} isChange={isSet} />
+    </section>
   );
 }
 
