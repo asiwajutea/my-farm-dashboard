@@ -16,7 +16,6 @@ import { ProfileHeaderSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { hasPasscode } from "@/lib/passcode.functions";
 import { PasscodeSetupDialog } from "@/components/passcode/PasscodeSetupDialog";
 
