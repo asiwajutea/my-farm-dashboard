@@ -41,6 +41,7 @@ import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAffiliateDownlinesRouteImport } from './routes/_authenticated/affiliate.downlines'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin/requests'
+import { Route as AuthenticatedAdminPvRouteImport } from './routes/_authenticated/admin/pv'
 import { Route as AuthenticatedAdminMaintenanceRouteImport } from './routes/_authenticated/admin/maintenance'
 import { Route as AuthenticatedAdminKycRouteImport } from './routes/_authenticated/admin/kyc'
 import { Route as AuthenticatedAdminFarmersRouteImport } from './routes/_authenticated/admin/farmers'
@@ -217,6 +218,11 @@ const AuthenticatedAdminRequestsRoute =
     path: '/requests',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminPvRoute = AuthenticatedAdminPvRouteImport.update({
+  id: '/pv',
+  path: '/pv',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminMaintenanceRoute =
   AuthenticatedAdminMaintenanceRouteImport.update({
     id: '/maintenance',
@@ -294,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/admin/pv': typeof AuthenticatedAdminPvRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
@@ -331,6 +338,7 @@ export interface FileRoutesByTo {
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/admin/pv': typeof AuthenticatedAdminPvRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/_authenticated/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/_authenticated/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/_authenticated/admin/pv': typeof AuthenticatedAdminPvRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
@@ -417,6 +426,7 @@ export interface FileRouteTypes {
     | '/admin/farmers'
     | '/admin/kyc'
     | '/admin/maintenance'
+    | '/admin/pv'
     | '/admin/requests'
     | '/admin/settings'
     | '/affiliate/downlines'
@@ -454,6 +464,7 @@ export interface FileRouteTypes {
     | '/admin/farmers'
     | '/admin/kyc'
     | '/admin/maintenance'
+    | '/admin/pv'
     | '/admin/requests'
     | '/admin/settings'
     | '/affiliate/downlines'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/farmers'
     | '/_authenticated/admin/kyc'
     | '/_authenticated/admin/maintenance'
+    | '/_authenticated/admin/pv'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
     | '/_authenticated/affiliate/downlines'
@@ -746,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/pv': {
+      id: '/_authenticated/admin/pv'
+      path: '/pv'
+      fullPath: '/admin/pv'
+      preLoaderRoute: typeof AuthenticatedAdminPvRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/maintenance': {
       id: '/_authenticated/admin/maintenance'
       path: '/maintenance'
@@ -814,6 +833,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminFarmersRoute: typeof AuthenticatedAdminFarmersRoute
   AuthenticatedAdminKycRoute: typeof AuthenticatedAdminKycRoute
   AuthenticatedAdminMaintenanceRoute: typeof AuthenticatedAdminMaintenanceRoute
+  AuthenticatedAdminPvRoute: typeof AuthenticatedAdminPvRoute
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -829,6 +849,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminFarmersRoute: AuthenticatedAdminFarmersRoute,
     AuthenticatedAdminKycRoute: AuthenticatedAdminKycRoute,
     AuthenticatedAdminMaintenanceRoute: AuthenticatedAdminMaintenanceRoute,
+    AuthenticatedAdminPvRoute: AuthenticatedAdminPvRoute,
     AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
