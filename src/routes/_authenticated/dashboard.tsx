@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sprout, Wallet, Coins, ArrowLeftRight, History as HistoryIcon, TrendingUp, Plus, Clock } from "lucide-react";
+import { Sprout, Wallet, Coins, ArrowLeftRight, History as HistoryIcon, TrendingUp, Plus, Clock, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MaintenanceCard } from "@/components/maintenance/MaintenanceCard";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listMyCycles, reapCycleFn, type Cycle } from "@/lib/farm.functions";
+import { getMyPvSummary } from "@/lib/pv.functions";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtAmount, seedToUsdt } from "@/lib/currency";
@@ -29,11 +30,18 @@ function Dashboard() {
 
   const fnCycles = useServerFn(listMyCycles);
   const fnReap = useServerFn(reapCycleFn);
+  const fnPv = useServerFn(getMyPvSummary);
+
   const cyclesQ = useQuery({
     queryKey: ["dashboard-cycles"],
     queryFn: () => fnCycles(),
     refetchInterval: 30_000,
   });
+  const pvQ = useQuery({
+    queryKey: ["my-pv"],
+    queryFn: () => fnPv(),
+  });
+  const pvTotal = pvQ.data?.total ?? 0;
   const activeCycles = (cyclesQ.data ?? []).filter(
     (c) => c.status === "active" || c.status === "matured",
   );
@@ -93,13 +101,24 @@ function Dashboard() {
             Your wallets and farming cycles, all in one place.
           </p>
         </div>
-        <Link
-          to="/farm"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-        >
-          <Plus className="h-4 w-4" />
-          Start a cycle
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* PV badge */}
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm font-semibold text-amber-400">
+            <Star className="h-3.5 w-3.5 fill-amber-400" />
+            {pvQ.isLoading ? (
+              <span className="text-xs font-normal text-amber-400/60">…</span>
+            ) : (
+              <span>{pvTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} PV</span>
+            )}
+          </div>
+          <Link
+            to="/farm"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
+          >
+            <Plus className="h-4 w-4" />
+            Start a cycle
+          </Link>
+        </div>
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
