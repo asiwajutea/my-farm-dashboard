@@ -88,7 +88,7 @@ function Dashboard() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
