@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loadable } from "@/components/ui/loadable";
 import { ListSkeleton } from "@/components/skeletons/ListSkeleton";
 import { TransferToFarmingDialog } from "@/components/wallet/TransferToFarmingDialog";
+import { TransferToPrimaryDialog } from "@/components/wallet/TransferToPrimaryDialog";
 import { useSeedRate } from "@/components/wallet/RequestForm";
 
 export const Route = createFileRoute("/_authenticated/wallet/")({
@@ -90,6 +91,8 @@ function WalletPage() {
   const farmingSeed = Number(wallets.farming?.balance ?? 0);
   const primaryAvailableUsdt =
     Number(wallets.primary?.balance ?? 0) - Number(wallets.primary?.locked ?? 0);
+  const farmingAvailableSeed =
+    Number(wallets.farming?.balance ?? 0) - Number(wallets.farming?.locked ?? 0);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-5 py-8">
@@ -108,6 +111,7 @@ function WalletPage() {
           <ArrowDownToLine className="h-4 w-4" /> Deposit
         </Link>
         <TransferToFarmingDialog primaryAvailableUsdt={primaryAvailableUsdt} rate={rate} onDone={() => setReloadKey((k) => k + 1)} />
+        <TransferToPrimaryDialog farmingAvailableSeed={farmingAvailableSeed} rate={rate} onDone={() => setReloadKey((k) => k + 1)} />
         <Link to="/withdraw" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card/60 px-5 py-3 text-sm font-semibold transition-colors hover:bg-card">
           <ArrowUpFromLine className="h-4 w-4" /> Withdraw
         </Link>
