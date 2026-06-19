@@ -26,6 +26,7 @@ import {
   DEFAULT_PAYOUT_TIMEZONE,
   getPayoutLockState,
 } from "@/lib/payout";
+import { verifyPasscodeFor } from "@/lib/passcode.functions";
 
 // ---------------------------------------------------------------------------
 // Typed error — the message carries the discriminated code so it survives
@@ -214,6 +215,11 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
     // b. method (Req 6.6)
     const method = data.get("method");
     if (!isWithdrawalMethod(method)) throw new RequestError("invalid_method");
+
+    // b0. passcode is required for every withdrawal
+    const passcode = String(data.get("passcode") ?? "");
+    if (!/^\d{6}$/.test(passcode)) throw new Error("Transaction passcode required");
+    await verifyPasscodeFor(userId, passcode);
 
     // b2. payout lock + conversion rate — read the settings singleton once.
     // The lock is enforced server-side so it can't be bypassed by calling the
