@@ -35,7 +35,7 @@ export const upsertPvActivity = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("admin_upsert_pv_activity", {
       p_code: data.code,
       p_label: data.label,
-      p_description: data.description ?? null,
+      p_description: data.description ?? "",
       p_self: data.self,
       p_g1: data.g1,
       p_g2: data.g2,
