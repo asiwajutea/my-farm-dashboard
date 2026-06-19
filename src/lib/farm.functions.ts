@@ -79,7 +79,7 @@ export const transferToFarmingFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => transferInput.parse(d))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { error } = await context.supabase.rpc("transfer_to_farming", {
-      p_amount: data.amount,
+      p_amount_usdt: data.amount,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
