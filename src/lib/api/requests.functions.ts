@@ -258,7 +258,7 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
 
     const availableUsdt =
       Number(wallet?.balance ?? 0) - Number(wallet?.locked ?? 0);
-    if (usdtNum > availableUsdt + 1e-9) {
+    if (amountUsdt > availableUsdt + 1e-9) {
       throw new RequestError("insufficient_balance");
     }
 
