@@ -931,7 +931,19 @@ export type Database = {
         Args: { p_id: string; p_reason?: string }
         Returns: undefined
       }
+      escrow_lock: {
+        Args: { p_amount: number; p_escrow_id: string; p_payer_id: string }
+        Returns: undefined
+      }
+      escrow_refund_to_payer: {
+        Args: { p_amount: number; p_escrow_id: string; p_payer_id: string }
+        Returns: undefined
+      }
       escrow_release: { Args: { p_id: string }; Returns: undefined }
+      escrow_release_to_payee: {
+        Args: { p_amount: number; p_escrow_id: string; p_payee_id: string }
+        Returns: undefined
+      }
       escrow_resolve: {
         Args: { p_id: string; p_release: boolean; p_resolution?: string }
         Returns: undefined
@@ -1014,7 +1026,7 @@ export type Database = {
         Returns: undefined
       }
       p2p_send: {
-        Args: { p_amount: number; p_note?: string; p_receiver_id: string }
+        Args: { p_amount_usdt: number; p_note?: string; p_receiver_id: string }
         Returns: string
       }
       pay_cycle_commissions: {
@@ -1028,7 +1040,10 @@ export type Database = {
         Args: { p_amount: number; p_booster_id: string }
         Returns: string
       }
-      transfer_to_farming: { Args: { p_amount: number }; Returns: undefined }
+      transfer_to_farming: {
+        Args: { p_amount_usdt: number }
+        Returns: undefined
+      }
       wallet_adjust: {
         Args: {
           p_amount: number
