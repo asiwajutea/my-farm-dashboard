@@ -381,6 +381,15 @@ function SendPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PasscodePromptDialog
+        open={askPasscode}
+        onOpenChange={setAskPasscode}
+        title="Confirm transfer"
+        description={recipient ? `Send ${fmt(amt)} USDT to ${recipient.username ?? recipient.display_name}.` : ""}
+        onConfirm={(code) => send.mutate(code)}
+        submitting={send.isPending}
+      />
     </div>
   );
 }
