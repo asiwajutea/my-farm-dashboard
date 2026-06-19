@@ -4,6 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
+import { PasscodeGate } from "@/components/passcode/PasscodeGate";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -38,6 +39,7 @@ function AuthenticatedShell() {
           </main>
         </div>
       </div>
+      <PasscodeGate />
     </SidebarProvider>
   );
 }
