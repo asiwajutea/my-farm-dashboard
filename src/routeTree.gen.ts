@@ -31,10 +31,12 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCouponsRouteImport } from './routes/_authenticated/coupons'
 import { Route as AuthenticatedAffiliateRouteImport } from './routes/_authenticated/affiliate'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet.index'
 import { Route as AuthenticatedEscrowIndexRouteImport } from './routes/_authenticated/escrow.index'
 import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicTestCreditRouteImport } from './routes/api/public/test-credit'
+import { Route as AuthenticatedWalletHistoryRouteImport } from './routes/_authenticated/wallet.history'
 import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticated/escrow.$id'
 import { Route as AuthenticatedAffiliateDownlinesRouteImport } from './routes/_authenticated/affiliate.downlines'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
@@ -158,6 +160,12 @@ const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWalletIndexRoute =
+  AuthenticatedWalletIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedWalletRoute,
+  } as any)
 const AuthenticatedEscrowIndexRoute =
   AuthenticatedEscrowIndexRouteImport.update({
     id: '/',
@@ -180,6 +188,12 @@ const ApiPublicTestCreditRoute = ApiPublicTestCreditRouteImport.update({
   path: '/api/public/test-credit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWalletHistoryRoute =
+  AuthenticatedWalletHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedWalletRoute,
+  } as any)
 const AuthenticatedEscrowIdRoute = AuthenticatedEscrowIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -270,7 +284,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
   '/verify': typeof AuthenticatedVerifyRoute
-  '/wallet': typeof AuthenticatedWalletRoute
+  '/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -284,10 +298,12 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
+  '/wallet/history': typeof AuthenticatedWalletHistoryRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/escrow/': typeof AuthenticatedEscrowIndexRoute
+  '/wallet/': typeof AuthenticatedWalletIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -306,7 +322,6 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
   '/verify': typeof AuthenticatedVerifyRoute
-  '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -320,10 +335,12 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
+  '/wallet/history': typeof AuthenticatedWalletHistoryRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/affiliate': typeof AuthenticatedAffiliateIndexRoute
   '/escrow': typeof AuthenticatedEscrowIndexRoute
+  '/wallet': typeof AuthenticatedWalletIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -347,7 +364,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/send': typeof AuthenticatedSendRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
-  '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/_authenticated/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
   '/_authenticated/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -361,10 +378,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/_authenticated/escrow/$id': typeof AuthenticatedEscrowIdRoute
+  '/_authenticated/wallet/history': typeof AuthenticatedWalletHistoryRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/_authenticated/escrow/': typeof AuthenticatedEscrowIndexRoute
+  '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -402,10 +421,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/affiliate/downlines'
     | '/escrow/$id'
+    | '/wallet/history'
     | '/api/public/test-credit'
     | '/admin/'
     | '/affiliate/'
     | '/escrow/'
+    | '/wallet/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -424,7 +445,6 @@ export interface FileRouteTypes {
     | '/profile'
     | '/send'
     | '/verify'
-    | '/wallet'
     | '/withdraw'
     | '/admin/affiliates'
     | '/admin/audit'
@@ -438,10 +458,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/affiliate/downlines'
     | '/escrow/$id'
+    | '/wallet/history'
     | '/api/public/test-credit'
     | '/admin'
     | '/affiliate'
     | '/escrow'
+    | '/wallet'
   id:
     | '__root__'
     | '/'
@@ -478,10 +500,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/affiliate/downlines'
     | '/_authenticated/escrow/$id'
+    | '/_authenticated/wallet/history'
     | '/api/public/test-credit'
     | '/_authenticated/admin/'
     | '/_authenticated/affiliate/'
     | '/_authenticated/escrow/'
+    | '/_authenticated/wallet/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -652,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/wallet/': {
+      id: '/_authenticated/wallet/'
+      path: '/'
+      fullPath: '/wallet/'
+      preLoaderRoute: typeof AuthenticatedWalletIndexRouteImport
+      parentRoute: typeof AuthenticatedWalletRoute
+    }
     '/_authenticated/escrow/': {
       id: '/_authenticated/escrow/'
       path: '/'
@@ -679,6 +710,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/test-credit'
       preLoaderRoute: typeof ApiPublicTestCreditRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/wallet/history': {
+      id: '/_authenticated/wallet/history'
+      path: '/history'
+      fullPath: '/wallet/history'
+      preLoaderRoute: typeof AuthenticatedWalletHistoryRouteImport
+      parentRoute: typeof AuthenticatedWalletRoute
     }
     '/_authenticated/escrow/$id': {
       id: '/_authenticated/escrow/$id'
@@ -830,6 +868,19 @@ const AuthenticatedEscrowRouteChildren: AuthenticatedEscrowRouteChildren = {
 const AuthenticatedEscrowRouteWithChildren =
   AuthenticatedEscrowRoute._addFileChildren(AuthenticatedEscrowRouteChildren)
 
+interface AuthenticatedWalletRouteChildren {
+  AuthenticatedWalletHistoryRoute: typeof AuthenticatedWalletHistoryRoute
+  AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
+}
+
+const AuthenticatedWalletRouteChildren: AuthenticatedWalletRouteChildren = {
+  AuthenticatedWalletHistoryRoute: AuthenticatedWalletHistoryRoute,
+  AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
+}
+
+const AuthenticatedWalletRouteWithChildren =
+  AuthenticatedWalletRoute._addFileChildren(AuthenticatedWalletRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRouteWithChildren
@@ -843,7 +894,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSendRoute: typeof AuthenticatedSendRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
-  AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
+  AuthenticatedWalletRoute: typeof AuthenticatedWalletRouteWithChildren
   AuthenticatedWithdrawRoute: typeof AuthenticatedWithdrawRoute
 }
 
@@ -860,7 +911,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSendRoute: AuthenticatedSendRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
-  AuthenticatedWalletRoute: AuthenticatedWalletRoute,
+  AuthenticatedWalletRoute: AuthenticatedWalletRouteWithChildren,
   AuthenticatedWithdrawRoute: AuthenticatedWithdrawRoute,
 }
 
