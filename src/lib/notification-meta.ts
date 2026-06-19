@@ -16,6 +16,7 @@ import {
   Ticket,
   FileCheck,
   ArrowRightLeft,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -59,6 +60,8 @@ const META: Record<NotificationKind, Meta> = {
   coupon_redeemed: { icon: Ticket, tone: "text-primary bg-primary/15", to: "/coupons" },
   welcome: { icon: PartyPopper, tone: "text-primary bg-primary/15", to: "/dashboard" },
   email_verified: { icon: MailCheck, tone: "text-emerald-400 bg-emerald-400/15", to: "/profile" },
+  pv_earned: { icon: Star, tone: "text-amber-400 bg-amber-400/15", to: "/history" },
+  transfer_to_primary: { icon: ArrowRightLeft, tone: "text-primary bg-primary/15", to: "/wallet" },
   system: { icon: Bell, tone: "text-muted-foreground bg-muted" },
 };
 

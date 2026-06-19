@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PasscodePromptDialog } from "@/components/passcode/PasscodePromptDialog";
 
 export const Route = createFileRoute("/_authenticated/send")({
   head: () => ({ meta: [{ title: "Send · VFarmers" }] }),
@@ -64,6 +65,7 @@ function SendPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Handle that failed to resolve, for the inline "no farmer found" notice.
   const [notFound, setNotFound] = useState<string | null>(null);
+  const [askPasscode, setAskPasscode] = useState(false);
 
   const { data: feeData } = useQuery({ queryKey: ["p2p-fee"], queryFn: () => feeFn() });
   const feePct = feeData?.feePct ?? 0;
@@ -132,14 +134,22 @@ function SendPage() {
   };
 
   const send = useMutation({
-    mutationFn: () =>
-      sendFn({ data: { receiverId: recipient!.id, amount: amt, note: note || undefined } }),
+    mutationFn: (passcode: string) =>
+      sendFn({
+        data: {
+          receiverId: recipient!.id,
+          amount: amt,
+          note: note || undefined,
+          passcode,
+        },
+      }),
     onSuccess: () => {
       toast.success(`Sent ${fmt(amt)} USDT to ${recipient?.username ?? recipient?.display_name}.`);
       setAmount("");
       setNote("");
       setRecipient(null);
       setHandle("");
+      setAskPasscode(false);
       qc.invalidateQueries({ queryKey: ["my-transfers"] });
       loadBalance();
     },
@@ -151,7 +161,7 @@ function SendPage() {
     if (!recipient) return toast.error("Look up a recipient first.");
     if (amt <= 0) return toast.error("Enter a valid amount.");
     if (total > balance) return toast.error("Insufficient balance.");
-    send.mutate();
+    setAskPasscode(true);
   };
 
   const recipientName = (r: RecipientPreview) =>
@@ -371,6 +381,15 @@ function SendPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PasscodePromptDialog
+        open={askPasscode}
+        onOpenChange={setAskPasscode}
+        title="Confirm transfer"
+        description={recipient ? `Send ${fmt(amt)} USDT to ${recipient.username ?? recipient.display_name}.` : ""}
+        onConfirm={(code) => send.mutate(code)}
+        submitting={send.isPending}
+      />
     </div>
   );
 }

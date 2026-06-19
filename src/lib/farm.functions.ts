@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { verifyPasscodeFor } from "@/lib/passcode.functions";
 
 export type Booster = Database["public"]["Tables"]["boosters"]["Row"];
 export type Cycle = Database["public"]["Tables"]["cycles"]["Row"];
@@ -80,6 +81,23 @@ export const transferToFarmingFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { error } = await context.supabase.rpc("transfer_to_farming", {
       p_amount_usdt: data.amount,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const farmingOutInput = z.object({
+  amount: z.number().positive().max(1_000_000_000),
+  passcode: z.string().regex(/^\d{6}$/),
+});
+
+export const transferToPrimaryFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => farmingOutInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    await verifyPasscodeFor(context.userId, data.passcode);
+    const { error } = await context.supabase.rpc("farming_to_primary", {
+      p_amount_seed: data.amount,
     });
     if (error) throw new Error(error.message);
     return { ok: true };

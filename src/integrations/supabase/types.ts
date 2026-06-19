@@ -699,6 +699,89 @@ export type Database = {
           },
         ]
       }
+      pv_activities: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          g1_points: number
+          g2_points: number
+          g3_points: number
+          label: string
+          self_points: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          g1_points?: number
+          g2_points?: number
+          g3_points?: number
+          label: string
+          self_points?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          g1_points?: number
+          g2_points?: number
+          g3_points?: number
+          label?: string
+          self_points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pv_ledger: {
+        Row: {
+          activity_code: string
+          created_at: string
+          generation: number
+          id: string
+          points: number
+          ref_id: string | null
+          ref_table: string | null
+          source_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_code: string
+          created_at?: string
+          generation?: number
+          id?: string
+          points: number
+          ref_id?: string | null
+          ref_table?: string | null
+          source_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_code?: string
+          created_at?: string
+          generation?: number
+          id?: string
+          points?: number
+          ref_id?: string | null
+          ref_table?: string | null
+          source_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_ledger_activity_code_fkey"
+            columns: ["activity_code"]
+            isOneToOne: false
+            referencedRelation: "pv_activities"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       rate_history: {
         Row: {
           id: string
@@ -714,6 +797,30 @@ export type Database = {
           id?: string
           recorded_at?: string
           seed_to_usdt?: number
+        }
+        Relationships: []
+      }
+      user_passcodes: {
+        Row: {
+          failed_attempts: number
+          locked_until: string | null
+          passcode_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          failed_attempts?: number
+          locked_until?: string | null
+          passcode_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          failed_attempts?: number
+          locked_until?: string | null
+          passcode_hash?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -916,6 +1023,28 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_upsert_pv_activity: {
+        Args: {
+          p_active: boolean
+          p_code: string
+          p_description: string
+          p_g1: number
+          p_g2: number
+          p_g3: number
+          p_label: string
+          p_self: number
+        }
+        Returns: undefined
+      }
+      award_pv: {
+        Args: {
+          p_activity: string
+          p_ref_id?: string
+          p_ref_table?: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       escrow_accept: { Args: { p_id: string }; Returns: undefined }
       escrow_cancel: { Args: { p_id: string }; Returns: undefined }
       escrow_create: {
@@ -946,6 +1075,10 @@ export type Database = {
       }
       escrow_resolve: {
         Args: { p_id: string; p_release: boolean; p_resolution?: string }
+        Returns: undefined
+      }
+      farming_to_primary: {
+        Args: { p_amount_seed: number }
         Returns: undefined
       }
       find_profile_by_handle: {
@@ -985,6 +1118,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_passcode: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1107,6 +1241,7 @@ export type Database = {
         | "test_credit"
         | "affiliate_commission"
         | "maintenance_fee"
+        | "farming_to_primary"
       maintenance_status: "due" | "paid" | "waived" | "overdue"
       notification_kind:
         | "cycle_matured"
@@ -1137,6 +1272,8 @@ export type Database = {
         | "kyc_submitted"
         | "maintenance_paid"
         | "transfer_to_farming"
+        | "pv_earned"
+        | "transfer_to_primary"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -1305,6 +1442,7 @@ export const Constants = {
         "test_credit",
         "affiliate_commission",
         "maintenance_fee",
+        "farming_to_primary",
       ],
       maintenance_status: ["due", "paid", "waived", "overdue"],
       notification_kind: [
@@ -1336,6 +1474,8 @@ export const Constants = {
         "kyc_submitted",
         "maintenance_paid",
         "transfer_to_farming",
+        "pv_earned",
+        "transfer_to_primary",
       ],
       request_status: ["pending", "approved", "rejected"],
       transfer_status: ["completed", "failed"],

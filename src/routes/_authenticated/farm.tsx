@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransferToFarmingDialog } from "@/components/wallet/TransferToFarmingDialog";
+import { TransferToPrimaryDialog } from "@/components/wallet/TransferToPrimaryDialog";
 import {
   Dialog,
   DialogContent,
@@ -158,6 +159,19 @@ function FarmPage() {
                   trigger={
                     <Button size="sm" variant="outline" type="button">
                       Fund Wallet
+                    </Button>
+                  }
+                />
+                <TransferToPrimaryDialog
+                  farmingAvailableSeed={balance}
+                  rate={rate}
+                  onDone={() => {
+                    qc.invalidateQueries({ queryKey: ["farming-balance"] });
+                    qc.invalidateQueries({ queryKey: ["primary-balance"] });
+                  }}
+                  trigger={
+                    <Button size="sm" variant="outline" type="button">
+                      Withdraw
                     </Button>
                   }
                 />

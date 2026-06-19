@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifyPasscodeFor } from "@/lib/passcode.functions";
 
 export type RecipientPreview = {
   id: string;
@@ -69,15 +70,17 @@ const sendInput = z.object({
   receiverId: z.string().uuid(),
   amount: z.number().positive().max(1_000_000_000),
   note: z.string().max(200).optional(),
+  passcode: z.string().regex(/^\d{6}$/),
 });
 
 export const sendP2P = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => sendInput.parse(d))
   .handler(async ({ data, context }): Promise<{ id: string }> => {
+    await verifyPasscodeFor(context.userId, data.passcode);
     const { data: id, error } = await context.supabase.rpc("p2p_send", {
       p_receiver_id: data.receiverId,
-      p_amount: data.amount,
+      p_amount_usdt: data.amount,
       p_note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);

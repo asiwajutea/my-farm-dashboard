@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PasscodePromptDialog } from "@/components/passcode/PasscodePromptDialog";
 
 const METHOD_LABEL: Record<string, string> = {
   bank_transfer: "Bank Transfer",
@@ -89,6 +90,7 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
   const [usdt, setUsdt] = useState("");
   const [method, setMethod] = useState<DepositMethod | WithdrawalMethod | "">("");
   const [file, setFile] = useState<File | null>(null);
+  const [askPasscode, setAskPasscode] = useState(false);
 
   const usdtNum = Number(usdt) || 0;
   // Seed equivalent shown as a hint only — not submitted
@@ -127,11 +129,20 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
     if (file && file.size > PROOF_MAX_BYTES) {
       toast.error(ERROR_MESSAGE.invalid_proof); return;
     }
+    if (!isDeposit) {
+      setAskPasscode(true);
+      return;
+    }
+    submit();
+  };
+
+  const submit = (passcode?: string) => {
     const fd = new FormData();
     // Submit the Seed equivalent — the API and DB are Seed-denominated for requests
     fd.set("amount", usdtToSeedString(usdtNum, rate));
     fd.set("method", method);
     if (file) fd.set("proof", file);
+    if (passcode) fd.set("passcode", passcode);
     mutation.mutate(fd);
   };
 
@@ -208,6 +219,20 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
           `Submit ${isDeposit ? "deposit" : "withdrawal"} request`
         )}
       </Button>
+
+      {!isDeposit && (
+        <PasscodePromptDialog
+          open={askPasscode}
+          onOpenChange={setAskPasscode}
+          title="Confirm withdrawal"
+          description={`Withdraw ${usdtNum.toFixed(2)} USDT.`}
+          onConfirm={(code) => {
+            setAskPasscode(false);
+            submit(code);
+          }}
+          submitting={mutation.isPending}
+        />
+      )}
     </form>
   );
 }

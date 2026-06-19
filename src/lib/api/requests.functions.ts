@@ -26,6 +26,7 @@ import {
   DEFAULT_PAYOUT_TIMEZONE,
   getPayoutLockState,
 } from "@/lib/payout";
+import { verifyPasscodeFor } from "@/lib/passcode.functions";
 
 // ---------------------------------------------------------------------------
 // Typed error — the message carries the discriminated code so it survives
@@ -215,6 +216,11 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
     const method = data.get("method");
     if (!isWithdrawalMethod(method)) throw new RequestError("invalid_method");
 
+    // b0. passcode is required for every withdrawal
+    const passcode = String(data.get("passcode") ?? "");
+    if (!/^\d{6}$/.test(passcode)) throw new Error("Transaction passcode required");
+    await verifyPasscodeFor(userId, passcode);
+
     // b2. payout lock + conversion rate — read the settings singleton once.
     // The lock is enforced server-side so it can't be bypassed by calling the
     // API directly while the UI is gated.
@@ -258,7 +264,7 @@ export const submitWithdrawalRequest = createServerFn({ method: "POST" })
 
     const availableUsdt =
       Number(wallet?.balance ?? 0) - Number(wallet?.locked ?? 0);
-    if (usdtNum > availableUsdt + 1e-9) {
+    if (amountUsdt > availableUsdt + 1e-9) {
       throw new RequestError("insufficient_balance");
     }
 

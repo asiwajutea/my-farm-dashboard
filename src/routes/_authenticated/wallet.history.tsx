@@ -46,7 +46,7 @@ function WalletHistoryPage() {
       .order("created_at", { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
-    if (kinds) q = q.in("kind", kinds);
+    if (kinds) q = q.in("kind", kinds as never);
 
     const { data } = await q;
     const rows = (data ?? []).map((e) => ({
