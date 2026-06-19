@@ -90,9 +90,15 @@ function Dashboard() {
     <div className="mx-auto max-w-5xl px-5 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
-            <Sprout className="h-3.5 w-3.5" />
-            Farmer dashboard
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+              <Sprout className="h-3.5 w-3.5" />
+              Farmer dashboard
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-400">
+              <Star className="h-3.5 w-3.5" />
+              {pvQ.isLoading ? "…" : `${pvTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} PV`}
+            </div>
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
             Welcome back, <span className="text-gradient-primary">{name}</span>
@@ -101,24 +107,13 @@ function Dashboard() {
             Your wallets and farming cycles, all in one place.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* PV badge */}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm font-semibold text-amber-400">
-            <Star className="h-3.5 w-3.5 fill-amber-400" />
-            {pvQ.isLoading ? (
-              <span className="text-xs font-normal text-amber-400/60">…</span>
-            ) : (
-              <span>{pvTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} PV</span>
-            )}
-          </div>
-          <Link
-            to="/farm"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-          >
-            <Plus className="h-4 w-4" />
-            Start a cycle
-          </Link>
-        </div>
+        <Link
+          to="/farm"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
+        >
+          <Plus className="h-4 w-4" />
+          Start a cycle
+        </Link>
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
