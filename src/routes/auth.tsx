@@ -76,7 +76,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `https://vfarmers.app/dashboard`,
             data: {
               full_name: trimmedFull,
               display_name: firstName,
@@ -132,7 +132,7 @@ function AuthPage() {
     setError(null);
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+      redirect_uri: "https://vfarmers.app/dashboard",
     });
     if (result.error) {
       setError(result.error instanceof Error ? result.error.message : "Google sign-in failed");

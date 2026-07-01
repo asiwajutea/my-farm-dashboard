@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { Mail, RefreshCw, Sprout, CheckCircle2, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { sendWelcomeEmailFn } from "@/lib/email/email.functions";
 
 const searchSchema = z.object({ email: z.string().optional() });
 
@@ -29,15 +31,19 @@ function VerifyEmailPage() {
   const [resendError, setResendError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const welcomeSent = useRef(false);
+  const sendWelcomeFn = useServerFn(sendWelcomeEmailFn);
 
-  // If already confirmed, go straight to dashboard
+  // If already confirmed, send welcome email once then go to dashboard
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email_confirmed_at) {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user?.email_confirmed_at && !welcomeSent.current) {
+        welcomeSent.current = true;
+        try { await sendWelcomeFn(); } catch { /* non-fatal */ }
         navigate({ to: "/dashboard" });
       }
     });
-  }, [navigate]);
+  }, [navigate, sendWelcomeFn]);
 
   // Countdown timer for the resend cooldown
   useEffect(() => {
@@ -56,7 +62,7 @@ function VerifyEmailPage() {
         type: "signup",
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `https://vfarmers.app/dashboard`,
         },
       });
       if (error) throw error;

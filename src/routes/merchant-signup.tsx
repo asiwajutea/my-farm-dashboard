@@ -6,6 +6,7 @@ import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { registerMerchant } from "@/lib/merchant.functions";
+import { sendMerchantWelcomeEmailFn } from "@/lib/email/email.functions";
 
 const searchSchema = z.object({}).optional();
 
@@ -20,6 +21,7 @@ type Step = "account" | "business";
 function MerchantSignupPage() {
   const navigate = useNavigate();
   const registerFn = useServerFn(registerMerchant);
+  const merchantWelcomeFn = useServerFn(sendMerchantWelcomeEmailFn);
 
   const [step, setStep] = useState<Step>("account");
   const [email, setEmail] = useState("");
@@ -49,7 +51,7 @@ function MerchantSignupPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/merchant/dashboard`,
+          emailRedirectTo: `https://vfarmers.app/merchant/dashboard`,
           data: { display_name: contactName, full_name: contactName },
         },
       });
@@ -60,6 +62,7 @@ function MerchantSignupPage() {
       // Wait for session if user is immediately confirmed
       if (data.session) {
         await registerFn({ data: { businessName, contactName, phone: phone || undefined, city: city || undefined, country: country || undefined } });
+        try { await merchantWelcomeFn(); } catch { /* non-fatal */ }
         navigate({ to: "/merchant/dashboard" });
       } else {
         // Email confirmation required — redirect to verify page
