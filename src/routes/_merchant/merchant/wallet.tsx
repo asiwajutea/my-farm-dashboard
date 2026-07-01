@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/_merchant/wallet")({
+export const Route = createFileRoute("/_merchant/merchant/wallet")({
   head: () => ({ meta: [{ title: "Merchant Wallet · VFarmers" }] }),
   component: MerchantWalletPage,
 });

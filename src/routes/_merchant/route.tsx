@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_merchant")({
       .eq("user_id", data.user.id)
       .eq("role", "merchant")
       .maybeSingle();
-    if (!role) throw redirect({ to: "/merchant/signup" });
+    if (!role) throw redirect({ to: "/merchant-signup" });
     return { user: data.user };
   },
   component: MerchantShell,

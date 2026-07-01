@@ -5,7 +5,7 @@ import { ArrowRightLeft, Coins, Ticket, TrendingUp, Wallet } from "lucide-react"
 import { getMerchantWallet, getMerchantLedger, getMyMerchantProfile } from "@/lib/merchant.functions";
 import { useSeedRate } from "@/components/wallet/RequestForm";
 
-export const Route = createFileRoute("/_merchant/dashboard")({
+export const Route = createFileRoute("/_merchant/merchant/dashboard")({
   head: () => ({ meta: [{ title: "Merchant Dashboard · VFarmers" }] }),
   component: MerchantDashboard,
 });

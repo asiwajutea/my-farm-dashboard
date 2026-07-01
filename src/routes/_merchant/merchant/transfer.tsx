@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/_merchant/transfer")({
+export const Route = createFileRoute("/_merchant/merchant/transfer")({
   head: () => ({ meta: [{ title: "Fund Farmer · VFarmers" }] }),
   component: MerchantTransferPage,
 });
@@ -39,11 +40,11 @@ function MerchantTransferPage() {
 
   const lookupMut = useMutation({
     mutationFn: (h: string) => lookupFn({ data: { handle: h } }),
-    onSuccess: (r, h) => {
+    onSuccess: (r: Farmer | null, h: string) => {
       if (!r) { setFarmer(null); setNotFound(h); toast.error(`No farmer found for "${h}".`); return; }
       setNotFound(null); setFarmer(r);
     },
-    onError: (_e, h) => { setFarmer(null); setNotFound(h); },
+    onError: (_e: Error, h: string) => { setFarmer(null); setNotFound(h); },
   });
 
   const transferMut = useMutation({
@@ -116,7 +117,7 @@ function MerchantTransferPage() {
               inputMode="decimal"
               placeholder="0.00"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             <span className="ml-2 text-xs text-muted-foreground">USDT</span>

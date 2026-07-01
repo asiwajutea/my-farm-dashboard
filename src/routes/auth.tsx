@@ -120,8 +120,7 @@ function AuthPage() {
           navigate({ to: "/merchant/dashboard" });
         } else {
           navigate({ to: "/dashboard" });
-        }
-      }
+        }      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
