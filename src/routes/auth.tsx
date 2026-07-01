@@ -105,7 +105,22 @@ function AuthPage() {
           navigate({ to: "/verify-email", search: { email } });
           return;
         }
-        navigate({ to: "/dashboard" });
+        // Check if user has merchant role — show picker if both farmer and merchant
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .in("role", ["farmer", "merchant"]);
+        const roleList = (roles ?? []).map((r) => r.role);
+        const hasMerchant = roleList.includes("merchant");
+        const hasFarmer = roleList.includes("farmer");
+        if (hasMerchant && hasFarmer) {
+          navigate({ to: "/select-dashboard" });
+        } else if (hasMerchant) {
+          navigate({ to: "/merchant/dashboard" });
+        } else {
+          navigate({ to: "/dashboard" });
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -243,22 +258,18 @@ function AuthPage() {
             {mode === "signin" ? (
               <>
                 New here?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signup")}
-                  className="text-primary hover:underline"
-                >
+                <button type="button" onClick={() => setMode("signup")} className="text-primary hover:underline">
                   Create a Farmer account
                 </button>
+                {" · "}
+                <Link to="/merchant-signup" className="text-amber-400 hover:underline">
+                  Become a Merchant
+                </Link>
               </>
             ) : (
               <>
                 Already a Farmer?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signin")}
-                  className="text-primary hover:underline"
-                >
+                <button type="button" onClick={() => setMode("signin")} className="text-primary hover:underline">
                   Sign in
                 </button>
               </>

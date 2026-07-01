@@ -44,9 +44,7 @@ function MerchantLanding() {
             <a href="#perfect-for" className="transition-colors hover:text-foreground">Who it's for</a>
           </nav>
           <a
-            href="https://merchant.vfarmers.app"
-            target="_blank"
-            rel="noreferrer"
+            href="/merchant-signup"
             className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
           >
             Become a Merchant
@@ -92,9 +90,7 @@ function MerchantLanding() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
-                  href="https://merchant.vfarmers.app"
-                  target="_blank"
-                  rel="noreferrer"
+                  href="/merchant-signup"
                   className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
                 >
                   Become a Merchant Today
@@ -357,14 +353,12 @@ function MerchantLanding() {
             </p>
 
             <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm text-white/80">
-              🌐 <span className="font-mono font-semibold text-white">merchant.vfarmers.app</span>
+              🌐 <span className="font-mono font-semibold text-white">vfarmers.app/merchant</span>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
-                href="https://merchant.vfarmers.app"
-                target="_blank"
-                rel="noreferrer"
+                href="/merchant-signup"
                 className="group inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 font-bold text-primary shadow-elegant transition-transform hover:scale-[1.02]"
               >
                 Apply Now — It's Free
