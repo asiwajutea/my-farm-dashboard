@@ -13,6 +13,7 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as MerchantRouteImport } from './routes/merchant'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmlRouteImport } from './routes/aml'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -69,6 +70,11 @@ const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantRoute = MerchantRouteImport.update({
+  id: '/merchant',
+  path: '/merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/merchant': typeof MerchantRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/merchant': typeof MerchantRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
+  '/merchant': typeof MerchantRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
   '/terms': typeof TermsRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aml'
     | '/auth'
+    | '/merchant'
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aml'
     | '/auth'
+    | '/merchant'
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
@@ -481,6 +492,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/aml'
     | '/auth'
+    | '/merchant'
     | '/privacy'
     | '/risk-disclosure'
     | '/terms'
@@ -525,6 +537,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AmlRoute: typeof AmlRoute
   AuthRoute: typeof AuthRoute
+  MerchantRoute: typeof MerchantRoute
   PrivacyRoute: typeof PrivacyRoute
   RiskDisclosureRoute: typeof RiskDisclosureRoute
   TermsRoute: typeof TermsRoute
@@ -560,6 +573,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merchant': {
+      id: '/merchant'
+      path: '/merchant'
+      fullPath: '/merchant'
+      preLoaderRoute: typeof MerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -944,6 +964,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AmlRoute: AmlRoute,
   AuthRoute: AuthRoute,
+  MerchantRoute: MerchantRoute,
   PrivacyRoute: PrivacyRoute,
   RiskDisclosureRoute: RiskDisclosureRoute,
   TermsRoute: TermsRoute,
