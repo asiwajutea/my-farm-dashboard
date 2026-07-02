@@ -19,6 +19,8 @@ const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") as string).replace(
   "",
 );
 const FROM = Deno.env.get("EMAIL_FROM") ?? "VFarmers <no-reply@vfarmers.app>";
+const SUPABASE_URL = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 type EmailActionType =
   | "signup"
@@ -142,7 +144,17 @@ Deno.serve(async (req) => {
     email_data: { token, token_hash, redirect_to, email_action_type, site_url },
   } = data;
 
-  const actionUrl = `${site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`;
+  // Always build the verify URL from the project's Supabase URL (not site_url,
+  // which can be misconfigured and produce doubled /auth/v1 paths). Include
+  // the anon apikey so Supabase's verify endpoint accepts the request.
+  const base = SUPABASE_URL || (site_url ?? "").replace(/\/+$/, "");
+  const params = new URLSearchParams({
+    token: token_hash,
+    type: email_action_type,
+    redirect_to,
+  });
+  if (SUPABASE_ANON_KEY) params.set("apikey", SUPABASE_ANON_KEY);
+  const actionUrl = `${base}/auth/v1/verify?${params.toString()}`;
 
   const html = renderHtml({
     heading: headingFor(email_action_type),
