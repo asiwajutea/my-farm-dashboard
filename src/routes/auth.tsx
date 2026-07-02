@@ -180,6 +180,14 @@ function AuthPage() {
               visible={showPassword}
             />
 
+            {mode === "signin" && (
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {error}

@@ -14,6 +14,10 @@ export const Route = createFileRoute("/_authenticated")({
     // hand off to the dedicated callback page which waits for the SDK to
     // exchange the tokens before checking the session.
     if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+      const hash = window.location.hash;
+      if (hash.includes("type=recovery")) {
+        throw redirect({ to: "/auth/reset-password" });
+      }
       throw redirect({ to: "/auth/callback" });
     }
 
