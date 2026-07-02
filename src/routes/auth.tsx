@@ -76,7 +76,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `https://vfarmers.app/dashboard`,
+            emailRedirectTo: `https://vfarmers.app/auth/callback`,
             data: {
               full_name: trimmedFull,
               display_name: firstName,

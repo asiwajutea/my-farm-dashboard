@@ -62,7 +62,7 @@ function VerifyEmailPage() {
         type: "signup",
         email,
         options: {
-          emailRedirectTo: `https://vfarmers.app/dashboard`,
+          emailRedirectTo: `https://vfarmers.app/auth/callback`,
         },
       });
       if (error) throw error;
