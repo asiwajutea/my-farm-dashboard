@@ -155,6 +155,7 @@ function AuthPage() {
                 : "Plant your first Seed in seconds."}
             </p>
           </div>
+          <br></br>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === "signup" && (
