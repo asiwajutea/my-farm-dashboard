@@ -26,6 +26,10 @@ function AuthCallbackPage() {
   const welcomeSent = useRef(false);
 
   useEffect(() => {
+    // Capture the hash BEFORE subscribing — the Supabase SDK clears it when
+    // it exchanges the tokens, so it may already be gone inside the callback.
+    const isSignup = typeof window !== "undefined" && window.location.hash.includes("type=signup");
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (settled.current) return;
@@ -35,15 +39,11 @@ function AuthCallbackPage() {
           subscription.unsubscribe();
 
           // Send welcome email once for brand-new sign-ups.
-          // The hash is still present at this point (router hasn't navigated yet).
-          // We explicitly set the session so attachSupabaseAuth can read it via
-          // getSession() when attaching the Bearer header to the server fn call.
-          const isSignup = typeof window !== "undefined" && window.location.hash.includes("type=signup");
-
+          // Persist the fresh tokens to localStorage first so attachSupabaseAuth
+          // can read them via getSession() when attaching the Bearer header.
           if (isSignup && !welcomeSent.current) {
             welcomeSent.current = true;
             try {
-              // Persist the fresh tokens to localStorage before calling the server fn
               await supabase.auth.setSession({
                 access_token: session.access_token,
                 refresh_token: session.refresh_token,
