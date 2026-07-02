@@ -11,11 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SelectDashboardRouteImport } from './routes/select-dashboard'
 import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as MerchantSignupRouteImport } from './routes/merchant-signup'
 import { Route as MerchantRouteImport } from './routes/merchant'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmlRouteImport } from './routes/aml'
+import { Route as MerchantRouteRouteImport } from './routes/_merchant/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
@@ -37,6 +40,11 @@ import { Route as AuthenticatedEscrowIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicTestCreditRouteImport } from './routes/api/public/test-credit'
+import { Route as ApiEmailSendConfirmRouteImport } from './routes/api/email/send-confirm'
+import { Route as MerchantMerchantWalletRouteImport } from './routes/_merchant/merchant/wallet'
+import { Route as MerchantMerchantTransferRouteImport } from './routes/_merchant/merchant/transfer'
+import { Route as MerchantMerchantProfileRouteImport } from './routes/_merchant/merchant/profile'
+import { Route as MerchantMerchantDashboardRouteImport } from './routes/_merchant/merchant/dashboard'
 import { Route as AuthenticatedWalletHistoryRouteImport } from './routes/_authenticated/wallet.history'
 import { Route as AuthenticatedEscrowIdRouteImport } from './routes/_authenticated/escrow.$id'
 import { Route as AuthenticatedAffiliateDownlinesRouteImport } from './routes/_authenticated/affiliate.downlines'
@@ -62,6 +70,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SelectDashboardRoute = SelectDashboardRouteImport.update({
+  id: '/select-dashboard',
+  path: '/select-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
   id: '/risk-disclosure',
   path: '/risk-disclosure',
@@ -70,6 +83,11 @@ const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantSignupRoute = MerchantSignupRouteImport.update({
+  id: '/merchant-signup',
+  path: '/merchant-signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MerchantRoute = MerchantRouteImport.update({
@@ -85,6 +103,10 @@ const AuthRoute = AuthRouteImport.update({
 const AmlRoute = AmlRouteImport.update({
   id: '/aml',
   path: '/aml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantRouteRoute = MerchantRouteRouteImport.update({
+  id: '/_merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -195,6 +217,33 @@ const ApiPublicTestCreditRoute = ApiPublicTestCreditRouteImport.update({
   path: '/api/public/test-credit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEmailSendConfirmRoute = ApiEmailSendConfirmRouteImport.update({
+  id: '/api/email/send-confirm',
+  path: '/api/email/send-confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantMerchantWalletRoute = MerchantMerchantWalletRouteImport.update({
+  id: '/merchant/wallet',
+  path: '/merchant/wallet',
+  getParentRoute: () => MerchantRouteRoute,
+} as any)
+const MerchantMerchantTransferRoute =
+  MerchantMerchantTransferRouteImport.update({
+    id: '/merchant/transfer',
+    path: '/merchant/transfer',
+    getParentRoute: () => MerchantRouteRoute,
+  } as any)
+const MerchantMerchantProfileRoute = MerchantMerchantProfileRouteImport.update({
+  id: '/merchant/profile',
+  path: '/merchant/profile',
+  getParentRoute: () => MerchantRouteRoute,
+} as any)
+const MerchantMerchantDashboardRoute =
+  MerchantMerchantDashboardRouteImport.update({
+    id: '/merchant/dashboard',
+    path: '/merchant/dashboard',
+    getParentRoute: () => MerchantRouteRoute,
+  } as any)
 const AuthenticatedWalletHistoryRoute =
   AuthenticatedWalletHistoryRouteImport.update({
     id: '/history',
@@ -281,8 +330,10 @@ export interface FileRoutesByFullPath {
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/merchant': typeof MerchantRoute
+  '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
+  '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -313,6 +364,11 @@ export interface FileRoutesByFullPath {
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/wallet/history': typeof AuthenticatedWalletHistoryRoute
+  '/merchant/dashboard': typeof MerchantMerchantDashboardRoute
+  '/merchant/profile': typeof MerchantMerchantProfileRoute
+  '/merchant/transfer': typeof MerchantMerchantTransferRoute
+  '/merchant/wallet': typeof MerchantMerchantWalletRoute
+  '/api/email/send-confirm': typeof ApiEmailSendConfirmRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
@@ -324,8 +380,10 @@ export interface FileRoutesByTo {
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/merchant': typeof MerchantRoute
+  '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
+  '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/coupons': typeof AuthenticatedCouponsRoute
@@ -352,6 +410,11 @@ export interface FileRoutesByTo {
   '/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/wallet/history': typeof AuthenticatedWalletHistoryRoute
+  '/merchant/dashboard': typeof MerchantMerchantDashboardRoute
+  '/merchant/profile': typeof MerchantMerchantProfileRoute
+  '/merchant/transfer': typeof MerchantMerchantTransferRoute
+  '/merchant/wallet': typeof MerchantMerchantWalletRoute
+  '/api/email/send-confirm': typeof ApiEmailSendConfirmRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/affiliate': typeof AuthenticatedAffiliateIndexRoute
@@ -362,11 +425,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_merchant': typeof MerchantRouteRouteWithChildren
   '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/merchant': typeof MerchantRoute
+  '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
   '/risk-disclosure': typeof RiskDisclosureRoute
+  '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -397,6 +463,11 @@ export interface FileRoutesById {
   '/_authenticated/affiliate/downlines': typeof AuthenticatedAffiliateDownlinesRoute
   '/_authenticated/escrow/$id': typeof AuthenticatedEscrowIdRoute
   '/_authenticated/wallet/history': typeof AuthenticatedWalletHistoryRoute
+  '/_merchant/merchant/dashboard': typeof MerchantMerchantDashboardRoute
+  '/_merchant/merchant/profile': typeof MerchantMerchantProfileRoute
+  '/_merchant/merchant/transfer': typeof MerchantMerchantTransferRoute
+  '/_merchant/merchant/wallet': typeof MerchantMerchantWalletRoute
+  '/api/email/send-confirm': typeof ApiEmailSendConfirmRoute
   '/api/public/test-credit': typeof ApiPublicTestCreditRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
@@ -410,8 +481,10 @@ export interface FileRouteTypes {
     | '/aml'
     | '/auth'
     | '/merchant'
+    | '/merchant-signup'
     | '/privacy'
     | '/risk-disclosure'
+    | '/select-dashboard'
     | '/terms'
     | '/verify-email'
     | '/admin'
@@ -442,6 +515,11 @@ export interface FileRouteTypes {
     | '/affiliate/downlines'
     | '/escrow/$id'
     | '/wallet/history'
+    | '/merchant/dashboard'
+    | '/merchant/profile'
+    | '/merchant/transfer'
+    | '/merchant/wallet'
+    | '/api/email/send-confirm'
     | '/api/public/test-credit'
     | '/admin/'
     | '/affiliate/'
@@ -453,8 +531,10 @@ export interface FileRouteTypes {
     | '/aml'
     | '/auth'
     | '/merchant'
+    | '/merchant-signup'
     | '/privacy'
     | '/risk-disclosure'
+    | '/select-dashboard'
     | '/terms'
     | '/verify-email'
     | '/coupons'
@@ -481,6 +561,11 @@ export interface FileRouteTypes {
     | '/affiliate/downlines'
     | '/escrow/$id'
     | '/wallet/history'
+    | '/merchant/dashboard'
+    | '/merchant/profile'
+    | '/merchant/transfer'
+    | '/merchant/wallet'
+    | '/api/email/send-confirm'
     | '/api/public/test-credit'
     | '/admin'
     | '/affiliate'
@@ -490,11 +575,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_merchant'
     | '/aml'
     | '/auth'
     | '/merchant'
+    | '/merchant-signup'
     | '/privacy'
     | '/risk-disclosure'
+    | '/select-dashboard'
     | '/terms'
     | '/verify-email'
     | '/_authenticated/admin'
@@ -525,6 +613,11 @@ export interface FileRouteTypes {
     | '/_authenticated/affiliate/downlines'
     | '/_authenticated/escrow/$id'
     | '/_authenticated/wallet/history'
+    | '/_merchant/merchant/dashboard'
+    | '/_merchant/merchant/profile'
+    | '/_merchant/merchant/transfer'
+    | '/_merchant/merchant/wallet'
+    | '/api/email/send-confirm'
     | '/api/public/test-credit'
     | '/_authenticated/admin/'
     | '/_authenticated/affiliate/'
@@ -535,13 +628,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  MerchantRouteRoute: typeof MerchantRouteRouteWithChildren
   AmlRoute: typeof AmlRoute
   AuthRoute: typeof AuthRoute
   MerchantRoute: typeof MerchantRoute
+  MerchantSignupRoute: typeof MerchantSignupRoute
   PrivacyRoute: typeof PrivacyRoute
   RiskDisclosureRoute: typeof RiskDisclosureRoute
+  SelectDashboardRoute: typeof SelectDashboardRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  ApiEmailSendConfirmRoute: typeof ApiEmailSendConfirmRoute
   ApiPublicTestCreditRoute: typeof ApiPublicTestCreditRoute
 }
 
@@ -561,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/select-dashboard': {
+      id: '/select-dashboard'
+      path: '/select-dashboard'
+      fullPath: '/select-dashboard'
+      preLoaderRoute: typeof SelectDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/risk-disclosure': {
       id: '/risk-disclosure'
       path: '/risk-disclosure'
@@ -573,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merchant-signup': {
+      id: '/merchant-signup'
+      path: '/merchant-signup'
+      fullPath: '/merchant-signup'
+      preLoaderRoute: typeof MerchantSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant': {
@@ -594,6 +705,13 @@ declare module '@tanstack/react-router' {
       path: '/aml'
       fullPath: '/aml'
       preLoaderRoute: typeof AmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_merchant': {
+      id: '/_merchant'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof MerchantRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -742,6 +860,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/test-credit'
       preLoaderRoute: typeof ApiPublicTestCreditRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/email/send-confirm': {
+      id: '/api/email/send-confirm'
+      path: '/api/email/send-confirm'
+      fullPath: '/api/email/send-confirm'
+      preLoaderRoute: typeof ApiEmailSendConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_merchant/merchant/wallet': {
+      id: '/_merchant/merchant/wallet'
+      path: '/merchant/wallet'
+      fullPath: '/merchant/wallet'
+      preLoaderRoute: typeof MerchantMerchantWalletRouteImport
+      parentRoute: typeof MerchantRouteRoute
+    }
+    '/_merchant/merchant/transfer': {
+      id: '/_merchant/merchant/transfer'
+      path: '/merchant/transfer'
+      fullPath: '/merchant/transfer'
+      preLoaderRoute: typeof MerchantMerchantTransferRouteImport
+      parentRoute: typeof MerchantRouteRoute
+    }
+    '/_merchant/merchant/profile': {
+      id: '/_merchant/merchant/profile'
+      path: '/merchant/profile'
+      fullPath: '/merchant/profile'
+      preLoaderRoute: typeof MerchantMerchantProfileRouteImport
+      parentRoute: typeof MerchantRouteRoute
+    }
+    '/_merchant/merchant/dashboard': {
+      id: '/_merchant/merchant/dashboard'
+      path: '/merchant/dashboard'
+      fullPath: '/merchant/dashboard'
+      preLoaderRoute: typeof MerchantMerchantDashboardRouteImport
+      parentRoute: typeof MerchantRouteRoute
     }
     '/_authenticated/wallet/history': {
       id: '/_authenticated/wallet/history'
@@ -959,16 +1112,38 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface MerchantRouteRouteChildren {
+  MerchantMerchantDashboardRoute: typeof MerchantMerchantDashboardRoute
+  MerchantMerchantProfileRoute: typeof MerchantMerchantProfileRoute
+  MerchantMerchantTransferRoute: typeof MerchantMerchantTransferRoute
+  MerchantMerchantWalletRoute: typeof MerchantMerchantWalletRoute
+}
+
+const MerchantRouteRouteChildren: MerchantRouteRouteChildren = {
+  MerchantMerchantDashboardRoute: MerchantMerchantDashboardRoute,
+  MerchantMerchantProfileRoute: MerchantMerchantProfileRoute,
+  MerchantMerchantTransferRoute: MerchantMerchantTransferRoute,
+  MerchantMerchantWalletRoute: MerchantMerchantWalletRoute,
+}
+
+const MerchantRouteRouteWithChildren = MerchantRouteRoute._addFileChildren(
+  MerchantRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  MerchantRouteRoute: MerchantRouteRouteWithChildren,
   AmlRoute: AmlRoute,
   AuthRoute: AuthRoute,
   MerchantRoute: MerchantRoute,
+  MerchantSignupRoute: MerchantSignupRoute,
   PrivacyRoute: PrivacyRoute,
   RiskDisclosureRoute: RiskDisclosureRoute,
+  SelectDashboardRoute: SelectDashboardRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  ApiEmailSendConfirmRoute: ApiEmailSendConfirmRoute,
   ApiPublicTestCreditRoute: ApiPublicTestCreditRoute,
 }
 export const routeTree = rootRouteImport
