@@ -38,16 +38,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) return;
-      // Confirmed → dashboard. Unconfirmed → verification page.
-      if (data.session.user.email_confirmed_at) {
-        navigate({ to: "/dashboard" });
-      } else {
-        navigate({
-          to: "/verify-email",
-          search: { email: data.session.user.email ?? "" },
-        });
-      }
+      if (data.session) navigate({ to: "/dashboard" });
     });
   }, [navigate]);
 
@@ -71,7 +62,7 @@ function AuthPage() {
           }
         }
 
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -84,26 +75,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        // Always send to verification page — Supabase requires email confirmation
-        navigate({ to: "/verify-email", search: { email } });
+        // Email confirmation is currently disabled — go straight to welcome
+        const displayName = signUpData.user?.user_metadata?.display_name ?? firstName;
+        navigate({ to: "/welcome", search: { name: displayName } });
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        // Supabase returns "Email not confirmed" error when confirmation is pending
-        if (error) {
-          if (
-            error.message.toLowerCase().includes("email not confirmed") ||
-            error.message.toLowerCase().includes("email_not_confirmed")
-          ) {
-            navigate({ to: "/verify-email", search: { email } });
-            return;
-          }
-          throw error;
-        }
-        // Belt-and-suspenders: also check the flag on the user object
-        if (!data.user?.email_confirmed_at) {
-          navigate({ to: "/verify-email", search: { email } });
-          return;
-        }
+        if (error) throw error;
         // Check if user has merchant role — show picker if both farmer and merchant
         const { data: roles } = await supabase
           .from("user_roles")
