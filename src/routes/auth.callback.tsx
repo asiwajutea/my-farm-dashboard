@@ -34,12 +34,24 @@ function AuthCallbackPage() {
           settled.current = true;
           subscription.unsubscribe();
 
-          // Send welcome email once for brand-new sign-ups
-          const hash = typeof window !== "undefined" ? window.location.hash : "";
-          const isSignup = hash.includes("type=signup");
+          // Send welcome email once for brand-new sign-ups.
+          // The hash is still present at this point (router hasn't navigated yet).
+          // We explicitly set the session so attachSupabaseAuth can read it via
+          // getSession() when attaching the Bearer header to the server fn call.
+          const isSignup = typeof window !== "undefined" && window.location.hash.includes("type=signup");
+
           if (isSignup && !welcomeSent.current) {
             welcomeSent.current = true;
-            try { await sendWelcomeFn(); } catch { /* non-fatal */ }
+            try {
+              // Persist the fresh tokens to localStorage before calling the server fn
+              await supabase.auth.setSession({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+              });
+              await sendWelcomeFn();
+            } catch (err) {
+              console.warn("[auth/callback] Welcome email failed:", err);
+            }
           }
 
           navigate({ to: "/dashboard", replace: true });
