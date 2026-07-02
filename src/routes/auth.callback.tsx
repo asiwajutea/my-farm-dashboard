@@ -15,9 +15,12 @@ export const Route = createFileRoute("/auth/callback")({
  * Supabase appends session tokens as a URL hash fragment:
  *   /auth/callback#access_token=...&type=signup
  *
- * The SDK processes that hash asynchronously via onAuthStateChange.
- * We subscribe first, then wait for SIGNED_IN before redirecting so
- * the _authenticated route's beforeLoad always finds an established session.
+ * The SDK auto-exchanges the hash and fires either:
+ *   - INITIAL_SESSION (with a valid session) — most common path
+ *   - SIGNED_IN — also fired after exchange
+ *
+ * We capture the hash BEFORE subscribing because the SDK clears it
+ * immediately when it processes the tokens.
  */
 function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -26,60 +29,73 @@ function AuthCallbackPage() {
   const welcomeSent = useRef(false);
 
   useEffect(() => {
-    // Capture the hash BEFORE subscribing — the Supabase SDK clears it when
-    // it exchanges the tokens, so it may already be gone inside the callback.
-    const isSignup = typeof window !== "undefined" && window.location.hash.includes("type=signup");
+    // Must capture hash synchronously — SDK strips it before the first event fires.
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const isSignup = hash.includes("type=signup");
+    const hasTokens = hash.includes("access_token");
+
+    async function handleSession(session: { access_token: string; refresh_token: string; user: { email_confirmed_at?: string | null } } | null) {
+      if (settled.current) return;
+      if (!session) return; // wait for a session-carrying event
+
+      settled.current = true;
+
+      if (isSignup && !welcomeSent.current) {
+        welcomeSent.current = true;
+        try {
+          // Explicitly persist tokens so attachSupabaseAuth reads them via getSession()
+          await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          });
+          await sendWelcomeFn();
+        } catch (err) {
+          console.warn("[auth/callback] Welcome email failed:", err);
+        }
+      }
+
+      navigate({ to: "/dashboard", replace: true });
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (settled.current) return;
-
-        if (event === "SIGNED_IN" && session?.user) {
-          settled.current = true;
-          subscription.unsubscribe();
-
-          // Send welcome email once for brand-new sign-ups.
-          // Persist the fresh tokens to localStorage first so attachSupabaseAuth
-          // can read them via getSession() when attaching the Bearer header.
-          if (isSignup && !welcomeSent.current) {
-            welcomeSent.current = true;
-            try {
-              await supabase.auth.setSession({
-                access_token: session.access_token,
-                refresh_token: session.refresh_token,
-              });
-              await sendWelcomeFn();
-            } catch (err) {
-              console.warn("[auth/callback] Welcome email failed:", err);
-            }
-          }
-
-          navigate({ to: "/dashboard", replace: true });
+        // INITIAL_SESSION fires first when the SDK exchanges the hash tokens.
+        // SIGNED_IN fires right after. Handle both.
+        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+          await handleSession(session);
           return;
         }
 
-        // Exchange failed or user not authenticated
         if (event === "SIGNED_OUT") {
-          settled.current = true;
-          subscription.unsubscribe();
-          navigate({ to: "/auth", replace: true });
+          if (!settled.current) {
+            settled.current = true;
+            navigate({ to: "/auth", replace: true });
+          }
         }
       },
     );
 
-    // Safety timeout — if no auth event in 5 s, fall back to a manual check
+    // Safety timeout — if the hash had no tokens (e.g. user navigated here directly),
+    // or no event fires within 6 s, fall back to a manual session check.
     const timer = setTimeout(async () => {
       if (settled.current) return;
       settled.current = true;
       subscription.unsubscribe();
 
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user?.email_confirmed_at) {
-        navigate({ to: "/dashboard", replace: true });
-      } else {
-        navigate({ to: "/auth", replace: true });
+      if (!hasTokens) {
+        // No tokens in URL — just check if they already have a session
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user?.email_confirmed_at) {
+          navigate({ to: "/dashboard", replace: true });
+        } else {
+          navigate({ to: "/auth", replace: true });
+        }
+        return;
       }
-    }, 5000);
+
+      // Had tokens but no event — something went wrong
+      navigate({ to: "/auth", replace: true });
+    }, 6000);
 
     return () => {
       clearTimeout(timer);
