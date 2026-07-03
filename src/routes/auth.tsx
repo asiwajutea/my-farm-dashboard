@@ -217,10 +217,6 @@ function AuthPage() {
                 <button type="button" onClick={() => setMode("signup")} className="text-primary hover:underline">
                   Create a Farmer account
                 </button>
-                {" · "}
-                <Link to="/merchant-signup" className="text-amber-400 hover:underline">
-                  Become a Merchant
-                </Link>
               </>
             ) : (
               <>
