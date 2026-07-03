@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SelectDashboardRouteImport } from './routes/select-dashboard'
@@ -16,11 +17,14 @@ import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MerchantSignupRouteImport } from './routes/merchant-signup'
 import { Route as MerchantRouteImport } from './routes/merchant'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmlRouteImport } from './routes/aml'
 import { Route as MerchantRouteRouteImport } from './routes/_merchant/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
@@ -60,6 +64,11 @@ import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedAdminAffiliatesRouteImport } from './routes/_authenticated/admin/affiliates'
 
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -95,6 +104,11 @@ const MerchantRoute = MerchantRouteImport.update({
   path: '/merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -117,6 +131,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedWithdrawRoute = AuthenticatedWithdrawRouteImport.update({
   id: '/withdraw',
@@ -328,7 +352,8 @@ const AuthenticatedAdminAffiliatesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aml': typeof AmlRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/merchant': typeof MerchantRoute
   '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
@@ -336,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/welcome': typeof WelcomeRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/affiliate': typeof AuthenticatedAffiliateRouteWithChildren
   '/coupons': typeof AuthenticatedCouponsRoute
@@ -350,6 +376,8 @@ export interface FileRoutesByFullPath {
   '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/withdraw': typeof AuthenticatedWithdrawRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
@@ -378,7 +406,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aml': typeof AmlRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/merchant': typeof MerchantRoute
   '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
@@ -386,6 +415,7 @@ export interface FileRoutesByTo {
   '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/welcome': typeof WelcomeRoute
   '/coupons': typeof AuthenticatedCouponsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deposit': typeof AuthenticatedDepositRoute
@@ -396,6 +426,8 @@ export interface FileRoutesByTo {
   '/send': typeof AuthenticatedSendRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
@@ -427,7 +459,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_merchant': typeof MerchantRouteRouteWithChildren
   '/aml': typeof AmlRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/merchant': typeof MerchantRoute
   '/merchant-signup': typeof MerchantSignupRoute
   '/privacy': typeof PrivacyRoute
@@ -435,6 +468,7 @@ export interface FileRoutesById {
   '/select-dashboard': typeof SelectDashboardRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/welcome': typeof WelcomeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/affiliate': typeof AuthenticatedAffiliateRouteWithChildren
   '/_authenticated/coupons': typeof AuthenticatedCouponsRoute
@@ -449,6 +483,8 @@ export interface FileRoutesById {
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/_authenticated/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
@@ -480,6 +516,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aml'
     | '/auth'
+    | '/forgot-password'
     | '/merchant'
     | '/merchant-signup'
     | '/privacy'
@@ -487,6 +524,7 @@ export interface FileRouteTypes {
     | '/select-dashboard'
     | '/terms'
     | '/verify-email'
+    | '/welcome'
     | '/admin'
     | '/affiliate'
     | '/coupons'
@@ -501,6 +539,8 @@ export interface FileRouteTypes {
     | '/verify'
     | '/wallet'
     | '/withdraw'
+    | '/auth/callback'
+    | '/auth/reset-password'
     | '/admin/affiliates'
     | '/admin/audit'
     | '/admin/coupons'
@@ -530,6 +570,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aml'
     | '/auth'
+    | '/forgot-password'
     | '/merchant'
     | '/merchant-signup'
     | '/privacy'
@@ -537,6 +578,7 @@ export interface FileRouteTypes {
     | '/select-dashboard'
     | '/terms'
     | '/verify-email'
+    | '/welcome'
     | '/coupons'
     | '/dashboard'
     | '/deposit'
@@ -547,6 +589,8 @@ export interface FileRouteTypes {
     | '/send'
     | '/verify'
     | '/withdraw'
+    | '/auth/callback'
+    | '/auth/reset-password'
     | '/admin/affiliates'
     | '/admin/audit'
     | '/admin/coupons'
@@ -578,6 +622,7 @@ export interface FileRouteTypes {
     | '/_merchant'
     | '/aml'
     | '/auth'
+    | '/forgot-password'
     | '/merchant'
     | '/merchant-signup'
     | '/privacy'
@@ -585,6 +630,7 @@ export interface FileRouteTypes {
     | '/select-dashboard'
     | '/terms'
     | '/verify-email'
+    | '/welcome'
     | '/_authenticated/admin'
     | '/_authenticated/affiliate'
     | '/_authenticated/coupons'
@@ -599,6 +645,8 @@ export interface FileRouteTypes {
     | '/_authenticated/verify'
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
+    | '/auth/callback'
+    | '/auth/reset-password'
     | '/_authenticated/admin/affiliates'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/coupons'
@@ -630,7 +678,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   MerchantRouteRoute: typeof MerchantRouteRouteWithChildren
   AmlRoute: typeof AmlRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   MerchantRoute: typeof MerchantRoute
   MerchantSignupRoute: typeof MerchantSignupRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -638,12 +687,20 @@ export interface RootRouteChildren {
   SelectDashboardRoute: typeof SelectDashboardRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  WelcomeRoute: typeof WelcomeRoute
   ApiEmailSendConfirmRoute: typeof ApiEmailSendConfirmRoute
   ApiPublicTestCreditRoute: typeof ApiPublicTestCreditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verify-email': {
       id: '/verify-email'
       path: '/verify-email'
@@ -693,6 +750,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -727,6 +791,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/withdraw': {
       id: '/_authenticated/withdraw'
@@ -1130,12 +1208,25 @@ const MerchantRouteRouteWithChildren = MerchantRouteRoute._addFileChildren(
   MerchantRouteRouteChildren,
 )
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   MerchantRouteRoute: MerchantRouteRouteWithChildren,
   AmlRoute: AmlRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   MerchantRoute: MerchantRoute,
   MerchantSignupRoute: MerchantSignupRoute,
   PrivacyRoute: PrivacyRoute,
@@ -1143,6 +1234,7 @@ const rootRouteChildren: RootRouteChildren = {
   SelectDashboardRoute: SelectDashboardRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  WelcomeRoute: WelcomeRoute,
   ApiEmailSendConfirmRoute: ApiEmailSendConfirmRoute,
   ApiPublicTestCreditRoute: ApiPublicTestCreditRoute,
 }
