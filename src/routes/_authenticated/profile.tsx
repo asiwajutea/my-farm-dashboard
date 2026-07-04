@@ -22,6 +22,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { hasPasscode } from "@/lib/passcode.functions";
 import { PasscodeSetupDialog } from "@/components/passcode/PasscodeSetupDialog";
+import { PayoutMethodsSection } from "@/components/payout/PayoutMethodsSection";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -676,6 +677,7 @@ function ProfilePage() {
         </form>
 
         <PasscodeSection />
+        <PayoutMethodsSection />
         <RecoveryPhraseSection />
       </main>
     </div>
