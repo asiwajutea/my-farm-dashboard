@@ -2,7 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Check, CheckCircle2, Copy, Loader2, ShieldCheck, ShieldAlert, AtSign,
-  Sparkles, Globe, MapPin, Phone, FileText, X, Pencil, User, Lock,
+  Sparkles, Globe, MapPin, Phone, FileText, X, Pencil, User, Lock, KeyRound,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -12,12 +12,14 @@ import { resolveAvatarUrl } from "@/lib/avatar";
 import { PRESET_AVATARS, findPresetAvatar } from "@/lib/avatars";
 import { checkUsernameAvailable } from "@/lib/profile.functions";
 import { getPremiumStatus, type PremiumStatus } from "@/lib/premium.functions";
+import { getRecoveryPhraseStatus } from "@/lib/recovery-phrase.functions";
 import PremiumBadge from "@/components/premium/PremiumBadge";
+import { RecoveryPhraseNagModal } from "@/components/recovery/RecoveryPhraseNagModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileHeaderSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
 import type { Database } from "@/integrations/supabase/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { hasPasscode } from "@/lib/passcode.functions";
 import { PasscodeSetupDialog } from "@/components/passcode/PasscodeSetupDialog";
 
@@ -674,6 +676,7 @@ function ProfilePage() {
         </form>
 
         <PasscodeSection />
+        <RecoveryPhraseSection />
       </main>
     </div>
   );
@@ -706,6 +709,62 @@ function PasscodeSection() {
       </div>
       <PasscodeSetupDialog open={open} onOpenChange={setOpen} isChange={isSet} />
     </section>
+  );
+}
+
+function RecoveryPhraseSection() {
+  const statusFn = useServerFn(getRecoveryPhraseStatus);
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["recovery-phrase-status"],
+    queryFn: () => statusFn(),
+    staleTime: Infinity,
+  });
+  const [showSetup, setShowSetup] = useState(false);
+  const isSet = data?.hasPhrase ?? false;
+
+  const handleDismiss = () => {
+    setShowSetup(false);
+    queryClient.invalidateQueries({ queryKey: ["recovery-phrase-status"] });
+  };
+
+  return (
+    <>
+      <section className="glass mt-5 rounded-3xl p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <KeyRound className="h-4 w-4 text-primary" /> Recovery phrase
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isSet
+                ? "Your 12-word recovery phrase is set. You can reset it if you have written down the new words."
+                : "Set a 12-word recovery phrase to recover your account without email access."}
+            </p>
+            {!isSet && !isLoading && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300">
+                Not set — your account can only be recovered via email
+              </div>
+            )}
+            {isSet && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
+                <ShieldCheck className="h-3 w-3" /> Phrase set
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSetup(true)}
+            disabled={isLoading}
+            className="shrink-0 rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-medium hover:bg-card disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isSet ? "Reset phrase" : "Set up phrase"}
+          </button>
+        </div>
+      </section>
+
+      {showSetup && <RecoveryPhraseNagModal onDismiss={handleDismiss} />}
+    </>
   );
 }
 

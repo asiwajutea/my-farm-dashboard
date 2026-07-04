@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, ArrowLeft, Loader2, CheckCircle2, Sprout } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, CheckCircle2, Sprout, ShieldCheck } from "lucide-react";
 import logo from "@/assets/vfarm-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -131,6 +131,19 @@ function ForgotPasswordPage() {
                   <ArrowLeft className="h-3 w-3" />
                   Back to sign in
                 </Link>
+              </div>
+
+              <div className="mt-3 border-t border-border/40 pt-3 text-center">
+                <p className="text-xs text-muted-foreground">
+                  Set up a recovery phrase?{" "}
+                  <Link
+                    to="/auth/recover-with-phrase"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    Recover with phrase instead
+                  </Link>
+                </p>
               </div>
             </>
           )}

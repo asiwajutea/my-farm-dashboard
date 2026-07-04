@@ -8,8 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import { listMyCycles, reapCycleFn, type Cycle } from "@/lib/farm.functions";
 import { getMyPvSummary } from "@/lib/pv.functions";
 import { getPremiumStatus } from "@/lib/premium.functions";
+import { getRecoveryPhraseStatus } from "@/lib/recovery-phrase.functions";
 import PremiumBadge from "@/components/premium/PremiumBadge";
 import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
+import { RecoveryPhraseNagModal } from "@/components/recovery/RecoveryPhraseNagModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtAmount, seedToUsdt } from "@/lib/currency";
@@ -35,6 +37,7 @@ function Dashboard() {
   const fnReap = useServerFn(reapCycleFn);
   const fnPv = useServerFn(getMyPvSummary);
   const fnPremiumStatus = useServerFn(getPremiumStatus);
+  const fnRecoveryStatus = useServerFn(getRecoveryPhraseStatus);
 
   const cyclesQ = useQuery({
     queryKey: ["dashboard-cycles"],
@@ -48,6 +51,12 @@ function Dashboard() {
   const premiumStatusQ = useQuery({
     queryKey: ["premium-status"],
     queryFn: () => fnPremiumStatus(),
+  });
+  const recoveryStatusQ = useQuery({
+    queryKey: ["recovery-phrase-status"],
+    queryFn: () => fnRecoveryStatus(),
+    // Only fetch once on mount — no need to poll
+    staleTime: Infinity,
   });
   const pvTotal = pvQ.data?.total ?? 0;
   const activeCycles = (cyclesQ.data ?? []).filter(
@@ -218,6 +227,13 @@ function Dashboard() {
         ]}
         ctaLabel="See Premium Plans"
       />
+
+      {/* Recovery phrase nag modal — shown once if not yet set up */}
+      {recoveryStatusQ.data && !recoveryStatusQ.data.hasPhrase && (
+        <RecoveryPhraseNagModal
+          onDismiss={() => recoveryStatusQ.refetch()}
+        />
+      )}
     </div>
   );
 }
