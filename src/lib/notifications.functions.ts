@@ -23,7 +23,7 @@ export const listNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z
-      .object({ limit: z.number().int().min(1).max(100).optional() })
+      .object({ limit: z.number().int().min(1).max(200).optional() })
       .optional()
       .parse(d),
   )
