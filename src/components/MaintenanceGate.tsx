@@ -18,6 +18,7 @@ const PATH_TO_KEY: Record<string, string> = {
   notifications: "notifications",
   profile: "profile",
   verify: "verify",
+  upgrade: "upgrade",
 };
 
 function pageKeyFor(pathname: string): string | null {

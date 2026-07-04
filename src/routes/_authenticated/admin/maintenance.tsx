@@ -30,6 +30,7 @@ const PAGE_KEYS: { key: string; label: string }[] = [
   { key: "notifications", label: "Notifications" },
   { key: "profile", label: "Profile" },
   { key: "verify", label: "KYC / Verify" },
+  { key: "upgrade", label: "Membership / Upgrade" },
 ];
 
 function AdminMaintenancePage() {
