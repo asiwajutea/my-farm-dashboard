@@ -24,10 +24,12 @@ import { Route as MerchantRouteRouteImport } from './routes/_merchant/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthRecoverWithPhraseRouteImport } from './routes/auth.recover-with-phrase'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
+import { Route as AuthenticatedUpgradeRouteImport } from './routes/_authenticated/upgrade'
 import { Route as AuthenticatedSendRouteImport } from './routes/_authenticated/send'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -55,6 +57,7 @@ import { Route as AuthenticatedAffiliateDownlinesRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin/requests'
 import { Route as AuthenticatedAdminPvRouteImport } from './routes/_authenticated/admin/pv'
+import { Route as AuthenticatedAdminPremiumRouteImport } from './routes/_authenticated/admin/premium'
 import { Route as AuthenticatedAdminMaintenanceRouteImport } from './routes/_authenticated/admin/maintenance'
 import { Route as AuthenticatedAdminKycRouteImport } from './routes/_authenticated/admin/kyc'
 import { Route as AuthenticatedAdminFarmersRouteImport } from './routes/_authenticated/admin/farmers'
@@ -137,6 +140,11 @@ const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthRecoverWithPhraseRoute = AuthRecoverWithPhraseRouteImport.update({
+  id: '/recover-with-phrase',
+  path: '/recover-with-phrase',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -155,6 +163,11 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
 const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUpgradeRoute = AuthenticatedUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSendRoute = AuthenticatedSendRouteImport.update({
@@ -302,6 +315,12 @@ const AuthenticatedAdminPvRoute = AuthenticatedAdminPvRouteImport.update({
   path: '/pv',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminPremiumRoute =
+  AuthenticatedAdminPremiumRouteImport.update({
+    id: '/premium',
+    path: '/premium',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminMaintenanceRoute =
   AuthenticatedAdminMaintenanceRouteImport.update({
     id: '/maintenance',
@@ -373,10 +392,12 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
+  '/upgrade': typeof AuthenticatedUpgradeRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/recover-with-phrase': typeof AuthRecoverWithPhraseRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -386,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/admin/premium': typeof AuthenticatedAdminPremiumRoute
   '/admin/pv': typeof AuthenticatedAdminPvRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -424,9 +446,11 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/send': typeof AuthenticatedSendRoute
+  '/upgrade': typeof AuthenticatedUpgradeRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/recover-with-phrase': typeof AuthRecoverWithPhraseRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -436,6 +460,7 @@ export interface FileRoutesByTo {
   '/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/admin/premium': typeof AuthenticatedAdminPremiumRoute
   '/admin/pv': typeof AuthenticatedAdminPvRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -480,10 +505,12 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/send': typeof AuthenticatedSendRoute
+  '/_authenticated/upgrade': typeof AuthenticatedUpgradeRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRouteWithChildren
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/recover-with-phrase': typeof AuthRecoverWithPhraseRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/_authenticated/admin/affiliates': typeof AuthenticatedAdminAffiliatesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -493,6 +520,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/farmers': typeof AuthenticatedAdminFarmersRoute
   '/_authenticated/admin/kyc': typeof AuthenticatedAdminKycRoute
   '/_authenticated/admin/maintenance': typeof AuthenticatedAdminMaintenanceRoute
+  '/_authenticated/admin/premium': typeof AuthenticatedAdminPremiumRoute
   '/_authenticated/admin/pv': typeof AuthenticatedAdminPvRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -536,10 +564,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/send'
+    | '/upgrade'
     | '/verify'
     | '/wallet'
     | '/withdraw'
     | '/auth/callback'
+    | '/auth/recover-with-phrase'
     | '/auth/reset-password'
     | '/admin/affiliates'
     | '/admin/audit'
@@ -549,6 +579,7 @@ export interface FileRouteTypes {
     | '/admin/farmers'
     | '/admin/kyc'
     | '/admin/maintenance'
+    | '/admin/premium'
     | '/admin/pv'
     | '/admin/requests'
     | '/admin/settings'
@@ -587,9 +618,11 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/send'
+    | '/upgrade'
     | '/verify'
     | '/withdraw'
     | '/auth/callback'
+    | '/auth/recover-with-phrase'
     | '/auth/reset-password'
     | '/admin/affiliates'
     | '/admin/audit'
@@ -599,6 +632,7 @@ export interface FileRouteTypes {
     | '/admin/farmers'
     | '/admin/kyc'
     | '/admin/maintenance'
+    | '/admin/premium'
     | '/admin/pv'
     | '/admin/requests'
     | '/admin/settings'
@@ -642,10 +676,12 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/send'
+    | '/_authenticated/upgrade'
     | '/_authenticated/verify'
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
     | '/auth/callback'
+    | '/auth/recover-with-phrase'
     | '/auth/reset-password'
     | '/_authenticated/admin/affiliates'
     | '/_authenticated/admin/audit'
@@ -655,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/farmers'
     | '/_authenticated/admin/kyc'
     | '/_authenticated/admin/maintenance'
+    | '/_authenticated/admin/premium'
     | '/_authenticated/admin/pv'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
@@ -799,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/recover-with-phrase': {
+      id: '/auth/recover-with-phrase'
+      path: '/recover-with-phrase'
+      fullPath: '/auth/recover-with-phrase'
+      preLoaderRoute: typeof AuthRecoverWithPhraseRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -825,6 +869,13 @@ declare module '@tanstack/react-router' {
       path: '/verify'
       fullPath: '/verify'
       preLoaderRoute: typeof AuthenticatedVerifyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/upgrade': {
+      id: '/_authenticated/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof AuthenticatedUpgradeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/send': {
@@ -1016,6 +1067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPvRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/premium': {
+      id: '/_authenticated/admin/premium'
+      path: '/premium'
+      fullPath: '/admin/premium'
+      preLoaderRoute: typeof AuthenticatedAdminPremiumRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/maintenance': {
       id: '/_authenticated/admin/maintenance'
       path: '/maintenance'
@@ -1084,6 +1142,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminFarmersRoute: typeof AuthenticatedAdminFarmersRoute
   AuthenticatedAdminKycRoute: typeof AuthenticatedAdminKycRoute
   AuthenticatedAdminMaintenanceRoute: typeof AuthenticatedAdminMaintenanceRoute
+  AuthenticatedAdminPremiumRoute: typeof AuthenticatedAdminPremiumRoute
   AuthenticatedAdminPvRoute: typeof AuthenticatedAdminPvRoute
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -1100,6 +1159,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminFarmersRoute: AuthenticatedAdminFarmersRoute,
     AuthenticatedAdminKycRoute: AuthenticatedAdminKycRoute,
     AuthenticatedAdminMaintenanceRoute: AuthenticatedAdminMaintenanceRoute,
+    AuthenticatedAdminPremiumRoute: AuthenticatedAdminPremiumRoute,
     AuthenticatedAdminPvRoute: AuthenticatedAdminPvRoute,
     AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
@@ -1165,6 +1225,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSendRoute: typeof AuthenticatedSendRoute
+  AuthenticatedUpgradeRoute: typeof AuthenticatedUpgradeRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRouteWithChildren
   AuthenticatedWithdrawRoute: typeof AuthenticatedWithdrawRoute
@@ -1182,6 +1243,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSendRoute: AuthenticatedSendRoute,
+  AuthenticatedUpgradeRoute: AuthenticatedUpgradeRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRouteWithChildren,
   AuthenticatedWithdrawRoute: AuthenticatedWithdrawRoute,
@@ -1210,11 +1272,13 @@ const MerchantRouteRouteWithChildren = MerchantRouteRoute._addFileChildren(
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthRecoverWithPhraseRoute: typeof AuthRecoverWithPhraseRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthRecoverWithPhraseRoute: AuthRecoverWithPhraseRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
 }
 
