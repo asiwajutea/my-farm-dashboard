@@ -694,6 +694,63 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_methods: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          address: string | null
+          bank_name: string | null
+          created_at: string
+          iban: string | null
+          id: string
+          is_default: boolean
+          kind: string
+          label: string
+          memo: string | null
+          network: string | null
+          routing_number: string | null
+          swift: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          address?: string | null
+          bank_name?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          kind: string
+          label: string
+          memo?: string | null
+          network?: string | null
+          routing_number?: string | null
+          swift?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          address?: string | null
+          bank_name?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          kind?: string
+          label?: string
+          memo?: string | null
+          network?: string | null
+          routing_number?: string | null
+          swift?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       premium_upgrades: {
         Row: {
           activated_at: string
