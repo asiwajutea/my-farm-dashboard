@@ -69,17 +69,14 @@ export function AppSidebar() {
   const { data: adminData } = useIsAdmin();
   const isAdmin = adminData?.isAdmin === true;
 
-  // Premium status — determines whether to show "Upgrade to Premium" in the Earn group
+  // Premium status — no longer needed for link visibility (link is always shown)
+  // Keep the query so the cache is warm for the Membership page
   const premiumStatusFn = useServerFn(getPremiumStatus);
-  const { data: premiumStatus } = useQuery({
+  useQuery({
     queryKey: ["premium-status"],
     queryFn: () => premiumStatusFn(),
     staleTime: 60_000,
   });
-  const showUpgradeLink =
-    !premiumStatus ||
-    premiumStatus.tier === "standard" ||
-    premiumStatus.days_left <= 0;
 
   const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
 
@@ -159,12 +156,10 @@ export function AppSidebar() {
       <div className="relative flex min-h-0 flex-1 flex-col">
         <SidebarContent ref={scrollRef} onScroll={updateScrollState}>
           {renderGroup("Wallet", wallet)}
-          {/* Earn group: inject "Upgrade to Premium" for standard/expired users — Req 10.1–10.5 */}
+          {/* Earn group: always show "Membership" link — Req 10.1–10.5 */}
           {renderGroup("Earn", [
             ...earn,
-            ...(showUpgradeLink
-              ? [{ title: "Upgrade to Premium", url: "/upgrade", icon: Crown } as const]
-              : []),
+            { title: "Membership", url: "/upgrade", icon: Crown } as const,
           ])}
           {renderGroup("Transfer", transfer)}
           {renderGroup("Account", account)}

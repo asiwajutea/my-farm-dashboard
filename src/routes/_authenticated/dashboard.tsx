@@ -9,6 +9,7 @@ import { listMyCycles, reapCycleFn, type Cycle } from "@/lib/farm.functions";
 import { getMyPvSummary } from "@/lib/pv.functions";
 import { getPremiumStatus } from "@/lib/premium.functions";
 import PremiumBadge from "@/components/premium/PremiumBadge";
+import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtAmount, seedToUsdt } from "@/lib/currency";
@@ -202,6 +203,21 @@ function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* Premium nag modal — only for standard members */}
+      <PremiumNagModal
+        storageKey="nag-dashboard"
+        isStandard={!premiumStatusQ.data || premiumStatusQ.data.tier === "standard" || premiumStatusQ.data.days_left <= 0}
+        headline="Premium Farmers earn more — every single day."
+        subheadline="Your current Standard plan limits what you earn. Here's what you're missing out on right now:"
+        benefits={[
+          { emoji: "🌱", title: "Boosted farming returns", body: "Premium members earn a bonus percentage on top of every cycle reward — automatically." },
+          { emoji: "👥", title: "3-generation referral income", body: "You only earn from Gen 1 referrals. Premium unlocks Gen 2 and Gen 3 commissions too." },
+          { emoji: "💸", title: "Maintenance fee rewards", body: "Earn a share of maintenance fees paid by your entire downline — Gens 1, 2 & 3." },
+          { emoji: "🏷️", title: "Lower withdrawal fee", body: "Premium members pay a reduced fee on every withdrawal, keeping more USDT in your wallet." },
+        ]}
+        ctaLabel="See Premium Plans"
+      />
     </div>
   );
 }

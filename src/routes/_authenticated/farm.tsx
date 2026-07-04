@@ -32,6 +32,8 @@ import {
   type Booster,
   type Cycle,
 } from "@/lib/farm.functions";
+import { getPremiumStatus } from "@/lib/premium.functions";
+import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 
 export const Route = createFileRoute("/_authenticated/farm")({
   head: () => ({ meta: [{ title: "Farm · VFarmers" }] }),
@@ -63,6 +65,15 @@ function FarmPage() {
   const cyclesQ = useQuery({ queryKey: ["cycles"], queryFn: () => fnCycles(), refetchInterval: 30_000 });
   const balanceQ = useQuery({ queryKey: ["farming-balance"], queryFn: () => fnBalance() });
   const { data: rate = 1 } = useSeedRate();
+
+  // Premium status — for nag modal
+  const fnPremiumStatus = useServerFn(getPremiumStatus);
+  const premiumStatusQ = useQuery({
+    queryKey: ["premium-status"],
+    queryFn: () => fnPremiumStatus(),
+    staleTime: 60_000,
+  });
+  const isStandard = !premiumStatusQ.data || premiumStatusQ.data.tier === "standard" || premiumStatusQ.data.days_left <= 0;
 
   const [boosterId, setBoosterId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -319,6 +330,21 @@ function FarmPage() {
           onConfirm={() => startMut.mutate({ boosterId, amount: amt })}
         />
       )}
+
+      {/* Premium nag modal — farming-specific message */}
+      <PremiumNagModal
+        storageKey="nag-farm"
+        isStandard={isStandard}
+        headline="Your farming rewards could be higher."
+        subheadline="Premium Farmers earn a bonus percentage on top of every cycle reward — automatically applied at reap time."
+        benefits={[
+          { emoji: "🌾", title: "Bonus farming yield", body: "Premium members earn an extra percentage on every cycle they reap, with no extra effort." },
+          { emoji: "⚡", title: "Stacks with boosters", body: "The premium farming bonus stacks on top of your booster multiplier for maximum returns." },
+          { emoji: "💰", title: "3-generation commissions", body: "When your referrals reap, you earn from Gens 1, 2 & 3 — not just Gen 1." },
+          { emoji: "🏷️", title: "Lower withdrawal fee", body: "Keep more of every USDT you earn with the reduced premium withdrawal rate." },
+        ]}
+        ctaLabel="Boost My Returns"
+      />
     </div>
   );
 }

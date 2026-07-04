@@ -6,6 +6,7 @@ import { useState } from "react";
 import { getMyAffiliateSummary, getMyDownlines } from "@/lib/affiliate.functions";
 import { getPremiumStatus, getPremiumConfig } from "@/lib/premium.functions";
 import UpgradeCTA from "@/components/premium/UpgradeCTA";
+import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { ShareLink } from "@/components/affiliate/ShareLink";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loadable } from "@/components/ui/loadable";
@@ -135,6 +136,20 @@ function AffiliatePage() {
           ))}
         </div>
       </div>
+
+      {/* Premium nag modal — affiliate-specific message */}
+      <PremiumNagModal
+        storageKey="nag-affiliate"
+        isStandard={!isActivePremium}
+        headline="You're leaving money on the table."
+        subheadline="Standard Farmers only earn from their direct (Gen 1) referrals. Premium unlocks a whole new income stream from your network."
+        benefits={[
+          { emoji: "🔗", title: "Gen 2 & Gen 3 commissions", body: "Every time a referral's referral reaps a cycle, you earn too — automatically." },
+          { emoji: "🔧", title: "Maintenance fee rewards", body: "Earn a percentage of every maintenance fee your downline (Gens 1–3) pays." },
+          { emoji: "📈", title: "Your network works for you", body: "The bigger your downline, the more premium multiplies your passive income." },
+        ]}
+        ctaLabel="Unlock All Generations"
+      />
     </div>
   );
 }
