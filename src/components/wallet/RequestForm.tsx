@@ -123,10 +123,10 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
     if (usdtNum <= 0) { toast.error("Enter an amount in USDT."); return; }
     if (belowMin) { toast.error(`Minimum is ${minUsdt} USDT.`); return; }
     if (overBalance) { toast.error("Amount exceeds your available balance."); return; }
-    if (file && !(PROOF_MIME as readonly string[]).includes(file.type)) {
+    if (isDeposit && file && !(PROOF_MIME as readonly string[]).includes(file.type)) {
       toast.error(ERROR_MESSAGE.invalid_proof); return;
     }
-    if (file && file.size > PROOF_MAX_BYTES) {
+    if (isDeposit && file && file.size > PROOF_MAX_BYTES) {
       toast.error(ERROR_MESSAGE.invalid_proof); return;
     }
     if (!isDeposit) {
@@ -141,7 +141,7 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
     // Submit the Seed equivalent — the API and DB are Seed-denominated for requests
     fd.set("amount", usdtToSeedString(usdtNum, rate));
     fd.set("method", method);
-    if (file) fd.set("proof", file);
+    if (isDeposit && file) fd.set("proof", file);
     if (passcode) fd.set("passcode", passcode);
     mutation.mutate(fd);
   };
@@ -198,16 +198,18 @@ export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`${type}-proof`}>Proof (optional)</Label>
-        <Input
-          id={`${type}-proof`}
-          type="file"
-          accept={PROOF_MIME.join(",")}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <p className="text-xs text-muted-foreground">PNG, JPG, or PDF up to 10MB.</p>
-      </div>
+      {isDeposit && (
+        <div className="space-y-2">
+          <Label htmlFor={`${type}-proof`}>Proof (optional)</Label>
+          <Input
+            id={`${type}-proof`}
+            type="file"
+            accept={PROOF_MIME.join(",")}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+          <p className="text-xs text-muted-foreground">PNG, JPG, or PDF up to 10MB.</p>
+        </div>
+      )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending || belowMin || overBalance}>
         {mutation.isPending ? (
