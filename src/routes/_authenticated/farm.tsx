@@ -572,6 +572,8 @@ function CyclesSection({
 }
 
 // ── StartCycleDialog ───────────────────────────────────────────────────────
+
+function StartCycleDialog({
   open,
   onOpenChange,
   booster,
