@@ -66,32 +66,27 @@ export const savePayoutMethod = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => inputSchema.parse(d))
   .handler(async ({ data, context }): Promise<{ id: string }> => {
     await verifyPasscodeFor(context.userId, data.passcode);
-    const row =
-      data.kind === "bank"
-        ? {
-            user_id: context.userId,
-            kind: "bank" as const,
-            label: data.label,
-            bank_name: data.bank_name,
-            account_name: data.account_name,
-            account_number: data.account_number,
-            routing_number: data.routing_number ?? null,
-            iban: data.iban ?? null,
-            swift: data.swift ?? null,
-            is_default: data.is_default ?? false,
-          }
-        : {
-            user_id: context.userId,
-            kind: "crypto" as const,
-            label: data.label,
-            network: data.network,
-            address: data.address,
-            memo: data.memo ?? null,
-            is_default: data.is_default ?? false,
-          };
+    const row: Record<string, unknown> = {
+      user_id: context.userId,
+      kind: data.kind,
+      label: data.label,
+      is_default: data.is_default ?? false,
+    };
+    if (data.kind === "bank") {
+      row.bank_name = data.bank_name;
+      row.account_name = data.account_name;
+      row.account_number = data.account_number;
+      row.routing_number = data.routing_number ?? null;
+      row.iban = data.iban ?? null;
+      row.swift = data.swift ?? null;
+    } else {
+      row.network = data.network;
+      row.address = data.address;
+      row.memo = data.memo ?? null;
+    }
     const { data: inserted, error } = await context.supabase
       .from("payout_methods")
-      .insert(row)
+      .insert(row as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
