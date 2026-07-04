@@ -140,8 +140,8 @@ export function RateChart() {
                     ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                     : d.toLocaleDateString([], { month: "short", day: "numeric" });
                 }}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                stroke="transparent"
+                tick={{ fill: "oklch(0.85 0.01 140)", fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 minTickGap={32}
@@ -149,8 +149,8 @@ export function RateChart() {
               <YAxis
                 domain={yDomain}
                 tickFormatter={(v) => Number(v).toFixed(4)}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                stroke="transparent"
+                tick={{ fill: "oklch(0.85 0.01 140)", fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 width={64}
@@ -162,7 +162,10 @@ export function RateChart() {
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "0.5rem",
                   fontSize: "12px",
+                  color: "oklch(0.97 0.01 120)",
                 }}
+                labelStyle={{ color: "oklch(0.85 0.01 140)", marginBottom: "2px" }}
+                itemStyle={{ color: "oklch(0.97 0.01 120)" }}
                 labelFormatter={(v) => new Date(v as string).toLocaleString()}
                 formatter={(value: number) => [fmtRate(value) + " USDT", "Rate"]}
               />
