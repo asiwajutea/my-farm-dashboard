@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import { PasscodeGate } from "@/components/passcode/PasscodeGate";
+import { Ticker } from "@/components/Ticker";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -37,6 +38,7 @@ function AuthenticatedShell() {
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppTopbar />
+          <Ticker />
           <main className="flex-1">
             <MaintenanceGate>
               <Outlet />
