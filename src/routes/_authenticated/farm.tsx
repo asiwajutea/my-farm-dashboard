@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Sprout, Clock, TrendingUp, Wallet as WalletIcon, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Sprout, Clock, TrendingUp, Wallet as WalletIcon, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -136,59 +136,69 @@ function FarmPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8">
-      <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
-        <Sprout className="h-3.5 w-3.5" /> Phase 4 · Farming
-      </div>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Farming Cycles</h1>
-      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Lock Seeds from your Farming wallet into a cycle. When it matures, reap your principal plus the reward.
-      </p>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-5 sm:py-8">
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* Start a cycle */}
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+            <Sprout className="h-3.5 w-3.5" /> Farming
+          </div>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Farming Cycles</h1>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            Lock Seeds into a cycle, wait for it to mature, then reap your principal plus reward.
+          </p>
+        </div>
+
+        {/* Fund / Withdraw — moved to header right */}
+        <div className="flex shrink-0 items-center gap-2">
+          <TransferToFarmingDialog
+            primaryAvailableUsdt={primaryAvailableUsdt}
+            rate={rate}
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["farming-balance"] });
+              qc.invalidateQueries({ queryKey: ["primary-balance"] });
+            }}
+            trigger={
+              <Button size="sm" variant="outline" type="button">
+                <WalletIcon className="mr-1.5 h-3.5 w-3.5" />
+                Fund Wallet
+              </Button>
+            }
+          />
+          <TransferToPrimaryDialog
+            farmingAvailableSeed={balance}
+            rate={rate}
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["farming-balance"] });
+              qc.invalidateQueries({ queryKey: ["primary-balance"] });
+            }}
+            trigger={
+              <Button size="sm" variant="outline" type="button">
+                Withdraw
+              </Button>
+            }
+          />
+        </div>
+      </div>
+
+      {/* ── Main grid ───────────────────────────────────────────────── */}
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+
+        {/* Start a cycle card */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sprout className="h-4 w-4 text-primary" /> Start a cycle
             </CardTitle>
+            {/* Balance row — no longer has buttons, just shows balance */}
+            <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
+              <WalletIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Balance:</span>
+              <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm">
-              <span className="text-muted-foreground inline-flex items-center gap-1.5">
-                <WalletIcon className="h-3.5 w-3.5" /> Farming balance
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{seedWithUsdt(balance, rate)}</span>
-                <TransferToFarmingDialog
-                  primaryAvailableUsdt={primaryAvailableUsdt}
-                  rate={rate}
-                  onDone={() => {
-                    qc.invalidateQueries({ queryKey: ["farming-balance"] });
-                    qc.invalidateQueries({ queryKey: ["primary-balance"] });
-                  }}
-                  trigger={
-                    <Button size="sm" variant="outline" type="button">
-                      Fund Wallet
-                    </Button>
-                  }
-                />
-                <TransferToPrimaryDialog
-                  farmingAvailableSeed={balance}
-                  rate={rate}
-                  onDone={() => {
-                    qc.invalidateQueries({ queryKey: ["farming-balance"] });
-                    qc.invalidateQueries({ queryKey: ["primary-balance"] });
-                  }}
-                  trigger={
-                    <Button size="sm" variant="outline" type="button">
-                      Withdraw
-                    </Button>
-                  }
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label>Plan</Label>
               <div className="grid grid-cols-2 gap-2">
@@ -241,7 +251,6 @@ function FarmPage() {
               )}
             </div>
 
-            {/* Cost breakdown — shown when a booster with a cost is selected and amount is entered */}
             {selected && amt > 0 && boosterCost > 0 && (
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 space-y-1.5 text-xs">
                 <div className="flex justify-between text-muted-foreground">
@@ -281,9 +290,9 @@ function FarmPage() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Stats card */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-primary" /> Your farming
             </CardTitle>
@@ -294,25 +303,14 @@ function FarmPage() {
         </Card>
       </div>
 
-      <div className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Your cycles</h2>
-        <div className="space-y-3">
-          {cyclesQ.isLoading && (
-            <div className="space-y-3">
-              <div className="skeleton h-24 rounded-2xl" />
-              <div className="skeleton h-24 rounded-2xl" />
-            </div>
-          )}
-          {!cyclesQ.isLoading && (cyclesQ.data?.length ?? 0) === 0 && (
-            <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-              No cycles yet. Lock some Seeds above to plant your first one.
-            </div>
-          )}
-          {cyclesQ.data?.map((c) => (
-            <CycleCard key={c.id} cycle={c} rate={rate} onReap={() => reapMut.mutate(c.id)} reaping={reapMut.isPending} />
-          ))}
-        </div>
-      </div>
+      {/* ── Cycles section with filter / sort / pagination ─────────── */}
+      <CyclesSection
+        cycles={cyclesQ.data ?? []}
+        isLoading={cyclesQ.isLoading}
+        rate={rate}
+        onReap={(id) => reapMut.mutate(id)}
+        reaping={reapMut.isPending}
+      />
 
       {/* Confirmation dialog */}
       {selected && (
@@ -331,7 +329,7 @@ function FarmPage() {
         />
       )}
 
-      {/* Premium nag modal — farming-specific message */}
+      {/* Premium nag modal */}
       <PremiumNagModal
         storageKey="nag-farm"
         isStandard={isStandard}
@@ -349,7 +347,231 @@ function FarmPage() {
   );
 }
 
-function StartCycleDialog({
+// ── CyclesSection — filtered, sorted, paginated with lazy-load ────────────
+
+type FilterTab = "ongoing" | "completed" | "cancelled";
+type SortKey = "started_at" | "amount" | "reward";
+type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 5;
+
+function CyclesSection({
+  cycles,
+  isLoading,
+  rate,
+  onReap,
+  reaping,
+}: {
+  cycles: Cycle[];
+  isLoading: boolean;
+  rate: number;
+  onReap: (id: string) => void;
+  reaping: boolean;
+}) {
+  const [filter, setFilter] = useState<FilterTab>("ongoing");
+  const [sortKey, setSortKey] = useState<SortKey>("started_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+
+  // Lazy-load: only show rows up to page * PAGE_SIZE
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Map filter tab → cycle statuses
+  const statusMap: Record<FilterTab, string[]> = {
+    ongoing: ["active", "matured"],
+    completed: ["reaped"],
+    cancelled: ["cancelled"],
+  };
+
+  const filtered = useMemo(() => {
+    const allowed = statusMap[filter];
+    return cycles.filter((c) => allowed.includes(c.status));
+  }, [cycles, filter]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      let av = 0, bv = 0;
+      if (sortKey === "started_at") {
+        av = new Date(a.started_at).getTime();
+        bv = new Date(b.started_at).getTime();
+      } else if (sortKey === "amount") {
+        av = Number(a.amount);
+        bv = Number(b.amount);
+      } else {
+        // reward = amount * reward_bps / 10000
+        av = (Number(a.amount) * a.reward_bps) / 10000;
+        bv = (Number(b.amount) * b.reward_bps) / 10000;
+      }
+      return sortDir === "asc" ? av - bv : bv - av;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  // Reset visible count when filter / sort changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+    setPage(1);
+  }, [filter, sortKey, sortDir]);
+
+  // IntersectionObserver for lazy-loading
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && visibleCount < sorted.length) {
+          setVisibleCount((v) => Math.min(v + PAGE_SIZE, sorted.length));
+        }
+      },
+      { rootMargin: "100px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visibleCount, sorted.length]);
+
+  const visible = sorted.slice(0, visibleCount);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  }
+
+  const counts: Record<FilterTab, number> = {
+    ongoing: cycles.filter((c) => ["active", "matured"].includes(c.status)).length,
+    completed: cycles.filter((c) => c.status === "reaped").length,
+    cancelled: cycles.filter((c) => c.status === "cancelled").length,
+  };
+
+  return (
+    <div className="mt-8">
+      {/* Header row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Your cycles</h2>
+
+        {/* Sort controls */}
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-muted-foreground">Sort:</span>
+          {(["started_at", "amount", "reward"] as SortKey[]).map((k) => (
+            <button
+              key={k}
+              onClick={() => toggleSort(k)}
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-md border px-2 py-1 font-medium transition-colors",
+                sortKey === k
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
+              )}
+            >
+              {k === "started_at" ? "Date" : k === "amount" ? "Amount" : "Reward"}
+              {sortKey === k && (
+                <ArrowUpDown className="h-3 w-3" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="mt-3 flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
+        {(["ongoing", "completed", "cancelled"] as FilterTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setFilter(tab); }}
+            className={cn(
+              "flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-colors",
+              filter === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab}{" "}
+            <span className={cn(
+              "ml-0.5 rounded-full px-1.5 py-0.5 text-[10px]",
+              filter === tab ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+            )}>
+              {counts[tab]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Cycle list */}
+      <div className="mt-3 space-y-3">
+        {isLoading && (
+          <>
+            <div className="skeleton h-24 rounded-2xl" />
+            <div className="skeleton h-24 rounded-2xl" />
+          </>
+        )}
+
+        {!isLoading && sorted.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
+            {filter === "ongoing"
+              ? "No active cycles. Lock some Seeds above to get started."
+              : filter === "completed"
+              ? "No completed cycles yet."
+              : "No cancelled cycles."}
+          </div>
+        )}
+
+        {/* Paginated rows */}
+        {!isLoading && pageItems.map((c) => (
+          <CycleCard key={c.id} cycle={c} rate={rate} onReap={() => onReap(c.id)} reaping={reaping} />
+        ))}
+
+        {/* Lazy-load sentinel (only for infinite-scroll alternative) */}
+        <div ref={sentinelRef} />
+      </div>
+
+      {/* Pagination controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-40"
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors",
+                page === p
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+              )}
+            >
+              {p}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-40"
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          <span className="ml-2 text-xs text-muted-foreground">
+            Page {page} of {totalPages} · {sorted.length} cycle{sorted.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── StartCycleDialog ───────────────────────────────────────────────────────
   open,
   onOpenChange,
   booster,
@@ -562,8 +784,8 @@ function CycleCard({ cycle, rate, onReap, reaping }: { cycle: Cycle; rate: numbe
           <div className="flex items-center gap-2">
             <span className="font-medium">{fmt(amount)} Seed</span>
             <span className="text-xs text-muted-foreground">≈ {fmtAmount(seedToUsdt(amount, rate))} USDT</span>
-            <Badge variant={cycle.status === "reaped" ? "secondary" : matured ? "default" : "outline"}>
-              {cycle.status === "reaped" ? "Reaped" : matured ? "Matured" : "Active"}
+            <Badge variant={cycle.status === "reaped" ? "secondary" : cycle.status === "cancelled" ? "outline" : matured ? "default" : "outline"}>
+              {cycle.status === "reaped" ? "Reaped" : cycle.status === "cancelled" ? "Cancelled" : matured ? "Matured" : "Active"}
             </Badge>
             <span className="text-xs text-muted-foreground">+{bpsToPct(cycle.reward_bps)} · {cycle.duration_hours}h</span>
           </div>
@@ -590,6 +812,11 @@ function CycleCard({ cycle, rate, onReap, reaping }: { cycle: Cycle; rate: numbe
             <Button size="sm" variant="outline" disabled>
               Locked
             </Button>
+          )}
+          {cycle.status === "cancelled" && (
+            <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+              Cancelled
+            </span>
           )}
         </div>
       </CardContent>

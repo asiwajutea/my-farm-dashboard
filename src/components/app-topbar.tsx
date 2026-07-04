@@ -42,10 +42,10 @@ export function AppTopbar() {
   const returnPath = useRef<string>("/dashboard");
   const ref = useRef<HTMLDivElement>(null);
 
-  // Live unread badge + recent list, kept fresh by the realtime subscription.
+  // Live unread badge + recent list (capped at 10), kept fresh by realtime subscription.
   useNotificationsRealtime();
   const unreadQ = useUnreadCount();
-  const listQ = useNotificationList(50);
+  const listQ = useNotificationList(10);
   const unread = unreadQ.data ?? 0;
 
   const markReadFn = useServerFn(markNotificationRead);
