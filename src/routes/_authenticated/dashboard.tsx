@@ -141,19 +141,20 @@ function Dashboard() {
               </>
             )}
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-400">
-            <Star className="h-3.5 w-3.5" />
-            {pvQ.isLoading ? "…" : `${pvTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} PV`}
+          {/* PV badge + Start a cycle — both left-aligned so they stack cleanly on mobile */}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-400">
+              <Star className="h-3.5 w-3.5" />
+              {pvQ.isLoading ? "…" : `${pvTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} PV`}
+            </div>
+            <Link
+              to="/farm"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4" />
+              Start a cycle
+            </Link>
           </div>
-          <Link
-            to="/farm"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-          >
-            <Plus className="h-4 w-4" />
-            Start a cycle
-          </Link>
         </div>
       </div>
 

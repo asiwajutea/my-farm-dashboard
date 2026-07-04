@@ -9,7 +9,7 @@
 -- =========================================================
 
 -- 1. Ensure 'welcome' exists in notification_kind enum --------------------
--- (It is already present in notification-meta.ts; this guards the DB side.)
+-- (It is already Thpresent in notification-meta.ts; this guards the DB side.)
 DO $$ BEGIN
   ALTER TYPE public.notification_kind ADD VALUE IF NOT EXISTS 'welcome';
 EXCEPTION WHEN others THEN NULL; END $$;
