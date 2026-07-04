@@ -4,6 +4,9 @@
  * Shown on the dashboard when the user has not yet set up a recovery phrase.
  * Cannot be dismissed without ticking the confirmation checkbox.
  *
+ * Timing: waits 10 s after mount, then acquires the global modal slot.
+ * If another modal is already open, retries every 5 s until the slot is free.
+ *
  * Flow:
  *   Step 1 — Display 12 words in a numbered grid
  *   Step 2 — Confirm the user has written them down
@@ -17,6 +20,11 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { setupRecoveryPhrase } from "@/lib/recovery-phrase.functions";
+import { acquireSlot, releaseSlot } from "@/lib/modal-queue";
+
+const SLOT_ID = "recovery-phrase-nag";
+const INITIAL_DELAY_MS = 10_000;
+const RETRY_INTERVAL_MS = 5_000;
 
 // ── Word list (BIP-39 subset — 256 common English words) ------------------
 // Using a curated subset that is easy to write and remember
@@ -67,6 +75,7 @@ interface Props {
 type Step = "display" | "confirm";
 
 export function RecoveryPhraseNagModal({ onDismiss }: Props) {
+  const [visible, setVisible] = useState(false);
   const [words] = useState<string[]>(() => generateWords());
   const [step, setStep] = useState<Step>("display");
   const [checked, setChecked] = useState(false);
@@ -75,6 +84,29 @@ export function RecoveryPhraseNagModal({ onDismiss }: Props) {
   const [revealed, setRevealed] = useState(false);
   const setupFn = useServerFn(setupRecoveryPhrase);
   const hasSaved = useRef(false);
+  const retryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Wait INITIAL_DELAY_MS, then try to acquire the slot.
+  // Retry every RETRY_INTERVAL_MS if another modal is already open.
+  useEffect(() => {
+    function tryOpen() {
+      if (acquireSlot(SLOT_ID)) {
+        setVisible(true);
+        if (retryRef.current) { clearInterval(retryRef.current); retryRef.current = null; }
+      }
+    }
+
+    const initial = setTimeout(() => {
+      tryOpen();
+      retryRef.current = setInterval(tryOpen, RETRY_INTERVAL_MS);
+    }, INITIAL_DELAY_MS);
+
+    return () => {
+      clearTimeout(initial);
+      if (retryRef.current) clearInterval(retryRef.current);
+      releaseSlot(SLOT_ID);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-reveal on step 2
   useEffect(() => {
@@ -96,6 +128,7 @@ export function RecoveryPhraseNagModal({ onDismiss }: Props) {
     try {
       await setupFn({ data: { words } });
       toast.success("Recovery phrase saved securely.");
+      releaseSlot(SLOT_ID);
       onDismiss();
     } catch (err) {
       hasSaved.current = false;
@@ -104,6 +137,9 @@ export function RecoveryPhraseNagModal({ onDismiss }: Props) {
       setSaving(false);
     }
   };
+
+  // Don't render anything until the slot is acquired
+  if (!visible) return null;
 
   return (
     // Full-screen backdrop — not dismissible by clicking outside

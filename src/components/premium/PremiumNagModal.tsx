@@ -3,17 +3,21 @@
  *
  * Rules:
  * - Only shown to standard (non-premium) members.
- * - Auto-opens 1.8 s after mount unless dismissed within the last 8 hours.
+ * - Waits 15–20 s after mount (random, so it doesn't clash with other modals).
+ * - Will not open while another nag modal is already on screen.
+ * - If the slot is occupied when the timer fires, retries every 5 s.
  * - Dismissal timestamp is persisted in localStorage keyed by `storageKey`.
+ * - Cooldown: 8 hours between appearances.
  * - Once the user upgrades (isStandard becomes false) it closes silently.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { acquireSlot, releaseSlot } from "@/lib/modal-queue";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +45,10 @@ export interface PremiumNagModalProps {
 // ── Cooldown helpers ───────────────────────────────────────────────────────
 
 const COOLDOWN_MS = 8 * 60 * 60 * 1_000; // 8 hours
+/** Initial delay: random between 15 s and 20 s */
+const INITIAL_DELAY_MS = () => 15_000 + Math.random() * 5_000;
+/** How often to retry acquiring the modal slot if occupied */
+const RETRY_INTERVAL_MS = 5_000;
 
 function shouldShow(key: string): boolean {
   try {
@@ -67,23 +75,46 @@ export function PremiumNagModal({
   isStandard,
 }: PremiumNagModalProps) {
   const [open, setOpen] = useState(false);
+  const retryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const slotId = `premium-nag-${storageKey}`;
 
-  // Delay open so page renders first
+  function tryOpen() {
+    if (!shouldShow(storageKey)) return;
+    if (acquireSlot(slotId)) {
+      setOpen(true);
+      if (retryRef.current) { clearInterval(retryRef.current); retryRef.current = null; }
+    }
+  }
+
+  // Wait the initial delay, then try to acquire the slot.
+  // If occupied, keep retrying every RETRY_INTERVAL_MS.
   useEffect(() => {
     if (!isStandard) return;
-    const t = setTimeout(() => {
-      if (shouldShow(storageKey)) setOpen(true);
-    }, 1_800);
-    return () => clearTimeout(t);
-  }, [isStandard, storageKey]);
+    const initial = setTimeout(() => {
+      tryOpen();
+      // Set up retry in case slot was busy
+      retryRef.current = setInterval(tryOpen, RETRY_INTERVAL_MS);
+    }, INITIAL_DELAY_MS());
+
+    return () => {
+      clearTimeout(initial);
+      if (retryRef.current) clearInterval(retryRef.current);
+      // Release the slot if we held it
+      releaseSlot(slotId);
+    };
+  }, [isStandard, storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close silently when user upgrades mid-session
   useEffect(() => {
-    if (!isStandard) setOpen(false);
-  }, [isStandard]);
+    if (!isStandard) {
+      releaseSlot(slotId);
+      setOpen(false);
+    }
+  }, [isStandard, slotId]);
 
   function dismiss() {
     markDismissed(storageKey);
+    releaseSlot(slotId);
     setOpen(false);
   }
 
