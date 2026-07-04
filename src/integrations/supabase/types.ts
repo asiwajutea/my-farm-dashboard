@@ -115,6 +115,9 @@ export type Database = {
           maint_message: string
           maint_mode_global: boolean
           maint_pages: Json
+          maintenance_ref_gen1_pct: number
+          maintenance_ref_gen2_pct: number
+          maintenance_ref_gen3_pct: number
           max_cycle_seed: number
           min_cycle_seed: number
           min_deposit_seed: number
@@ -123,12 +126,26 @@ export type Database = {
           payout_anchor: string
           payout_lock_enabled: boolean
           payout_timezone: string
+          premium_badge_color: string
+          premium_badge_name: string
+          premium_duration_days: number
+          premium_enabled: boolean
+          premium_farming_bonus_pct: number
+          premium_fee_usdt: number
+          premium_maint_gen1_pct: number
+          premium_maint_gen2_pct: number
+          premium_maint_gen3_pct: number
+          premium_withdraw_fee_pct: number
           referral_bonus_pct: number
+          referral_gen2_pct: number
+          referral_gen3_pct: number
           seed_to_usdt: number
           ticker_enabled: boolean
           ticker_items: Json
           updated_at: string
           withdraw_fee_pct: number
+          withdrawal_fee_premium_pct: number
+          withdrawal_fee_standard_pct: number
         }
         Insert: {
           aff_basis?: Database["public"]["Enums"]["aff_basis"]
@@ -146,6 +163,9 @@ export type Database = {
           maint_message?: string
           maint_mode_global?: boolean
           maint_pages?: Json
+          maintenance_ref_gen1_pct?: number
+          maintenance_ref_gen2_pct?: number
+          maintenance_ref_gen3_pct?: number
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -154,12 +174,26 @@ export type Database = {
           payout_anchor?: string
           payout_lock_enabled?: boolean
           payout_timezone?: string
+          premium_badge_color?: string
+          premium_badge_name?: string
+          premium_duration_days?: number
+          premium_enabled?: boolean
+          premium_farming_bonus_pct?: number
+          premium_fee_usdt?: number
+          premium_maint_gen1_pct?: number
+          premium_maint_gen2_pct?: number
+          premium_maint_gen3_pct?: number
+          premium_withdraw_fee_pct?: number
           referral_bonus_pct?: number
+          referral_gen2_pct?: number
+          referral_gen3_pct?: number
           seed_to_usdt?: number
           ticker_enabled?: boolean
           ticker_items?: Json
           updated_at?: string
           withdraw_fee_pct?: number
+          withdrawal_fee_premium_pct?: number
+          withdrawal_fee_standard_pct?: number
         }
         Update: {
           aff_basis?: Database["public"]["Enums"]["aff_basis"]
@@ -177,6 +211,9 @@ export type Database = {
           maint_message?: string
           maint_mode_global?: boolean
           maint_pages?: Json
+          maintenance_ref_gen1_pct?: number
+          maintenance_ref_gen2_pct?: number
+          maintenance_ref_gen3_pct?: number
           max_cycle_seed?: number
           min_cycle_seed?: number
           min_deposit_seed?: number
@@ -185,12 +222,26 @@ export type Database = {
           payout_anchor?: string
           payout_lock_enabled?: boolean
           payout_timezone?: string
+          premium_badge_color?: string
+          premium_badge_name?: string
+          premium_duration_days?: number
+          premium_enabled?: boolean
+          premium_farming_bonus_pct?: number
+          premium_fee_usdt?: number
+          premium_maint_gen1_pct?: number
+          premium_maint_gen2_pct?: number
+          premium_maint_gen3_pct?: number
+          premium_withdraw_fee_pct?: number
           referral_bonus_pct?: number
+          referral_gen2_pct?: number
+          referral_gen3_pct?: number
           seed_to_usdt?: number
           ticker_enabled?: boolean
           ticker_items?: Json
           updated_at?: string
           withdraw_fee_pct?: number
+          withdrawal_fee_premium_pct?: number
+          withdrawal_fee_standard_pct?: number
         }
         Relationships: []
       }
@@ -643,6 +694,39 @@ export type Database = {
         }
         Relationships: []
       }
+      premium_upgrades: {
+        Row: {
+          activated_at: string
+          amount_usdt: number
+          created_at: string
+          expires_at: string
+          granted_by: string | null
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          amount_usdt: number
+          created_at?: string
+          expires_at: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          amount_usdt?: number
+          created_at?: string
+          expires_at?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -651,9 +735,16 @@ export type Database = {
           created_at: string
           display_name: string | null
           frozen: boolean
+          has_recovery_phrase: boolean
           id: string
+          is_premium: boolean | null
           kyc_status: Database["public"]["Enums"]["kyc_status"]
+          membership_tier: Database["public"]["Enums"]["membership_tier"]
           phone: string | null
+          premium_activated_at: string | null
+          premium_badge: string | null
+          premium_expires_at: string | null
+          premium_fee_paid: number | null
           referral_code: string | null
           referred_by: string | null
           updated_at: string
@@ -666,9 +757,16 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           frozen?: boolean
+          has_recovery_phrase?: boolean
           id: string
+          is_premium?: boolean | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          membership_tier?: Database["public"]["Enums"]["membership_tier"]
           phone?: string | null
+          premium_activated_at?: string | null
+          premium_badge?: string | null
+          premium_expires_at?: string | null
+          premium_fee_paid?: number | null
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
@@ -681,9 +779,16 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           frozen?: boolean
+          has_recovery_phrase?: boolean
           id?: string
+          is_premium?: boolean | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          membership_tier?: Database["public"]["Enums"]["membership_tier"]
           phone?: string | null
+          premium_activated_at?: string | null
+          premium_badge?: string | null
+          premium_expires_at?: string | null
+          premium_fee_paid?: number | null
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
@@ -799,6 +904,67 @@ export type Database = {
           seed_to_usdt?: number
         }
         Relationships: []
+      }
+      recovery_phrase_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          ip_hash: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          ip_hash?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          ip_hash?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recovery_phrase_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recovery_phrases: {
+        Row: {
+          created_at: string
+          id: string
+          phrase_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phrase_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phrase_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recovery_phrases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_passcodes: {
         Row: {
@@ -974,6 +1140,11 @@ export type Database = {
         Args: { p_cycle_id: string }
         Returns: undefined
       }
+      admin_grant_premium: {
+        Args: { _days?: number; _note?: string; _user_id: string }
+        Returns: undefined
+      }
+      admin_premium_metrics: { Args: never; Returns: Json }
       admin_review_kyc: {
         Args: { p_approve: boolean; p_id: string; p_note?: string }
         Returns: undefined
@@ -987,6 +1158,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_revoke_premium: { Args: { _user_id: string }; Returns: undefined }
       admin_run_monthly_maintenance: { Args: never; Returns: number }
       admin_set_booster_active: {
         Args: { p_active: boolean; p_id: string }
@@ -1077,6 +1249,7 @@ export type Database = {
         Args: { p_id: string; p_release: boolean; p_resolution?: string }
         Returns: undefined
       }
+      expire_premium_memberships: { Args: never; Returns: number }
       farming_to_primary: {
         Args: { p_amount_seed: number }
         Returns: undefined
@@ -1092,6 +1265,12 @@ export type Database = {
         }[]
       }
       fmt_seed: { Args: { p_amount: number }; Returns: string }
+      fn_distribute_maintenance_refs: {
+        Args: { p_fee_id: string }
+        Returns: undefined
+      }
+      fn_expire_premium: { Args: never; Returns: number }
+      fn_upgrade_to_premium: { Args: { p_user_id: string }; Returns: undefined }
       generate_referral_code: { Args: never; Returns: string }
       get_my_downline_counts: {
         Args: never
@@ -1127,6 +1306,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      is_premium: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
       kyc_submit: {
         Args: {
@@ -1178,6 +1358,7 @@ export type Database = {
         Args: { p_amount_usdt: number }
         Returns: undefined
       }
+      upgrade_to_premium: { Args: never; Returns: Json }
       wallet_adjust: {
         Args: {
           p_amount: number
@@ -1242,7 +1423,10 @@ export type Database = {
         | "affiliate_commission"
         | "maintenance_fee"
         | "farming_to_primary"
+        | "premium_upgrade"
+        | "maintenance_ref_reward"
       maintenance_status: "due" | "paid" | "waived" | "overdue"
+      membership_tier: "standard" | "premium" | "gold" | "platinum"
       notification_kind:
         | "cycle_matured"
         | "cycle_reaped"
@@ -1274,6 +1458,9 @@ export type Database = {
         | "transfer_to_farming"
         | "pv_earned"
         | "transfer_to_primary"
+        | "premium_activated"
+        | "premium_expired"
+        | "premium_expiring"
       request_status: "pending" | "approved" | "rejected"
       transfer_status: "completed" | "failed"
       wallet_kind: "primary" | "farming"
@@ -1443,8 +1630,11 @@ export const Constants = {
         "affiliate_commission",
         "maintenance_fee",
         "farming_to_primary",
+        "premium_upgrade",
+        "maintenance_ref_reward",
       ],
       maintenance_status: ["due", "paid", "waived", "overdue"],
+      membership_tier: ["standard", "premium", "gold", "platinum"],
       notification_kind: [
         "cycle_matured",
         "cycle_reaped",
@@ -1476,6 +1666,9 @@ export const Constants = {
         "transfer_to_farming",
         "pv_earned",
         "transfer_to_primary",
+        "premium_activated",
+        "premium_expired",
+        "premium_expiring",
       ],
       request_status: ["pending", "approved", "rejected"],
       transfer_status: ["completed", "failed"],
