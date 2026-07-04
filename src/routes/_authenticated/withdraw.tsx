@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpFromLine, CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestForm, useSeedRate } from "@/components/wallet/RequestForm";
 import { RequestsHistory } from "@/components/wallet/RequestsHistory";
@@ -12,6 +13,7 @@ import {
 import { usePayoutLock } from "@/hooks/use-payout-lock";
 import { fmtAmount } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getPremiumStatus } from "@/lib/premium.functions";
 
 export const Route = createFileRoute("/_authenticated/withdraw")({
   head: () => ({ meta: [{ title: "Withdraw · VFarmers" }] }),
@@ -37,6 +39,24 @@ function useAvailableBalance() {
   });
 }
 
+/** Fetch withdrawal_fee_standard_pct directly from app_settings (public config). */
+function useStandardFeePct() {
+  return useQuery({
+    queryKey: ["withdrawal-fee-standard-pct"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("withdrawal_fee_standard_pct")
+        .eq("id", true)
+        .maybeSingle();
+      return data?.withdrawal_fee_standard_pct != null
+        ? Number(data.withdrawal_fee_standard_pct)
+        : 5; // default from migration
+    },
+    staleTime: 30_000,
+  });
+}
+
 function WithdrawPage() {
   const { data } = useAvailableBalance();
   const { data: rate = 1 } = useSeedRate();
@@ -45,6 +65,25 @@ function WithdrawPage() {
   const availableUsdt = data?.available ?? 0;
   const availableSeedDisplay = rate > 0 ? availableUsdt / rate : 0;
   const locked = lock?.locked ?? false;
+
+  const getPremiumStatusFn = useServerFn(getPremiumStatus);
+  const { data: premiumStatus } = useQuery({
+    queryKey: ["premium-status"],
+    queryFn: () => getPremiumStatusFn(),
+    staleTime: 30_000,
+  });
+  const { data: standardFeePct = 5 } = useStandardFeePct();
+
+  // Determine whether the user has active premium
+  const isPremiumActive =
+    !!premiumStatus &&
+    premiumStatus.tier !== "standard" &&
+    premiumStatus.days_left > 0;
+
+  // Pick the applicable fee percentage (Requirements 8.4–8.7)
+  const feePct = isPremiumActive
+    ? (premiumStatus?.benefits.withdrawal_fee_premium_pct ?? 0)
+    : standardFeePct;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
@@ -97,6 +136,7 @@ function WithdrawPage() {
                 minUsdt={1}
                 availableUsdt={availableUsdt}
                 hint="Withdrawals are reviewed by the admin team."
+                feePct={feePct}
               />
               {lock && <PayoutScheduleHint state={lock} />}
             </div>

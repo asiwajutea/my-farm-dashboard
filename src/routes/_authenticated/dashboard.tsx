@@ -7,6 +7,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listMyCycles, reapCycleFn, type Cycle } from "@/lib/farm.functions";
 import { getMyPvSummary } from "@/lib/pv.functions";
+import { getPremiumStatus, getPremiumConfig } from "@/lib/premium.functions";
+import PremiumBadge from "@/components/premium/PremiumBadge";
+import UpgradeCTA from "@/components/premium/UpgradeCTA";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtAmount, seedToUsdt } from "@/lib/currency";
@@ -31,6 +34,8 @@ function Dashboard() {
   const fnCycles = useServerFn(listMyCycles);
   const fnReap = useServerFn(reapCycleFn);
   const fnPv = useServerFn(getMyPvSummary);
+  const fnPremiumStatus = useServerFn(getPremiumStatus);
+  const fnPremiumConfig = useServerFn(getPremiumConfig);
 
   const cyclesQ = useQuery({
     queryKey: ["dashboard-cycles"],
@@ -40,6 +45,14 @@ function Dashboard() {
   const pvQ = useQuery({
     queryKey: ["my-pv"],
     queryFn: () => fnPv(),
+  });
+  const premiumStatusQ = useQuery({
+    queryKey: ["premium-status"],
+    queryFn: () => fnPremiumStatus(),
+  });
+  const premiumConfigQ = useQuery({
+    queryKey: ["premium-config"],
+    queryFn: () => fnPremiumConfig(),
   });
   const pvTotal = pvQ.data?.total ?? 0;
   const activeCycles = (cyclesQ.data ?? []).filter(
@@ -102,6 +115,22 @@ function Dashboard() {
           <p className="mt-1 text-sm text-muted-foreground">
             Your wallets and farming cycles, all in one place.
           </p>
+          {/* Premium badge or upgrade CTA — Requirements 9.1–9.3 */}
+          {premiumStatusQ.data && (
+            premiumStatusQ.data.tier !== "standard" && premiumStatusQ.data.days_left > 0 ? (
+              <div className="mt-2">
+                <PremiumBadge
+                  name={premiumStatusQ.data.badge_name}
+                  color={premiumStatusQ.data.badge_color}
+                />
+              </div>
+            ) : (
+              <UpgradeCTA
+                premiumFeeUsdt={premiumConfigQ.data?.premium_fee_usdt ?? 12}
+                className="mt-4 max-w-sm"
+              />
+            )
+          )}
         </div>
         <div className="flex flex-col items-end gap-3">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-400">

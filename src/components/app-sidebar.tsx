@@ -1,5 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   LayoutDashboard,
   Wallet,
@@ -15,6 +17,7 @@ import {
   Shield,
   Users,
   ChevronDown,
+  Crown,
 } from "lucide-react";
 
 import logo from "@/assets/vfarm-logo.png";
@@ -31,6 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { getPremiumStatus } from "@/lib/premium.functions";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -64,6 +68,18 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: adminData } = useIsAdmin();
   const isAdmin = adminData?.isAdmin === true;
+
+  // Premium status — determines whether to show "Upgrade to Premium" in the Earn group
+  const premiumStatusFn = useServerFn(getPremiumStatus);
+  const { data: premiumStatus } = useQuery({
+    queryKey: ["premium-status"],
+    queryFn: () => premiumStatusFn(),
+    staleTime: 60_000,
+  });
+  const showUpgradeLink =
+    !premiumStatus ||
+    premiumStatus.tier === "standard" ||
+    premiumStatus.days_left <= 0;
 
   const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
 
@@ -143,7 +159,13 @@ export function AppSidebar() {
       <div className="relative flex min-h-0 flex-1 flex-col">
         <SidebarContent ref={scrollRef} onScroll={updateScrollState}>
           {renderGroup("Wallet", wallet)}
-          {renderGroup("Earn", earn)}
+          {/* Earn group: inject "Upgrade to Premium" for standard/expired users — Req 10.1–10.5 */}
+          {renderGroup("Earn", [
+            ...earn,
+            ...(showUpgradeLink
+              ? [{ title: "Upgrade to Premium", url: "/upgrade", icon: Crown } as const]
+              : []),
+          ])}
           {renderGroup("Transfer", transfer)}
           {renderGroup("Account", account)}
           {isAdmin && renderGroup("Admin", [

@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Coins, TrendingUp, ExternalLink } from "lucide-react";
+import { Users, Coins, TrendingUp, ExternalLink, Lock } from "lucide-react";
 import { useState } from "react";
 import { getMyAffiliateSummary, getMyDownlines } from "@/lib/affiliate.functions";
+import { getPremiumStatus, getPremiumConfig } from "@/lib/premium.functions";
+import UpgradeCTA from "@/components/premium/UpgradeCTA";
 import { ShareLink } from "@/components/affiliate/ShareLink";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loadable } from "@/components/ui/loadable";
@@ -17,11 +19,22 @@ export const Route = createFileRoute("/_authenticated/affiliate/")({
 function AffiliatePage() {
   const sumFn = useServerFn(getMyAffiliateSummary);
   const dlFn = useServerFn(getMyDownlines);
+  const premiumStatusFn = useServerFn(getPremiumStatus);
+  const premiumConfigFn = useServerFn(getPremiumConfig);
 
   const summary = useQuery({ queryKey: ["aff-sum"], queryFn: () => sumFn() });
   const downlines = useQuery({ queryKey: ["aff-dl"], queryFn: () => dlFn() });
+  const premiumStatus = useQuery({ queryKey: ["premium-status"], queryFn: () => premiumStatusFn() });
+  const premiumConfig = useQuery({ queryKey: ["premium-config"], queryFn: () => premiumConfigFn() });
 
   const [genTab, setGenTab] = useState<1 | 2 | 3>(1);
+
+  const isActivePremium =
+    !!premiumStatus.data &&
+    premiumStatus.data.tier !== "standard" &&
+    premiumStatus.data.days_left > 0;
+
+  const feeUsdt = premiumConfig.data?.premium_fee_usdt ?? 12;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-5">
@@ -34,12 +47,16 @@ function AffiliatePage() {
         <Stat icon={Coins} label="Total earned" loading={summary.isLoading} value={summary.data ? summary.data.totalEarned.toFixed(2) + " Seed" : "—"} />
         <Stat icon={TrendingUp} label="This month" loading={summary.isLoading} value={summary.data ? summary.data.monthEarned.toFixed(2) + " Seed" : "—"} />
         <Stat icon={Users} label="Direct (Gen 1)" loading={summary.isLoading} value={summary.data ? String(summary.data.gen1Count) : "—"} />
-        <Stat
-          icon={Users}
-          label="Network (Gen 2 + 3)"
-          loading={summary.isLoading}
-          value={summary.data ? String(summary.data.gen2Count + summary.data.gen3Count) : "—"}
-        />
+        {isActivePremium ? (
+          <Stat
+            icon={Users}
+            label="Network (Gen 2 + 3)"
+            loading={summary.isLoading}
+            value={summary.data ? String(summary.data.gen2Count + summary.data.gen3Count) : "—"}
+          />
+        ) : (
+          <LockedStat label="Network (Gen 2 + 3)" />
+        )}
       </div>
 
       {summary.data?.referralCode && <ShareLink code={summary.data.referralCode} />}
@@ -56,36 +73,50 @@ function AffiliatePage() {
               View details
             </Link>
             <div className="flex gap-1 rounded-lg border border-border bg-background/60 p-0.5 text-xs">
-              {[1, 2, 3].map((g) => (
+              {([1, 2, 3] as const).map((g) => (
                 <button
                   key={g}
-                  onClick={() => setGenTab(g as 1 | 2 | 3)}
-                  className={`rounded-md px-3 py-1 ${
+                  onClick={() => setGenTab(g)}
+                  disabled={!isActivePremium && g !== 1}
+                  title={!isActivePremium && g !== 1 ? "Upgrade to Premium to unlock Gen 2 & 3" : undefined}
+                  className={`rounded-md px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed ${
                     genTab === g ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  Gen {g}
+                  {!isActivePremium && g !== 1 ? <Lock className="inline h-3 w-3 mr-0.5" /> : null}Gen {g}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="mt-3 space-y-2">
-          <Loadable loading={downlines.isLoading} skeleton={<SimpleRowsSkeleton rows={3} />}>
-            {downlines.data?.filter((d) => d.generation === genTab).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No farmers in this generation yet.</p>
-            ) : (
-              downlines.data
-                ?.filter((d) => d.generation === genTab)
-                .map((d) => (
-                  <div key={d.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm">
-                    <span>{d.display_name || d.username || "Farmer"}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</span>
-                  </div>
-                ))
-            )}
-          </Loadable>
-        </div>
+
+        {/* Locked state for Gen 2/3 when not premium — Requirements 6.8–6.9 */}
+        {!isActivePremium && genTab !== 1 ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Lock className="h-4 w-4 shrink-0" />
+              Generation {genTab} commissions are only available to Premium members.
+            </p>
+            <UpgradeCTA premiumFeeUsdt={feeUsdt} className="max-w-md" />
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <Loadable loading={downlines.isLoading} skeleton={<SimpleRowsSkeleton rows={3} />}>
+              {downlines.data?.filter((d) => d.generation === genTab).length === 0 ? (
+                <p className="text-xs text-muted-foreground">No farmers in this generation yet.</p>
+              ) : (
+                downlines.data
+                  ?.filter((d) => d.generation === genTab)
+                  .map((d) => (
+                    <div key={d.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm">
+                      <span>{d.display_name || d.username || "Farmer"}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</span>
+                    </div>
+                  ))
+              )}
+            </Loadable>
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-border bg-card/40 p-5">
@@ -120,6 +151,22 @@ function Stat({ icon: Icon, label, value, loading }: { icon: React.ComponentType
       ) : (
         <div className="animate-fade-in mt-1 text-xl font-semibold">{value}</div>
       )}
+    </div>
+  );
+}
+
+/** Locked stat tile shown for Gen 2/3 when the user is not active premium. */
+function LockedStat({ label }: { label: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/40 p-4 opacity-60">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Lock className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 text-xl font-semibold text-muted-foreground">
+        —
+        <span className="text-[10px] uppercase tracking-wide font-medium">Premium only</span>
+      </div>
     </div>
   );
 }

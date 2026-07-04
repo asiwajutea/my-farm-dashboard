@@ -11,6 +11,7 @@ const links = [
   { to: "/admin/maintenance", label: "Maintenance", desc: "Block pages or the site", icon: Wrench },
   { to: "/admin/coupons", label: "Coupons", desc: "Create & disable", icon: Ticket },
   { to: "/admin/pv", label: "Points (PV)", desc: "Configure activity rewards", icon: Star },
+  { to: "/admin/premium", label: "Premium", desc: "Membership settings & metrics", icon: Shield },
   { to: "/admin/audit", label: "Audit Log", desc: "All admin actions", icon: FileText },
 ] as const;
 

@@ -17,6 +17,8 @@ import {
   FileCheck,
   ArrowRightLeft,
   Star,
+  Clock,
+  BadgeX,
   type LucideIcon,
 } from "lucide-react";
 
@@ -62,6 +64,9 @@ const META: Record<NotificationKind, Meta> = {
   email_verified: { icon: MailCheck, tone: "text-emerald-400 bg-emerald-400/15", to: "/profile" },
   pv_earned: { icon: Star, tone: "text-amber-400 bg-amber-400/15", to: "/history" },
   transfer_to_primary: { icon: ArrowRightLeft, tone: "text-primary bg-primary/15", to: "/wallet" },
+  premium_activated: { icon: Star, tone: "text-amber-400 bg-amber-400/15", to: "/upgrade" },
+  premium_expiring: { icon: Clock, tone: "text-amber-400 bg-amber-400/15", to: "/upgrade" },
+  premium_expired: { icon: BadgeX, tone: "text-muted-foreground bg-muted", to: "/upgrade" },
   system: { icon: Bell, tone: "text-muted-foreground bg-muted" },
 };
 

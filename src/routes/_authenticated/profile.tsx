@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { PRESET_AVATARS, findPresetAvatar } from "@/lib/avatars";
 import { checkUsernameAvailable } from "@/lib/profile.functions";
+import { getPremiumStatus, type PremiumStatus } from "@/lib/premium.functions";
+import PremiumBadge from "@/components/premium/PremiumBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileHeaderSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { COUNTRIES, COUNTRY_BY_CODE, detectCountry, findCountryByName, type Country } from "@/lib/countries";
@@ -54,9 +56,11 @@ function splitPhone(stored: string | null): { dial: string; local: string } {
 function ProfilePage() {
   const router = useRouter();
   const checkUsernameFn = useServerFn(checkUsernameAvailable);
+  const getPremiumStatusFn = useServerFn(getPremiumStatus);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -127,6 +131,13 @@ function ProfilePage() {
         }
       }
       setLoading(false);
+      // Fetch premium status independently so a failure doesn't block profile load.
+      try {
+        const status = await getPremiumStatusFn();
+        setPremiumStatus(status);
+      } catch {
+        // Premium status is non-critical; silently ignore errors.
+      }
     })();
   }, []);
 
@@ -329,6 +340,48 @@ function ProfilePage() {
                 <kycMeta.icon className={`h-3.5 w-3.5 ${kyc === "pending" ? "animate-spin" : ""}`} />
                 {kycMeta.label}
               </div>
+
+              {/* Premium badge — shown only for non-standard members (Requirements 9.4–9.6) */}
+              {premiumStatus && premiumStatus.tier !== 'standard' && (
+                <div className="mt-2 flex items-center gap-2">
+                  {premiumStatus.days_left > 0 ? (
+                    <>
+                      <PremiumBadge
+                        name={premiumStatus.badge_name}
+                        color={premiumStatus.badge_color}
+                      />
+                      {premiumStatus.expires_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Expires{" "}
+                          {new Date(premiumStatus.expires_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <PremiumBadge
+                        name={premiumStatus.badge_name}
+                        color={premiumStatus.badge_color}
+                        expired={true}
+                      />
+                      {premiumStatus.expires_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Expired{" "}
+                          {new Date(premiumStatus.expires_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             {profile?.referral_code && (
               <button
