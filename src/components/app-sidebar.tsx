@@ -18,6 +18,7 @@ import {
   Users,
   ChevronDown,
   Crown,
+  Trophy,
 } from "lucide-react";
 
 import logo from "@/assets/vfarm-logo.png";
@@ -58,6 +59,7 @@ const transfer: Item[] = [
 
 const account: Item[] = [
   { title: "Profile", url: "/profile", icon: UserCircle },
+  { title: "Achievements", url: "/achievements", icon: Trophy },
   { title: "Verify", url: "/verify", icon: ShieldCheck },
   { title: "Notifications", url: "/notifications", icon: Bell },
 ];
