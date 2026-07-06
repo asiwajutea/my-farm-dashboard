@@ -141,6 +141,98 @@ export const getMyDownlines = createServerFn({ method: "GET" })
     }));
   });
 
+// ── Premium downline counts for time-windowed achievements ──────────────────
+// Returns Gen 1 and total downline members whose membership_tier is premium
+// and premium_activated_at falls within a given number of days.
+// This powers the "50 premium Gen 1 within 3 months" family of achievements.
+
+export type PremiumDownlineWindow = {
+  /** Premium Gen 1 referrals activated within the window */
+  premiumGen1InWindow: number;
+  /** Premium members across all generations activated within the window */
+  premiumNetworkInWindow: number;
+  /** Best (highest) rolling 90-day window count for Gen 1 premium referrals */
+  bestGen1Window: number;
+  /** Best rolling 90-day window count for total premium network */
+  bestNetworkWindow: number;
+};
+
+export const getPremiumDownlineWindow = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PremiumDownlineWindow> => {
+    const { supabase, userId } = context;
+
+    // Fetch all downlines
+    const { data: dlRows, error: dlErr } = await supabase.rpc("get_my_downlines");
+    if (dlErr) throw new Error(dlErr.message);
+    const downlines = dlRows ?? [];
+    if (downlines.length === 0) {
+      return { premiumGen1InWindow: 0, premiumNetworkInWindow: 0, bestGen1Window: 0, bestNetworkWindow: 0 };
+    }
+
+    // Fetch premium status for all downline members
+    const memberIds = downlines.map((d: { id: string }) => d.id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, membership_tier, premium_activated_at")
+      .in("id", memberIds);
+
+    const profileMap = new Map(
+      (profiles ?? []).map((p) => [p.id, p])
+    );
+
+    // Build a list of premium activation timestamps per generation
+    type PremiumEvent = { generation: number; activatedAt: Date };
+    const events: PremiumEvent[] = [];
+
+    for (const dl of downlines) {
+      const prof = profileMap.get(dl.id);
+      if (!prof) continue;
+      if (prof.membership_tier !== "premium" && prof.membership_tier !== "gold" && prof.membership_tier !== "platinum") continue;
+      if (!prof.premium_activated_at) continue;
+      events.push({
+        generation: dl.generation,
+        activatedAt: new Date(prof.premium_activated_at),
+      });
+    }
+
+    const WINDOW_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+    const now = Date.now();
+
+    // Current window: last 90 days from now
+    const windowStart = new Date(now - WINDOW_MS);
+    const premiumGen1InWindow = events.filter(
+      (e) => e.generation === 1 && e.activatedAt >= windowStart,
+    ).length;
+    const premiumNetworkInWindow = events.filter(
+      (e) => e.activatedAt >= windowStart,
+    ).length;
+
+    // Best rolling window: find the 90-day interval that contains the most events
+    // (sliding window over all event timestamps)
+    function bestWindow(timestamps: Date[]): number {
+      if (timestamps.length === 0) return 0;
+      const sorted = timestamps.map((d) => d.getTime()).sort((a, b) => a - b);
+      let best = 0;
+      for (let i = 0; i < sorted.length; i++) {
+        const windowEnd = sorted[i] + WINDOW_MS;
+        const count = sorted.filter((t) => t >= sorted[i] && t <= windowEnd).length;
+        if (count > best) best = count;
+      }
+      return best;
+    }
+
+    const gen1Timestamps = events.filter((e) => e.generation === 1).map((e) => e.activatedAt);
+    const allTimestamps = events.map((e) => e.activatedAt);
+
+    return {
+      premiumGen1InWindow,
+      premiumNetworkInWindow,
+      bestGen1Window: bestWindow(gen1Timestamps),
+      bestNetworkWindow: bestWindow(allTimestamps),
+    };
+  });
+
 // ---------------------------------------------------------------------------
 // Downline Network Report — detailed per-member stats for the report page
 // ---------------------------------------------------------------------------
