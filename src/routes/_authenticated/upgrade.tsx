@@ -296,7 +296,7 @@ function UpgradePage() {
                   <span className={row.standard === false ? "text-muted-foreground/50 line-through" : ""}>
                     {row.label}
                   </span>
-                  {row.standard && row.standard !== true && (
+                  {row.standard && (
                     <div className="text-xs text-muted-foreground">{row.standard}</div>
                   )}
                 </div>

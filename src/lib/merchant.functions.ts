@@ -44,9 +44,9 @@ export const registerMerchant = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("register_merchant", {
       p_business_name: data.businessName,
       p_contact_name:  data.contactName,
-      p_phone:   data.phone ?? null,
-      p_city:    data.city ?? null,
-      p_country: data.country ?? null,
+      p_phone:   data.phone ?? undefined,
+      p_city:    data.city ?? undefined,
+      p_country: data.country ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -148,7 +148,7 @@ export const merchantTransferToFarmer = createServerFn({ method: "POST" })
     const { data: id, error } = await context.supabase.rpc("merchant_transfer_to_farmer", {
       p_farmer_id:   data.farmerId,
       p_amount_usdt: data.amountUsdt,
-      p_note:        data.note ?? null,
+      p_note:        data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { id: id as unknown as string };

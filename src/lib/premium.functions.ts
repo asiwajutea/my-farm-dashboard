@@ -417,10 +417,16 @@ async function premiumAdminDb() {
 
 // Reusable admin guard — throws "Admin only" when the caller lacks the role.
 async function ensurePremiumAdmin(
-  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
+  supabase: unknown,
   userId: string,
 ): Promise<void> {
-  const { data, error } = await supabase.rpc("has_role", {
+  // Loose typing here — this helper accepts either the request-scoped
+  // Supabase client (typed) or the admin client, so we bypass the
+  // narrower rpc arg inference.
+  const client = supabase as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const { data, error } = await client.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
   });
@@ -440,22 +446,23 @@ const ADMIN_SETTINGS_COLUMNS =
 export const adminGetPremiumSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PremiumAdminSettings> => {
-    await ensurePremiumAdmin(context.supabase as Parameters<typeof ensurePremiumAdmin>[0], context.userId);
+    await ensurePremiumAdmin(context.supabase, context.userId);
     const sb = await premiumAdminDb();
-    const { data, error } = await sb
+    const { data: raw, error } = await sb
       .from("app_settings")
       .select(ADMIN_SETTINGS_COLUMNS)
       .eq("id", true)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!data) throw new Error("Settings not found");
+    if (!raw) throw new Error("Settings not found");
+    const data = raw as unknown as Record<string, unknown>;
     return {
       // PremiumConfig fields
-      premium_enabled: data.premium_enabled ?? true,
+      premium_enabled: (data.premium_enabled as boolean | null) ?? true,
       premium_fee_usdt: Number(data.premium_fee_usdt),
       premium_duration_days: Number(data.premium_duration_days),
-      premium_badge_name: data.premium_badge_name ?? "Premium Farmer",
-      premium_badge_color: data.premium_badge_color ?? "#F5C518",
+      premium_badge_name: (data.premium_badge_name as string | null) ?? "Premium Farmer",
+      premium_badge_color: (data.premium_badge_color as string | null) ?? "#F5C518",
       premium_farming_bonus_pct: Number(data.premium_farming_bonus_pct),
       referral_gen2_pct: Number(data.referral_gen2_pct),
       referral_gen3_pct: Number(data.referral_gen3_pct),
@@ -522,10 +529,7 @@ export const adminUpdatePremiumSettings = createServerFn({ method: "POST" })
       data,
       context,
     }): Promise<{ ok: true } | { errors: SettingsValidationError[] }> => {
-      await ensurePremiumAdmin(
-        context.supabase as Parameters<typeof ensurePremiumAdmin>[0],
-        context.userId,
-      );
+      await ensurePremiumAdmin(context.supabase, context.userId);
 
       // Validate first — no DB write if any field is invalid.
       const validationErrors = validatePremiumSettingsInput(data);
@@ -562,7 +566,7 @@ export const adminUpdatePremiumSettings = createServerFn({ method: "POST" })
         action: "premium_settings_updated",
         target_type: "app_settings",
         target_id: null,
-        detail: data as unknown as Record<string, unknown>,
+        detail: data as never,
       });
 
       return { ok: true };
@@ -704,8 +708,6 @@ export const adminGrantPremium = createServerFn({ method: "POST" })
     const { error: upgradeError } = await sb.from("premium_upgrades").insert({
       user_id: data.userId,
       amount_usdt: 0,
-      paid_from_wallet: "primary",
-      tier: "premium",
       activated_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
     });
