@@ -1444,7 +1444,7 @@ export type Database = {
     Enums: {
       aff_basis: "profit" | "profit_plus_capital"
       affiliate_source: "cycle" | "maintenance"
-      app_role: "...existing_values..." | "farmer" | "admin"
+      app_role: "...existing_values..." | "farmer" | "admin" | "merchant"
       cycle_status: "active" | "matured" | "reaped" | "cancelled"
       escrow_status:
         | "pending"
@@ -1650,7 +1650,7 @@ export const Constants = {
     Enums: {
       aff_basis: ["profit", "profit_plus_capital"],
       affiliate_source: ["cycle", "maintenance"],
-      app_role: ["...existing_values...", "farmer", "admin"],
+      app_role: ["...existing_values...", "farmer", "admin", "merchant"],
       cycle_status: ["active", "matured", "reaped", "cancelled"],
       escrow_status: [
         "pending",
