@@ -76,6 +76,8 @@ interface Props {
   /** Available primary-wallet balance in USDT (primary wallet is now USDT-denominated). */
   availableUsdt?: number;
   hint?: string;
+  /** Optional fee percentage applied on withdrawal (display / calc). */
+  feePct?: number;
 }
 
 export function RequestForm({ type, minUsdt = 0, availableUsdt, hint }: Props) {
