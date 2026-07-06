@@ -625,6 +625,39 @@ export type Database = {
           },
         ]
       }
+      merchant_profiles: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string
+          country: string | null
+          created_at: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name: string
+          country?: string | null
+          created_at?: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -1201,6 +1234,19 @@ export type Database = {
         Args: { _days?: number; _note?: string; _user_id: string }
         Returns: undefined
       }
+      admin_list_merchants: {
+        Args: never
+        Returns: {
+          business_name: string
+          city: string
+          contact_name: string
+          country: string
+          created_at: string
+          id: string
+          phone: string
+          primary_balance: number
+        }[]
+      }
       admin_premium_metrics: { Args: never; Returns: Json }
       admin_review_kyc: {
         Args: { p_approve: boolean; p_id: string; p_note?: string }
@@ -1363,6 +1409,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      is_merchant: { Args: { uid: string }; Returns: boolean }
       is_premium: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
       kyc_submit: {
@@ -1385,6 +1432,10 @@ export type Database = {
       }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      merchant_transfer_to_farmer: {
+        Args: { p_amount_usdt: number; p_farmer_id: string; p_note?: string }
+        Returns: string
+      }
       notify_user: {
         Args: {
           p_body?: string
@@ -1407,6 +1458,16 @@ export type Database = {
       pay_maintenance_fee: { Args: { p_fee_id: string }; Returns: undefined }
       reap_cycle: { Args: { p_cycle_id: string }; Returns: undefined }
       redeem_coupon: { Args: { p_code: string }; Returns: string }
+      register_merchant: {
+        Args: {
+          p_business_name: string
+          p_city?: string
+          p_contact_name: string
+          p_country?: string
+          p_phone?: string
+        }
+        Returns: undefined
+      }
       start_cycle: {
         Args: { p_amount: number; p_booster_id: string }
         Returns: string
