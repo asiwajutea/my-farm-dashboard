@@ -359,6 +359,13 @@ function AchievementsPage() {
   const totalPoints = achievements
     .filter((a) => a.progress >= a.target)
     .reduce((s, a) => s + tierPoints(a.tier), 0);
+
+  // Claimable totals — sum of all enabled reward configs
+  const allRewards = rewardsQ.data ?? [];
+  const totalClaimablePv   = allRewards.filter((r) => r.enabled).reduce((s, r) => s + r.pv_reward,   0);
+  const totalClaimableUsdt = allRewards.filter((r) => r.enabled).reduce((s, r) => s + r.usdt_reward, 0);
+  const claimedPv   = allRewards.filter((r) => r.claimed).reduce((s, r) => s + r.pv_reward,   0);
+  const claimedUsdt = allRewards.filter((r) => r.claimed).reduce((s, r) => s + r.usdt_reward, 0);
   const level = Math.max(1, Math.floor(totalPoints / 100) + 1);
   const nextLevelPoints = level * 100;
   const prevLevelPoints = (level - 1) * 100;
@@ -414,6 +421,54 @@ function AchievementsPage() {
                 <span className="font-semibold text-foreground">{totalPoints}</span>
               </span>
             </div>
+
+            {/* Reward progress bars */}
+            {totalClaimablePv + totalClaimableUsdt > 0 && (
+              <div className="mt-4 space-y-2.5 rounded-2xl border border-border/50 bg-card/30 px-4 py-3">
+                {/* PV */}
+                {totalClaimablePv > 0 && (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Star className="h-3 w-3 text-amber-400" />
+                        PV Rewards
+                      </div>
+                      <span>
+                        <span className="font-semibold text-foreground">{claimedPv.toLocaleString()}</span>
+                        <span className="text-muted-foreground"> of {totalClaimablePv.toLocaleString()} PV claimed</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700"
+                        style={{ width: `${Math.min(100, totalClaimablePv > 0 ? (claimedPv / totalClaimablePv) * 100 : 0)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* USDT */}
+                {totalClaimableUsdt > 0 && (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Wallet className="h-3 w-3 text-emerald-400" />
+                        USDT Rewards
+                      </div>
+                      <span>
+                        <span className="font-semibold text-foreground">${claimedUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-muted-foreground"> of ${totalClaimableUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} claimed</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-primary transition-all duration-700"
+                        style={{ width: `${Math.min(100, totalClaimableUsdt > 0 ? (claimedUsdt / totalClaimableUsdt) * 100 : 0)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Level ring */}
           <div className="flex items-center gap-4">
