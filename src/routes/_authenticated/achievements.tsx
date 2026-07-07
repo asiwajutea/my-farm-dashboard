@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Trophy, Lock, CheckCircle2, Sprout, Users, Wallet, Star, Crown, Flame,
   Sparkles, Target, ArrowRightLeft, ShieldCheck, Ticket, ArrowDownToLine,
@@ -12,10 +13,16 @@ import { listMyCycles } from "@/lib/farm.functions";
 import { getMyPvSummary } from "@/lib/pv.functions";
 import { getMyAffiliateSummary } from "@/lib/affiliate.functions";
 import { getPremiumDownlineWindow } from "@/lib/affiliate.functions";
+import { getStreaks } from "@/lib/affiliate.functions";
 import { getPremiumStatus } from "@/lib/premium.functions";
 import { listMyTransfers } from "@/lib/p2p.functions";
 import { listMyEscrows } from "@/lib/escrow.functions";
 import { listMyRedemptions } from "@/lib/coupons.functions";
+import {
+  getAchievementRewards,
+  claimAchievementReward,
+  type AchievementRewardWithClaim,
+} from "@/lib/achievement-rewards.functions";
 
 export const Route = createFileRoute("/_authenticated/achievements")({
   head: () => ({
@@ -38,12 +45,14 @@ type Achievement = {
   tier: Tier;
   target: number;
   progress: number;
+  currentProgress?: number;
   unit?: string;
-  reward?: string;
-  hidden?: boolean;   // hidden achievements — not revealed until unlocked
+  reward?: string;           // kept for display fallback
+  rewardConfig?: AchievementRewardWithClaim; // live DB config
+  hidden?: boolean;
 };
 
-type Category = "welcome" | "farming" | "deposits" | "earnings" | "network" | "trading" | "loyalty" | "engagement" | "legendary";
+type Category = "welcome" | "farming" | "deposits" | "earnings" | "network" | "trading" | "loyalty" | "engagement" | "legendary" | "streaks";
 
 const TIER_STYLES: Record<Tier, { ring: string; bg: string; text: string; glow: string; label: string }> = {
   bronze:   { ring: "ring-amber-700/40",  bg: "bg-amber-700/10",  text: "text-amber-500",    glow: "shadow-[0_0_30px_-8px_rgba(180,83,9,0.4)]",      label: "Bronze"   },
@@ -61,12 +70,128 @@ const CATEGORY_META: Record<Category, { label: string; icon: React.ComponentType
   network:    { label: "Network",    icon: Users,            color: "text-cyan-400"       },
   trading:    { label: "Trading",    icon: ArrowRightLeft,   color: "text-violet-400"     },
   loyalty:    { label: "Loyalty",    icon: Clock,            color: "text-amber-400"      },
+  streaks:    { label: "Streaks",    icon: Flame,            color: "text-orange-400"     },
   engagement: { label: "Engagement", icon: Sparkles,         color: "text-fuchsia-400"    },
   legendary:  { label: "Legendary",  icon: Trophy,           color: "text-yellow-300"     },
 };
 
 function tierPoints(t: Tier): number {
   return { bronze: 10, silver: 25, gold: 50, platinum: 100, diamond: 200 }[t];
+}
+
+// ── buildAchievements — pure function, no hooks ────────────────────────────
+// Separating the list from the component keeps AchievementsPage readable and
+// makes it easy to unit-test the achievement logic in isolation.
+
+type BuildParams = {
+  startedCount: number; reapedCount: number;
+  totalDeposited: number; totalWithdrawn: number; totalSeedEarned: number;
+  primaryUsdt: number; farmingSeed: number; totalPv: number;
+  gen1: number; totalReferrals: number; totalEarnedUsdt: number;
+  isPremium: boolean; p2pSentCount: number; p2pTotalCount: number;
+  escrowDone: number; couponCount: number; boosterCount: number;
+  accountAgeDays: number; premiumDays: number;
+  bestGen1Window: number; bestNetworkWindow: number;
+  farmingStreak: number; referralStreak: number;
+  curFarmStreak: number; curRefStreak: number;
+  midnightCount: number; earlyBirdCount: number;
+  isProfileComplete: boolean;
+  rewardMap: Map<string, { pv_reward: number; usdt_reward: number; claimed: boolean; enabled: boolean }>;
+};
+
+function buildAchievements(p: BuildParams): Achievement[] {
+  const enrich = (id: string, base: Omit<Achievement, "rewardConfig">): Achievement => ({
+    ...base,
+    rewardConfig: p.rewardMap.get(id),
+  });
+
+  return [
+    // ── 1. Welcome ──────────────────────────────────────────────────────
+    enrich("acc-created",    { id:"acc-created",    title:"First Seed",             description:"Create your VFarmers account.",                                           icon:Sprout,         category:"welcome",   tier:"bronze",  target:1,     progress:1,                              reward:"Welcome badge" }),
+    enrich("profile-setup",  { id:"profile-setup",  title:"First Farmer",           description:"Complete your profile: display name, username, avatar, and country.",     icon:CheckCircle2,   category:"welcome",   tier:"silver",  target:1,     progress:p.isProfileComplete ? 1 : 0    }),
+    enrich("prem-upgrade",   { id:"prem-upgrade",   title:"Premium Farmer",         description:"Upgrade to a Premium membership tier.",                                    icon:Crown,          category:"welcome",   tier:"platinum",target:1,     progress:p.isPremium ? 1 : 0,            reward:"Premium badge" }),
+    // ── 2. Farming ──────────────────────────────────────────────────────
+    enrich("first-harvest",  { id:"first-harvest",  title:"First Harvest",          description:"Complete your first farming cycle.",                                       icon:Sprout,         category:"farming",   tier:"bronze",  target:1,     progress:p.reapedCount                  }),
+    enrich("consistent",     { id:"consistent",     title:"Consistent Farmer",      description:"Reap 10 farming cycles.",                                                  icon:Sprout,         category:"farming",   tier:"silver",  target:10,    progress:p.reapedCount                  }),
+    enrich("master-farmer",  { id:"master-farmer",  title:"Master Farmer",          description:"Reap 50 farming cycles.",                                                  icon:Sprout,         category:"farming",   tier:"gold",    target:50,    progress:p.reapedCount                  }),
+    enrich("farm-lord",      { id:"farm-lord",      title:"Farm Lord",              description:"Reap 100 farming cycles.",                                                 icon:Trophy,         category:"farming",   tier:"platinum",target:100,   progress:p.reapedCount                  }),
+    enrich("farm-legend",    { id:"farm-legend",    title:"Legendary Farmer",       description:"Reap 500 farming cycles — legendary status.",                              icon:Trophy,         category:"farming",   tier:"diamond", target:500,   progress:p.reapedCount                  }),
+    // ── 3. Deposits ─────────────────────────────────────────────────────
+    enrich("first-deposit",  { id:"first-deposit",  title:"First Deposit",          description:"Make your first deposit of any amount.",                                   icon:ArrowDownToLine,category:"deposits",  tier:"bronze",  target:1,     progress:p.totalDeposited>0?1:0         }),
+    enrich("growing-inv",    { id:"growing-inv",    title:"Growing Investor",       description:"Reach 100 USDT in total deposits.",                                        icon:ArrowDownToLine,category:"deposits",  tier:"silver",  target:100,   progress:p.totalDeposited,               unit:"USDT" }),
+    enrich("estab-farmer",   { id:"estab-farmer",   title:"Established Farmer",     description:"Reach 500 USDT in total deposits.",                                        icon:ArrowDownToLine,category:"deposits",  tier:"gold",    target:500,   progress:p.totalDeposited,               unit:"USDT" }),
+    enrich("farm-owner",     { id:"farm-owner",     title:"Farm Owner",             description:"Reach 1,000 USDT in total deposits.",                                      icon:Wallet,         category:"deposits",  tier:"platinum",target:1000,  progress:p.totalDeposited,               unit:"USDT" }),
+    enrich("agr-tycoon",     { id:"agr-tycoon",     title:"Agricultural Tycoon",    description:"Reach 10,000 USDT in total deposits.",                                     icon:Crown,          category:"deposits",  tier:"diamond", target:10000, progress:p.totalDeposited,               unit:"USDT" }),
+    // ── 4. Withdrawals ──────────────────────────────────────────────────
+    enrich("first-withdraw", { id:"first-withdraw", title:"First Withdrawal",       description:"Complete your first withdrawal.",                                          icon:ArrowUpFromLine,category:"deposits",  tier:"bronze",  target:1,     progress:p.totalWithdrawn>0?1:0         }),
+    enrich("fin-freedom",    { id:"fin-freedom",    title:"Financial Freedom",      description:"Withdraw a total of 500 USDT.",                                            icon:ArrowUpFromLine,category:"deposits",  tier:"gold",    target:500,   progress:p.totalWithdrawn,               unit:"USDT" }),
+    enrich("cash-flow",      { id:"cash-flow",      title:"Cash Flow Master",       description:"Withdraw a total of 5,000 USDT.",                                          icon:ArrowUpFromLine,category:"deposits",  tier:"diamond", target:5000,  progress:p.totalWithdrawn,               unit:"USDT" }),
+    // ── 5. Earnings ─────────────────────────────────────────────────────
+    enrich("first-profit",   { id:"first-profit",   title:"First Profit",           description:"Earn 1 Seed in farming rewards.",                                          icon:Star,           category:"earnings",  tier:"bronze",  target:1,     progress:p.totalSeedEarned,              unit:"Seed" }),
+    enrich("seed-collector", { id:"seed-collector", title:"Seed Collector",         description:"Earn 100 Seeds in farming rewards.",                                       icon:Star,           category:"earnings",  tier:"silver",  target:100,   progress:p.totalSeedEarned,              unit:"Seed" }),
+    enrich("seed-millionaire",{id:"seed-millionaire",title:"Seed Millionaire",      description:"Earn 1,000 Seeds in farming rewards.",                                     icon:Star,           category:"earnings",  tier:"gold",    target:1000,  progress:p.totalSeedEarned,              unit:"Seed" }),
+    enrich("seed-legend",    { id:"seed-legend",    title:"Seed Legend",            description:"Earn 10,000 Seeds in farming rewards.",                                    icon:Trophy,         category:"earnings",  tier:"diamond", target:10000, progress:p.totalSeedEarned,              unit:"Seed" }),
+    enrich("ref-income",     { id:"ref-income",     title:"First Referral Income",  description:"Earn your first referral commission.",                                     icon:Users,          category:"earnings",  tier:"bronze",  target:1,     progress:p.totalEarnedUsdt>0?1:0        }),
+    enrich("ref-expert",     { id:"ref-expert",     title:"Referral Expert",        description:"Earn 100 USDT from referral commissions.",                                 icon:Users,          category:"earnings",  tier:"gold",    target:100,   progress:p.totalEarnedUsdt,              unit:"USDT" }),
+    enrich("ref-master",     { id:"ref-master",     title:"Referral Master",        description:"Earn 1,000 USDT from referral commissions.",                               icon:Crown,          category:"earnings",  tier:"diamond", target:1000,  progress:p.totalEarnedUsdt,              unit:"USDT" }),
+    // ── 6. Network ──────────────────────────────────────────────────────
+    enrich("first-referral", { id:"first-referral", title:"First Referral",         description:"Invite your first farmer.",                                                icon:Users,          category:"network",   tier:"bronze",  target:1,     progress:p.gen1                         }),
+    enrich("comm-builder",   { id:"comm-builder",   title:"Community Builder",      description:"Refer 5 farmers.",                                                         icon:Users,          category:"network",   tier:"silver",  target:5,     progress:p.gen1                         }),
+    enrich("team-leader",    { id:"team-leader",    title:"Team Leader",            description:"Grow your Gen 1 downline to 20 farmers.",                                  icon:Users,          category:"network",   tier:"gold",    target:20,    progress:p.gen1                         }),
+    enrich("net-champ",      { id:"net-champ",      title:"Network Champion",       description:"Refer 100 farmers.",                                                       icon:Trophy,         category:"network",   tier:"platinum",target:100,   progress:p.gen1                         }),
+    enrich("ref-king",       { id:"ref-king",       title:"Referral King",          description:"Refer 500 farmers.",                                                       icon:Crown,          category:"network",   tier:"diamond", target:500,   progress:p.gen1                         }),
+    enrich("prod-sponsor",   { id:"prod-sponsor",   title:"Productive Sponsor",     description:"Have 3 active Gen 1 referrals.",                                           icon:Sprout,         category:"network",   tier:"bronze",  target:3,     progress:p.gen1                         }),
+    enrich("team-builder",   { id:"team-builder",   title:"Team Builder",           description:"Have 10 active referrals.",                                                icon:Users,          category:"network",   tier:"silver",  target:10,    progress:p.gen1                         }),
+    enrich("empire-builder", { id:"empire-builder", title:"Empire Builder",         description:"Build a network of 100+ across 3 generations.",                            icon:Crown,          category:"network",   tier:"gold",    target:100,   progress:p.totalReferrals               }),
+    enrich("kingdom",        { id:"kingdom",        title:"Kingdom",                description:"250+ farmers in your downline network.",                                   icon:Crown,          category:"network",   tier:"diamond", target:250,   progress:p.totalReferrals               }),
+    enrich("prem-gen1-50",   { id:"prem-gen1-50",   title:"Premium Recruiter",      description:"Refer 50 Premium farmers within any 90-day period.",                       icon:Crown,          category:"network",   tier:"platinum",target:50,    progress:p.bestGen1Window,               unit:"premium Gen 1" }),
+    enrich("prem-gen1-100",  { id:"prem-gen1-100",  title:"Premium Commander",      description:"Refer 100 Premium farmers within any 90-day period.",                      icon:Trophy,         category:"network",   tier:"diamond", target:100,   progress:p.bestGen1Window,               unit:"premium Gen 1" }),
+    enrich("prem-net-500",   { id:"prem-net-500",   title:"Premium Empire",         description:"500 Premium members in your network within any 90-day period.",            icon:Crown,          category:"network",   tier:"diamond", target:500,   progress:p.bestNetworkWindow,            unit:"premium members" }),
+    enrich("prem-net-1000",  { id:"prem-net-1000",  title:"Premium Dynasty",        description:"1,000 Premium members in your network within any 90-day period.",          icon:Trophy,         category:"network",   tier:"diamond", target:1000,  progress:p.bestNetworkWindow,            unit:"premium members" }),
+    // ── 7. Trading ──────────────────────────────────────────────────────
+    enrich("first-transfer", { id:"first-transfer", title:"First Transfer",         description:"Send your first P2P transfer.",                                            icon:ArrowRightLeft, category:"trading",   tier:"bronze",  target:1,     progress:p.p2pSentCount                 }),
+    enrich("comm-helper",    { id:"comm-helper",    title:"Community Helper",       description:"Complete 10 P2P transfers.",                                               icon:ArrowRightLeft, category:"trading",   tier:"silver",  target:10,    progress:p.p2pTotalCount                }),
+    enrich("merch-farmer",   { id:"merch-farmer",   title:"Merchant Farmer",        description:"Complete 100 P2P transfers.",                                              icon:ArrowRightLeft, category:"trading",   tier:"gold",    target:100,   progress:p.p2pTotalCount                }),
+    enrich("first-escrow",   { id:"first-escrow",   title:"First Secure Trade",     description:"Complete one escrow transaction.",                                         icon:ShieldCheck,    category:"trading",   tier:"bronze",  target:1,     progress:p.escrowDone                   }),
+    enrich("trusted-trader", { id:"trusted-trader", title:"Trusted Trader",         description:"Complete 25 escrow trades.",                                               icon:ShieldCheck,    category:"trading",   tier:"gold",    target:25,    progress:p.escrowDone                   }),
+    enrich("mkt-veteran",    { id:"mkt-veteran",    title:"Marketplace Veteran",    description:"Complete 100 escrow trades.",                                              icon:Trophy,         category:"trading",   tier:"platinum",target:100,   progress:p.escrowDone                   }),
+    enrich("coupon-user",    { id:"coupon-user",    title:"Coupon User",            description:"Redeem your first coupon.",                                                icon:Ticket,         category:"trading",   tier:"bronze",  target:1,     progress:p.couponCount                  }),
+    enrich("coupon-coll",    { id:"coupon-coll",    title:"Coupon Collector",       description:"Redeem 10 coupons.",                                                       icon:Ticket,         category:"trading",   tier:"silver",  target:10,    progress:p.couponCount                  }),
+    enrich("coupon-champ",   { id:"coupon-champ",   title:"Coupon Champion",        description:"Redeem 50 coupons.",                                                       icon:Ticket,         category:"trading",   tier:"gold",    target:50,    progress:p.couponCount                  }),
+    // ── 8. Streaks ──────────────────────────────────────────────────────
+    enrich("farm-streak-3",  { id:"farm-streak-3",  title:"3-Day Streak",           description:"Farm on 3 consecutive days.",                                              icon:Flame,          category:"streaks",   tier:"bronze",  target:3,     progress:p.farmingStreak,  currentProgress:p.curFarmStreak, unit:"days" }),
+    enrich("farm-streak-7",  { id:"farm-streak-7",  title:"7-Day Streak",           description:"Farm on 7 consecutive days without a break.",                              icon:Flame,          category:"streaks",   tier:"silver",  target:7,     progress:p.farmingStreak,  currentProgress:p.curFarmStreak, unit:"days" }),
+    enrich("farm-streak-30", { id:"farm-streak-30", title:"30-Day Streak",          description:"Farm every day for a full month.",                                         icon:Flame,          category:"streaks",   tier:"gold",    target:30,    progress:p.farmingStreak,  currentProgress:p.curFarmStreak, unit:"days" }),
+    enrich("farm-streak-100",{ id:"farm-streak-100",title:"100-Day Streak",         description:"Farm consistently for 100 days straight.",                                 icon:Flame,          category:"streaks",   tier:"platinum",target:100,   progress:p.farmingStreak,  currentProgress:p.curFarmStreak, unit:"days" }),
+    enrich("farm-streak-365",{ id:"farm-streak-365",title:"Never Missed a Day",     description:"Farm every single day for 365 consecutive days.",                          icon:Flame,          category:"streaks",   tier:"diamond", target:365,   progress:p.farmingStreak,  currentProgress:p.curFarmStreak, unit:"days" }),
+    enrich("ref-streak-3",   { id:"ref-streak-3",   title:"3-Day Network Streak",   description:"Earn a referral commission on 3 consecutive days.",                        icon:Users,          category:"streaks",   tier:"bronze",  target:3,     progress:p.referralStreak, currentProgress:p.curRefStreak,  unit:"days" }),
+    enrich("ref-streak-7",   { id:"ref-streak-7",   title:"7-Day Network Streak",   description:"Earn a referral commission every day for 7 days.",                         icon:Users,          category:"streaks",   tier:"silver",  target:7,     progress:p.referralStreak, currentProgress:p.curRefStreak,  unit:"days" }),
+    enrich("ref-streak-30",  { id:"ref-streak-30",  title:"30-Day Network Streak",  description:"Your team is active — commissions every day for 30 days.",                 icon:Users,          category:"streaks",   tier:"gold",    target:30,    progress:p.referralStreak, currentProgress:p.curRefStreak,  unit:"days" }),
+    enrich("ref-streak-100", { id:"ref-streak-100", title:"Network Machine",        description:"100 consecutive days of referral commission income.",                      icon:Crown,          category:"streaks",   tier:"platinum",target:100,   progress:p.referralStreak, currentProgress:p.curRefStreak,  unit:"days" }),
+    enrich("ref-streak-365", { id:"ref-streak-365", title:"Unstoppable Network",    description:"365 straight days of commission income — your team never sleeps.",         icon:Trophy,         category:"streaks",   tier:"diamond", target:365,   progress:p.referralStreak, currentProgress:p.curRefStreak,  unit:"days" }),
+    // ── 9. Loyalty ──────────────────────────────────────────────────────
+    enrich("loyalty-30",     { id:"loyalty-30",     title:"Bronze Farmer",          description:"Member for 30 days.",                                                     icon:Clock,          category:"loyalty",   tier:"bronze",  target:30,    progress:p.accountAgeDays,               unit:"days" }),
+    enrich("loyalty-90",     { id:"loyalty-90",     title:"Silver Farmer",          description:"Member for 90 days.",                                                     icon:Clock,          category:"loyalty",   tier:"silver",  target:90,    progress:p.accountAgeDays,               unit:"days" }),
+    enrich("loyalty-180",    { id:"loyalty-180",    title:"Gold Farmer",            description:"Member for 180 days.",                                                    icon:Clock,          category:"loyalty",   tier:"gold",    target:180,   progress:p.accountAgeDays,               unit:"days" }),
+    enrich("loyalty-365",    { id:"loyalty-365",    title:"Diamond Farmer",         description:"Member for 365 days.",                                                    icon:Clock,          category:"loyalty",   tier:"platinum",target:365,   progress:p.accountAgeDays,               unit:"days" }),
+    enrich("loyalty-1000",   { id:"loyalty-1000",   title:"Lifetime Farmer",        description:"Member for 1,000 days.",                                                  icon:Trophy,         category:"loyalty",   tier:"diamond", target:1000,  progress:p.accountAgeDays,               unit:"days" }),
+    enrich("prem-90",        { id:"prem-90",        title:"Elite Farmer",           description:"Remain Premium for 90 consecutive days.",                                 icon:Star,           category:"loyalty",   tier:"gold",    target:90,    progress:p.premiumDays,                  unit:"days" }),
+    enrich("prem-365",       { id:"prem-365",       title:"Veteran Premium Farmer", description:"Remain Premium for 365 consecutive days.",                                icon:Crown,          category:"loyalty",   tier:"diamond", target:365,   progress:p.premiumDays,                  unit:"days" }),
+    // ── 10. Engagement ──────────────────────────────────────────────────
+    enrich("first-booster",  { id:"first-booster",  title:"Powered Up",             description:"Use your first farming booster.",                                          icon:Zap,            category:"engagement",tier:"bronze",  target:1,     progress:p.boosterCount                 }),
+    enrich("power-farmer",   { id:"power-farmer",   title:"Power Farmer",           description:"Use 10 farming boosters.",                                                 icon:Zap,            category:"engagement",tier:"silver",  target:10,    progress:p.boosterCount                 }),
+    enrich("supercharged",   { id:"supercharged",   title:"Supercharged Farmer",    description:"Use 100 farming boosters.",                                                icon:Zap,            category:"engagement",tier:"gold",    target:100,   progress:p.boosterCount                 }),
+    enrich("pv-collector",   { id:"pv-collector",   title:"PV Collector",           description:"Earn 100 Personal Volume points.",                                         icon:Star,           category:"engagement",tier:"bronze",  target:100,   progress:p.totalPv,                      unit:"PV" }),
+    enrich("pv-champion",    { id:"pv-champion",    title:"PV Champion",            description:"Earn 1,000 Personal Volume points.",                                       icon:Flame,          category:"engagement",tier:"gold",    target:1000,  progress:p.totalPv,                      unit:"PV" }),
+    enrich("acct-value-s",   { id:"acct-value-s",   title:"Small Farm",             description:"Hold 200 Seeds in your farming wallet.",                                   icon:Sprout,         category:"engagement",tier:"bronze",  target:200,   progress:p.farmingSeed,                  unit:"Seed" }),
+    enrich("acct-value-l",   { id:"acct-value-l",   title:"Large Farm",             description:"Hold 1,000 Seeds in your farming wallet.",                                 icon:Sprout,         category:"engagement",tier:"silver",  target:1000,  progress:p.farmingSeed,                  unit:"Seed" }),
+    enrich("acct-value-m",   { id:"acct-value-m",   title:"Mega Farm",              description:"Hold 5,000 Seeds in your farming wallet.",                                 icon:Sprout,         category:"engagement",tier:"gold",    target:5000,  progress:p.farmingSeed,                  unit:"Seed" }),
+    enrich("acct-value-k",   { id:"acct-value-k",   title:"Kingdom Farm",           description:"Hold 20,000 Seeds in your farming wallet.",                                icon:Crown,          category:"engagement",tier:"diamond", target:20000, progress:p.farmingSeed,                  unit:"Seed" }),
+    // ── 11. Hidden / Legendary ──────────────────────────────────────────
+    enrich("midnight",       { id:"midnight",       title:"Midnight Farmer",        description:"Farm after midnight 10 times.",                                            icon:EyeOff,         category:"legendary", tier:"gold",    target:10,    progress:p.midnightCount,  hidden:true    }),
+    enrich("early-bird",     { id:"early-bird",     title:"Early Bird",             description:"Farm before 6 AM on 20 occasions.",                                        icon:EyeOff,         category:"legendary", tier:"gold",    target:20,    progress:p.earlyBirdCount, hidden:true    }),
+    enrich("vfarm-legend",   { id:"vfarm-legend",   title:"VFarm Legend",           description:"Member for 5 years — a true VFarmers pioneer.",                            icon:Trophy,         category:"legendary", tier:"diamond", target:1825,  progress:p.accountAgeDays,               unit:"days" }),
+  ];
 }
 
 function AchievementsPage() {
@@ -78,6 +203,10 @@ function AchievementsPage() {
   const fnEscrow   = useServerFn(listMyEscrows);
   const fnCoupons  = useServerFn(listMyRedemptions);
   const fnPremiumDl = useServerFn(getPremiumDownlineWindow);
+  const fnStreaks   = useServerFn(getStreaks);
+  const fnRewards   = useServerFn(getAchievementRewards);
+  const fnClaim     = useServerFn(claimAchievementReward);
+  const qc          = useQueryClient();
 
   const cyclesQ  = useQuery({ queryKey: ["ach-cycles"],  queryFn: () => fnCycles() });
   const pvQ      = useQuery({ queryKey: ["my-pv"],       queryFn: () => fnPv() });
@@ -87,6 +216,16 @@ function AchievementsPage() {
   const escrowQ  = useQuery({ queryKey: ["ach-escrow"],  queryFn: () => fnEscrow() });
   const couponsQ = useQuery({ queryKey: ["ach-coupons"], queryFn: () => fnCoupons() });
   const premDlQ  = useQuery({ queryKey: ["ach-prem-dl"], queryFn: () => fnPremiumDl() });
+  const streaksQ = useQuery({ queryKey: ["ach-streaks"],  queryFn: () => fnStreaks() });
+  const rewardsQ = useQuery({ queryKey: ["ach-rewards"],  queryFn: () => fnRewards() });
+
+  const claimMutation = useMutation({
+    mutationFn: (achievementId: string) => fnClaim({ data: { achievementId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ach-rewards"] });
+      qc.invalidateQueries({ queryKey: ["my-pv"] });
+    },
+  });
 
   const [primaryUsdt, setPrimaryUsdt] = useState(0);
   const [farmingSeed, setFarmingSeed] = useState(0);
@@ -170,6 +309,12 @@ function AchievementsPage() {
   const bestGen1Window     = premDlQ.data?.bestGen1Window ?? 0;
   const bestNetworkWindow  = premDlQ.data?.bestNetworkWindow ?? 0;
 
+  // Streak counts
+  const farmingStreak  = streaksQ.data?.farming.longest ?? 0;
+  const referralStreak = streaksQ.data?.referral.longest ?? 0;
+  const curFarmStreak  = streaksQ.data?.farming.current ?? 0;
+  const curRefStreak   = streaksQ.data?.referral.current ?? 0;
+
   // Determine if midnight farmer / early bird from cycle start times
   const midnightCount = cycles.filter((c) => {
     const h = new Date(c.created_at as string).getHours();
@@ -180,98 +325,20 @@ function AchievementsPage() {
     return h >= 4 && h < 6;
   }).length;
 
-  const achievements: Achievement[] = [
-    // ── 1. Welcome ────────────────────────────────────────────────────────
-    { id: "acc-created",    title: "First Seed",        description: "Create your VFarmers account.",                           icon: Sprout,          category: "welcome",    tier: "bronze",   target: 1,      progress: 1,                  reward: "Welcome badge"       },
-    { id: "profile-setup",  title: "First Farmer",      description: "Complete your profile: display name, username, avatar, and country.", icon: CheckCircle2, category: "welcome", tier: "silver", target: 1, progress: isProfileComplete ? 1 : 0 },
-    { id: "prem-upgrade",   title: "Premium Farmer",    description: "Upgrade to a Premium membership tier.",                   icon: Crown,           category: "welcome",    tier: "platinum", target: 1,      progress: isPremium ? 1 : 0,  reward: "Premium badge"       },
+  // Map achievement_id → reward config from DB
+  const rewardMap = new Map(
+    (rewardsQ.data ?? []).map((r) => [r.achievement_id, r])
+  );
 
-    // ── 2. Farming ────────────────────────────────────────────────────────
-    { id: "first-harvest",  title: "First Harvest",     description: "Complete your first farming cycle.",                      icon: Sprout,          category: "farming",    tier: "bronze",   target: 1,      progress: reapedCount,        reward: "+5 PV"               },
-    { id: "consistent",     title: "Consistent Farmer", description: "Reap 10 farming cycles.",                                 icon: Sprout,          category: "farming",    tier: "silver",   target: 10,     progress: reapedCount,        reward: "+25 PV"              },
-    { id: "master-farmer",  title: "Master Farmer",     description: "Reap 50 farming cycles.",                                 icon: Sprout,          category: "farming",    tier: "gold",     target: 50,     progress: reapedCount,        reward: "+100 PV"             },
-    { id: "farm-lord",      title: "Farm Lord",         description: "Reap 100 farming cycles.",                                icon: Trophy,          category: "farming",    tier: "platinum", target: 100,    progress: reapedCount,        reward: "Exclusive badge"     },
-    { id: "farm-legend",    title: "Legendary Farmer",  description: "Reap 500 farming cycles — legendary status.",             icon: Trophy,          category: "farming",    tier: "diamond",  target: 500,    progress: reapedCount,        reward: "Titan badge + perks" },
-
-    // ── 3. Deposits ───────────────────────────────────────────────────────
-    { id: "first-deposit",  title: "First Deposit",     description: "Make your first deposit of any amount.",                  icon: ArrowDownToLine, category: "deposits",   tier: "bronze",   target: 1,      progress: totalDeposited > 0 ? 1 : 0, unit: "" },
-    { id: "growing-inv",    title: "Growing Investor",  description: "Reach 100 USDT in total deposits.",                       icon: ArrowDownToLine, category: "deposits",   tier: "silver",   target: 100,    progress: totalDeposited,     unit: "USDT"                  },
-    { id: "estab-farmer",   title: "Established Farmer",description: "Reach 500 USDT in total deposits.",                      icon: ArrowDownToLine, category: "deposits",   tier: "gold",     target: 500,    progress: totalDeposited,     unit: "USDT"                  },
-    { id: "farm-owner",     title: "Farm Owner",        description: "Reach 1,000 USDT in total deposits.",                     icon: Wallet,          category: "deposits",   tier: "platinum", target: 1000,   progress: totalDeposited,     unit: "USDT"                  },
-    { id: "agr-tycoon",     title: "Agricultural Tycoon",description: "Reach 10,000 USDT in total deposits.",                  icon: Crown,           category: "deposits",   tier: "diamond",  target: 10000,  progress: totalDeposited,     unit: "USDT"                  },
-
-    // ── 4. Withdrawals ────────────────────────────────────────────────────
-    { id: "first-withdraw", title: "First Withdrawal",  description: "Complete your first withdrawal.",                         icon: ArrowUpFromLine, category: "deposits",   tier: "bronze",   target: 1,      progress: totalWithdrawn > 0 ? 1 : 0 },
-    { id: "fin-freedom",    title: "Financial Freedom", description: "Withdraw a total of 500 USDT.",                           icon: ArrowUpFromLine, category: "deposits",   tier: "gold",     target: 500,    progress: totalWithdrawn,     unit: "USDT"                  },
-    { id: "cash-flow",      title: "Cash Flow Master",  description: "Withdraw a total of 5,000 USDT.",                         icon: ArrowUpFromLine, category: "deposits",   tier: "diamond",  target: 5000,   progress: totalWithdrawn,     unit: "USDT"                  },
-
-    // ── 5. Earnings (Seeds) ───────────────────────────────────────────────
-    { id: "first-profit",   title: "First Profit",      description: "Earn 1 Seed in farming rewards.",                         icon: Star,            category: "earnings",   tier: "bronze",   target: 1,      progress: totalSeedEarned,    unit: "Seed"                  },
-    { id: "seed-collector", title: "Seed Collector",    description: "Earn 100 Seeds in farming rewards.",                      icon: Star,            category: "earnings",   tier: "silver",   target: 100,    progress: totalSeedEarned,    unit: "Seed"                  },
-    { id: "seed-millionaire",title: "Seed Millionaire", description: "Earn 1,000 Seeds in farming rewards.",                    icon: Star,            category: "earnings",   tier: "gold",     target: 1000,   progress: totalSeedEarned,    unit: "Seed"                  },
-    { id: "seed-legend",    title: "Seed Legend",       description: "Earn 10,000 Seeds in farming rewards.",                   icon: Trophy,          category: "earnings",   tier: "diamond",  target: 10000,  progress: totalSeedEarned,    unit: "Seed"                  },
-    { id: "ref-income",     title: "First Referral Income", description: "Earn your first referral commission.",                icon: Users,           category: "earnings",   tier: "bronze",   target: 1,      progress: totalEarnedUsdt > 0 ? 1 : 0 },
-    { id: "ref-expert",     title: "Referral Expert",   description: "Earn 100 USDT from referral commissions.",                icon: Users,           category: "earnings",   tier: "gold",     target: 100,    progress: totalEarnedUsdt,    unit: "USDT"                  },
-    { id: "ref-master",     title: "Referral Master",   description: "Earn 1,000 USDT from referral commissions.",              icon: Crown,           category: "earnings",   tier: "diamond",  target: 1000,   progress: totalEarnedUsdt,    unit: "USDT"                  },
-
-    // ── 6. Network ────────────────────────────────────────────────────────
-    { id: "first-referral", title: "First Referral",    description: "Invite your first farmer.",                               icon: Users,           category: "network",    tier: "bronze",   target: 1,      progress: gen1                                              },
-    { id: "comm-builder",   title: "Community Builder", description: "Refer 5 farmers.",                                        icon: Users,           category: "network",    tier: "silver",   target: 5,      progress: gen1                                              },
-    { id: "team-leader",    title: "Team Leader",       description: "Grow your Gen 1 downline to 20 farmers.",                 icon: Users,           category: "network",    tier: "gold",     target: 20,     progress: gen1                                              },
-    { id: "net-champ",      title: "Network Champion",  description: "Refer 100 farmers.",                                      icon: Trophy,          category: "network",    tier: "platinum", target: 100,    progress: gen1                                              },
-    { id: "ref-king",       title: "Referral King",     description: "Refer 500 farmers.",                                      icon: Crown,           category: "network",    tier: "diamond",  target: 500,    progress: gen1                                              },
-    { id: "prod-sponsor",   title: "Productive Sponsor",description: "Have 3 active Gen 1 referrals.",                          icon: Sprout,          category: "network",    tier: "bronze",   target: 3,      progress: gen1                                              },
-    { id: "team-builder",   title: "Team Builder",      description: "Have 10 active referrals.",                               icon: Users,           category: "network",    tier: "silver",   target: 10,     progress: gen1                                              },
-    { id: "empire-builder", title: "Empire Builder",    description: "Build a network of 100+ across 3 generations.",           icon: Crown,           category: "network",    tier: "gold",     target: 100,    progress: totalReferrals                                    },
-    { id: "kingdom",        title: "Kingdom",            description: "250+ farmers in your downline network.",                  icon: Crown,           category: "network",    tier: "diamond",  target: 250,    progress: totalReferrals                                    },
-
-    // Time-windowed premium referral achievements (rolling 90-day bracket)
-    // Progress = best count achieved in any single 90-day window.
-    // Once the best window count hits the target, the badge unlocks permanently.
-    { id: "prem-gen1-50",   title: "Premium Recruiter",  description: "Refer 50 Premium farmers within any 90-day period.",      icon: Crown,           category: "network",    tier: "platinum", target: 50,     progress: bestGen1Window,     unit: "premium Gen 1", reward: "Exclusive badge" },
-    { id: "prem-gen1-100",  title: "Premium Commander",  description: "Refer 100 Premium farmers within any 90-day period.",     icon: Trophy,          category: "network",    tier: "diamond",  target: 100,    progress: bestGen1Window,     unit: "premium Gen 1", reward: "Commander badge" },
-    { id: "prem-net-500",   title: "Premium Empire",     description: "Build a team of 500 Premium members across 3 generations within any 90-day period.", icon: Crown, category: "network", tier: "diamond", target: 500, progress: bestNetworkWindow, unit: "premium members", reward: "Empire badge" },
-    { id: "prem-net-1000",  title: "Premium Dynasty",    description: "Build a team of 1,000 Premium members across 3 generations within any 90-day period.", icon: Trophy, category: "network", tier: "diamond", target: 1000, progress: bestNetworkWindow, unit: "premium members", reward: "Dynasty badge" },
-
-    // ── 7. Trading (P2P, Escrow, Coupons) ────────────────────────────────
-    { id: "first-transfer", title: "First Transfer",    description: "Send your first P2P transfer.",                           icon: ArrowRightLeft,  category: "trading",    tier: "bronze",   target: 1,      progress: p2pSentCount                                      },
-    { id: "comm-helper",    title: "Community Helper",  description: "Complete 10 P2P transfers.",                              icon: ArrowRightLeft,  category: "trading",    tier: "silver",   target: 10,     progress: p2pTotalCount                                     },
-    { id: "merch-farmer",   title: "Merchant Farmer",   description: "Complete 100 P2P transfers.",                             icon: ArrowRightLeft,  category: "trading",    tier: "gold",     target: 100,    progress: p2pTotalCount                                     },
-    { id: "first-escrow",   title: "First Secure Trade",description: "Complete one escrow transaction.",                        icon: ShieldCheck,     category: "trading",    tier: "bronze",   target: 1,      progress: escrowDone                                        },
-    { id: "trusted-trader", title: "Trusted Trader",    description: "Complete 25 escrow trades.",                              icon: ShieldCheck,     category: "trading",    tier: "gold",     target: 25,     progress: escrowDone                                        },
-    { id: "mkt-veteran",    title: "Marketplace Veteran",description: "Complete 100 escrow trades.",                           icon: Trophy,          category: "trading",    tier: "platinum", target: 100,    progress: escrowDone                                        },
-    { id: "coupon-user",    title: "Coupon User",       description: "Redeem your first coupon.",                               icon: Ticket,          category: "trading",    tier: "bronze",   target: 1,      progress: couponCount                                       },
-    { id: "coupon-coll",    title: "Coupon Collector",  description: "Redeem 10 coupons.",                                      icon: Ticket,          category: "trading",    tier: "silver",   target: 10,     progress: couponCount                                       },
-    { id: "coupon-champ",   title: "Coupon Champion",   description: "Redeem 50 coupons.",                                      icon: Ticket,          category: "trading",    tier: "gold",     target: 50,     progress: couponCount                                       },
-
-    // ── 8. Loyalty ────────────────────────────────────────────────────────
-    { id: "loyalty-30",     title: "Bronze Farmer",     description: "Member for 30 days.",                                     icon: Clock,           category: "loyalty",    tier: "bronze",   target: 30,     progress: accountAgeDays,     unit: "days"                  },
-    { id: "loyalty-90",     title: "Silver Farmer",     description: "Member for 90 days.",                                     icon: Clock,           category: "loyalty",    tier: "silver",   target: 90,     progress: accountAgeDays,     unit: "days"                  },
-    { id: "loyalty-180",    title: "Gold Farmer",       description: "Member for 180 days.",                                    icon: Clock,           category: "loyalty",    tier: "gold",     target: 180,    progress: accountAgeDays,     unit: "days"                  },
-    { id: "loyalty-365",    title: "Diamond Farmer",    description: "Member for 365 days.",                                    icon: Clock,           category: "loyalty",    tier: "platinum", target: 365,    progress: accountAgeDays,     unit: "days"                  },
-    { id: "loyalty-1000",   title: "Lifetime Farmer",   description: "Member for 1,000 days.",                                  icon: Trophy,          category: "loyalty",    tier: "diamond",  target: 1000,   progress: accountAgeDays,     unit: "days"                  },
-    { id: "prem-90",        title: "Elite Farmer",      description: "Remain Premium for 90 consecutive days.",                 icon: Star,            category: "loyalty",    tier: "gold",     target: 90,     progress: premiumDays,        unit: "days"                  },
-    { id: "prem-365",       title: "Veteran Premium Farmer", description: "Remain Premium for 365 consecutive days.",           icon: Crown,           category: "loyalty",    tier: "diamond",  target: 365,    progress: premiumDays,        unit: "days"                  },
-
-    // ── 9. Engagement / Boosters ──────────────────────────────────────────
-    { id: "first-booster",  title: "Powered Up",        description: "Use your first farming booster.",                         icon: Zap,             category: "engagement", tier: "bronze",   target: 1,      progress: boosterCount                                      },
-    { id: "power-farmer",   title: "Power Farmer",      description: "Use 10 farming boosters.",                                icon: Zap,             category: "engagement", tier: "silver",   target: 10,     progress: boosterCount                                      },
-    { id: "supercharged",   title: "Supercharged Farmer",description: "Use 100 farming boosters.",                              icon: Zap,             category: "engagement", tier: "gold",     target: 100,    progress: boosterCount                                      },
-    { id: "pv-collector",   title: "PV Collector",      description: "Earn 100 Personal Volume points.",                        icon: Star,            category: "engagement", tier: "bronze",   target: 100,    progress: totalPv,            unit: "PV"                    },
-    { id: "pv-champion",    title: "PV Champion",       description: "Earn 1,000 Personal Volume points.",                      icon: Flame,           category: "engagement", tier: "gold",     target: 1000,   progress: totalPv,            unit: "PV"                    },
-    { id: "acct-value-s",   title: "Small Farm",        description: "Hold 200 Seeds in your farming wallet.",                  icon: Sprout,          category: "engagement", tier: "bronze",   target: 200,    progress: farmingSeed,        unit: "Seed"                  },
-    { id: "acct-value-l",   title: "Large Farm",        description: "Hold 1,000 Seeds in your farming wallet.",                icon: Sprout,          category: "engagement", tier: "silver",   target: 1000,   progress: farmingSeed,        unit: "Seed"                  },
-    { id: "acct-value-m",   title: "Mega Farm",         description: "Hold 5,000 Seeds in your farming wallet.",                icon: Sprout,          category: "engagement", tier: "gold",     target: 5000,   progress: farmingSeed,        unit: "Seed"                  },
-    { id: "acct-value-k",   title: "Kingdom Farm",      description: "Hold 20,000 Seeds in your farming wallet.",               icon: Crown,           category: "engagement", tier: "diamond",  target: 20000,  progress: farmingSeed,        unit: "Seed"                  },
-
-    // ── 10. Hidden Achievements ───────────────────────────────────────────
-    { id: "midnight",       title: "Midnight Farmer",   description: "Farm after midnight 10 times.",                           icon: EyeOff,          category: "legendary",  tier: "gold",     target: 10,     progress: midnightCount,      hidden: true                  },
-    { id: "early-bird",     title: "Early Bird",        description: "Farm before 6 AM on 20 occasions.",                       icon: EyeOff,          category: "legendary",  tier: "gold",     target: 20,     progress: earlyBirdCount,     hidden: true                  },
-
-    // ── 11. Legendary ─────────────────────────────────────────────────────
-    { id: "vfarm-legend",   title: "VFarm Legend",      description: "Member for 5 years — a true VFarmers pioneer.",           icon: Trophy,          category: "legendary",  tier: "diamond",  target: 1825,   progress: accountAgeDays,     unit: "days"                  },
-  ];
-
+  // Enrich each achievement with its live reward config
+  const achievements: Achievement[] = buildAchievements({
+    startedCount, reapedCount, totalDeposited, totalWithdrawn, totalSeedEarned,
+    primaryUsdt, farmingSeed, totalPv, gen1, totalReferrals, totalEarnedUsdt,
+    isPremium, p2pSentCount, p2pTotalCount, escrowDone, couponCount,
+    boosterCount, accountAgeDays, premiumDays, bestGen1Window, bestNetworkWindow,
+    farmingStreak, referralStreak, curFarmStreak, curRefStreak,
+    midnightCount, earlyBirdCount, isProfileComplete, rewardMap,
+  });
   const unlocked = achievements.filter((a) => a.progress >= a.target).length;
   const totalPoints = achievements
     .filter((a) => a.progress >= a.target)
@@ -358,7 +425,12 @@ function AchievementsPage() {
       {/* Grid */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((a) => (
-          <AchievementCard key={a.id} a={a} />
+          <AchievementCard
+            key={a.id}
+            a={a}
+            onClaim={(id) => claimMutation.mutate(id)}
+            claiming={claimMutation.isPending}
+          />
         ))}
       </div>
 
@@ -397,13 +469,26 @@ function FilterChip({ active, onClick, icon: Icon, label }: {
   );
 }
 
-function AchievementCard({ a }: { a: Achievement }) {
+function AchievementCard({ a, onClaim, claiming }: {
+  a: Achievement;
+  onClaim: (id: string) => void;
+  claiming: boolean;
+}) {
   const done = a.progress >= a.target;
   const pct = Math.min(100, Math.round((a.progress / a.target) * 100));
   const style = TIER_STYLES[a.tier];
   const Icon = a.icon;
   const catMeta = CATEGORY_META[a.category];
   const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const rc = a.rewardConfig;
+
+  // Derive the reward label from DB config (fall back to static string)
+  const rewardLabel = rc
+    ? [
+        rc.pv_reward > 0 ? `+${rc.pv_reward} PV` : "",
+        rc.usdt_reward > 0 ? `+${rc.usdt_reward} USDT` : "",
+      ].filter(Boolean).join(" · ") || "Badge"
+    : (a.reward ?? "");
 
   // Hidden and not unlocked: show mystery card
   if (a.hidden && !done) {
@@ -473,10 +558,39 @@ function AchievementCard({ a }: { a: Achievement }) {
           <div className={`h-full transition-all duration-700 ${done ? "bg-gradient-to-r from-primary to-accent" : "bg-primary/50"}`}
             style={{ width: `${pct}%` }} />
         </div>
-        {a.reward && (
-          <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
-            <Sparkles className="h-3 w-3 text-primary" />
-            Reward: <span className="text-foreground/80">{a.reward}</span>
+        {/* Current active streak — only shown for streak achievements */}
+        {a.currentProgress !== undefined && !done && (
+          <div className="mt-2 flex items-center gap-1 text-[10px] text-orange-400">
+            <Flame className="h-3 w-3" />
+            Current streak: <span className="font-semibold">{a.currentProgress} {a.unit ?? ""}</span>
+            {a.currentProgress > 0 && (
+              <span className="text-muted-foreground ml-1">· Best: {fmt(a.progress)}</span>
+            )}
+          </div>
+        )}
+        {/* Reward display */}
+        {rewardLabel && (
+          <div className="mt-2 flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-primary" />
+              Reward: <span className="text-foreground/80">{rewardLabel}</span>
+            </div>
+            {/* Claim button — only when done, not yet claimed, reward exists */}
+            {done && rc && !rc.claimed && rc.enabled && (rc.pv_reward > 0 || rc.usdt_reward > 0) && (
+              <button
+                type="button"
+                onClick={() => onClaim(a.id)}
+                disabled={claiming}
+                className="shrink-0 rounded-lg bg-gradient-to-r from-primary to-accent px-2.5 py-1 text-[10px] font-semibold text-primary-foreground transition-transform hover:scale-[1.04] disabled:opacity-60"
+              >
+                {claiming ? "…" : "Claim"}
+              </button>
+            )}
+            {done && rc?.claimed && (
+              <span className="flex items-center gap-0.5 text-[10px] text-primary">
+                <CheckCircle2 className="h-3 w-3" /> Claimed
+              </span>
+            )}
           </div>
         )}
       </div>

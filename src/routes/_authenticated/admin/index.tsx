@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText, ShieldCheck, Wrench, Star } from "lucide-react";
+import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText, ShieldCheck, Wrench, Star, Trophy } from "lucide-react";
 
 const links = [
   { to: "/admin/farmers", label: "Farmers", desc: "Search, freeze, adjust balances", icon: Users },
@@ -12,6 +12,7 @@ const links = [
   { to: "/admin/coupons", label: "Coupons", desc: "Create & disable", icon: Ticket },
   { to: "/admin/pv", label: "Points (PV)", desc: "Configure activity rewards", icon: Star },
   { to: "/admin/premium", label: "Premium", desc: "Membership settings & metrics", icon: Shield },
+  { to: "/admin/achievements", label: "Achievements", desc: "Configure PV & USDT rewards", icon: Trophy },
   { to: "/admin/audit", label: "Audit Log", desc: "All admin actions", icon: FileText },
 ] as const;
 

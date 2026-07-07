@@ -141,7 +141,87 @@ export const getMyDownlines = createServerFn({ method: "GET" })
     }));
   });
 
-// ── Premium downline counts for time-windowed achievements ──────────────────
+// ── Streak data for achievements ───────────────────────────────────────────
+// Farming streak = consecutive UTC days with at least one cycle started.
+// Referral streak = consecutive UTC days with at least one affiliate commission received.
+// Both return current (ongoing) streak and all-time longest streak.
+
+export type StreakData = {
+  farming: { current: number; longest: number };
+  referral: { current: number; longest: number };
+};
+
+function computeStreaks(dates: Date[]): { current: number; longest: number } {
+  if (dates.length === 0) return { current: 0, longest: 0 };
+
+  // Deduplicate to one entry per UTC calendar day, then sort ascending
+  const daySet = new Set(
+    dates.map((d) => {
+      const u = new Date(d);
+      return Date.UTC(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate());
+    }),
+  );
+  const days = Array.from(daySet).sort((a, b) => a - b);
+
+  const DAY_MS = 86400000;
+  let longest = 1;
+  let run = 1;
+
+  for (let i = 1; i < days.length; i++) {
+    if (days[i] - days[i - 1] === DAY_MS) {
+      run++;
+      if (run > longest) longest = run;
+    } else {
+      run = 1;
+    }
+  }
+
+  // Current streak: does it reach today or yesterday (to handle "today not yet active")?
+  const todayUtc = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+  );
+  const lastDay = days[days.length - 1];
+  const daysSinceLast = (todayUtc - lastDay) / DAY_MS;
+
+  let current = 0;
+  if (daysSinceLast <= 1) {
+    // Walk backwards from last day to count the current streak
+    current = 1;
+    for (let i = days.length - 2; i >= 0; i--) {
+      if (days[i + 1] - days[i] === DAY_MS) current++;
+      else break;
+    }
+  }
+
+  return { current, longest: Math.max(longest, current) };
+}
+
+export const getStreaks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<StreakData> => {
+    const { supabase, userId } = context;
+
+    const [{ data: cycles }, { data: comms }] = await Promise.all([
+      supabase
+        .from("cycles")
+        .select("started_at")
+        .eq("user_id", userId),
+      supabase
+        .from("affiliate_commissions")
+        .select("created_at")
+        .eq("user_id", userId),
+    ]);
+
+    const farmingDates = (cycles ?? []).map((c) => new Date(c.started_at));
+    const referralDates = (comms ?? []).map((c) => new Date(c.created_at));
+
+    return {
+      farming: computeStreaks(farmingDates),
+      referral: computeStreaks(referralDates),
+    };
+  });
 // Returns Gen 1 and total downline members whose membership_tier is premium
 // and premium_activated_at falls within a given number of days.
 // This powers the "50 premium Gen 1 within 3 months" family of achievements.
