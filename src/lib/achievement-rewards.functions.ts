@@ -16,6 +16,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type AchievementReward = {
   achievement_id: string;
   title: string;
+  description: string;
   category: string;
   pv_reward: number;
   usdt_reward: number;
@@ -36,7 +37,7 @@ export const getAchievementRewards = createServerFn({ method: "GET" })
     const [{ data: rewards }, { data: claims }] = await Promise.all([
       supabase
         .from("achievement_rewards")
-        .select("achievement_id, title, category, pv_reward, usdt_reward, enabled")
+        .select("achievement_id, title, description, category, pv_reward, usdt_reward, enabled")
         .order("category")
         .order("achievement_id"),
       supabase
@@ -50,6 +51,7 @@ export const getAchievementRewards = createServerFn({ method: "GET" })
     return (rewards ?? []).map((r) => ({
       achievement_id: r.achievement_id,
       title: r.title,
+      description: r.description ?? "",
       category: r.category,
       pv_reward: Number(r.pv_reward),
       usdt_reward: Number(r.usdt_reward),
@@ -87,7 +89,7 @@ export const adminGetAchievementRewards = createServerFn({ method: "GET" })
 
     const { data, error } = await context.supabase
       .from("achievement_rewards")
-      .select("achievement_id, title, category, pv_reward, usdt_reward, enabled")
+      .select("achievement_id, title, description, category, pv_reward, usdt_reward, enabled")
       .order("category")
       .order("achievement_id");
 
@@ -95,6 +97,7 @@ export const adminGetAchievementRewards = createServerFn({ method: "GET" })
     return (data ?? []).map((r) => ({
       achievement_id: r.achievement_id,
       title: r.title,
+      description: r.description ?? "",
       category: r.category,
       pv_reward: Number(r.pv_reward),
       usdt_reward: Number(r.usdt_reward),

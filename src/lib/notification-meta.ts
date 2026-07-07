@@ -19,6 +19,7 @@ import {
   Star,
   Clock,
   BadgeX,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +68,7 @@ const META: Record<NotificationKind, Meta> = {
   premium_activated: { icon: Star, tone: "text-amber-400 bg-amber-400/15", to: "/upgrade" },
   premium_expiring: { icon: Clock, tone: "text-amber-400 bg-amber-400/15", to: "/upgrade" },
   premium_expired: { icon: BadgeX, tone: "text-muted-foreground bg-muted", to: "/upgrade" },
+  achievement_unlocked: { icon: Trophy, tone: "text-yellow-300 bg-yellow-300/15", to: "/achievements" },
   system: { icon: Bell, tone: "text-muted-foreground bg-muted" },
 };
 

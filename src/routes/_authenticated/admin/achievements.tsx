@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trophy, Loader2, Save, CheckCircle2 } from "lucide-react";
+import { Trophy, Loader2, Save, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -162,8 +162,26 @@ function AdminAchievementsPage() {
                         return (
                           <tr key={r.achievement_id} className={`border-t border-border/60 ${isDirty ? "bg-amber-500/5" : ""}`}>
                             <td className="p-3">
-                              <div className="font-medium">{r.title}</div>
-                              <div className="text-xs text-muted-foreground font-mono">{r.achievement_id}</div>
+                              <div className="flex items-start gap-1.5">
+                                <div className="min-w-0">
+                                  <div className="font-medium">{r.title}</div>
+                                  <div className="text-xs text-muted-foreground font-mono">{r.achievement_id}</div>
+                                </div>
+                                {r.description && (
+                                  <span
+                                    title={r.description}
+                                    className="mt-0.5 shrink-0 cursor-help text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={`Description: ${r.description}`}
+                                  >
+                                    <Info className="h-3.5 w-3.5" />
+                                  </span>
+                                )}
+                              </div>
+                              {r.description && (
+                                <p className="mt-1 text-[11px] text-muted-foreground/70 leading-relaxed max-w-xs">
+                                  {r.description}
+                                </p>
+                              )}
                             </td>
                             <td className="p-2">
                               <Input

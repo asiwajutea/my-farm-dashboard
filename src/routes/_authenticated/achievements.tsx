@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Trophy, Lock, CheckCircle2, Sprout, Users, Wallet, Star, Crown, Flame,
   Sparkles, Target, ArrowRightLeft, ShieldCheck, Ticket, ArrowDownToLine,
@@ -221,11 +221,27 @@ function AchievementsPage() {
 
   const claimMutation = useMutation({
     mutationFn: (achievementId: string) => fnClaim({ data: { achievementId } }),
-    onSuccess: () => {
+    onSuccess: (_data, achievementId) => {
+      toast.success("Reward claimed! Check your wallet and PV balance.");
       qc.invalidateQueries({ queryKey: ["ach-rewards"] });
       qc.invalidateQueries({ queryKey: ["my-pv"] });
+      // Clear this card's claiming state
+      setClaimingId(null);
+    },
+    onError: (err, achievementId) => {
+      const msg = err instanceof Error ? err.message : "Failed to claim reward";
+      toast.error(msg);
+      setClaimingId(null);
     },
   });
+
+  // Track which specific achievement is being claimed so only that button shows a spinner
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  function handleClaim(id: string) {
+    setClaimingId(id);
+    claimMutation.mutate(id);
+  }
 
   const [primaryUsdt, setPrimaryUsdt] = useState(0);
   const [farmingSeed, setFarmingSeed] = useState(0);
@@ -350,13 +366,24 @@ function AchievementsPage() {
     ((totalPoints - prevLevelPoints) / (nextLevelPoints - prevLevelPoints)) * 100
   ));
 
-  const [filter, setFilter] = useState<"all" | Category>("all");
+  const [filter, setFilter] = useState<"all" | "unlocked" | Category>("all");
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  // Reset pagination when filter changes
+  const setFilterAndReset = (f: typeof filter) => {
+    setFilter(f);
+    setVisibleCount(12);
+  };
 
   // Hidden achievements: only show in the "legendary" filter or once unlocked
-  const visible = achievements.filter((a) => {
+  const filtered = achievements.filter((a) => {
     if (a.hidden && a.progress < a.target) return filter === "legendary";
+    if (filter === "unlocked") return a.progress >= a.target;
     return filter === "all" || a.category === filter;
   });
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
@@ -412,27 +439,65 @@ function AchievementsPage() {
 
       {/* Filter chips */}
       <div className="mt-6 flex flex-wrap gap-2">
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")} icon={Target}
-          label={`All (${achievements.filter((a) => !a.hidden || a.progress >= a.target).length})`} />
+        <FilterChip
+          active={filter === "all"}
+          onClick={() => setFilterAndReset("all")}
+          icon={Target}
+          label={`All (${achievements.filter((a) => !a.hidden || a.progress >= a.target).length})`}
+        />
+        <FilterChip
+          active={filter === "unlocked"}
+          onClick={() => setFilterAndReset("unlocked")}
+          icon={CheckCircle2}
+          label={`Unlocked (${unlocked})`}
+          highlight
+        />
         {(Object.keys(CATEGORY_META) as Category[]).map((k) => {
           const meta = CATEGORY_META[k];
           const count = achievements.filter((a) => a.category === k && (!a.hidden || a.progress >= a.target)).length;
           if (count === 0) return null;
-          return <FilterChip key={k} active={filter === k} onClick={() => setFilter(k)} icon={meta.icon} label={`${meta.label} (${count})`} />;
+          return (
+            <FilterChip
+              key={k}
+              active={filter === k}
+              onClick={() => setFilterAndReset(k)}
+              icon={meta.icon}
+              label={`${meta.label} (${count})`}
+            />
+          );
         })}
       </div>
 
+      {/* Results count */}
+      <p className="mt-3 text-xs text-muted-foreground">
+        Showing <span className="font-medium text-foreground">{Math.min(visibleCount, filtered.length)}</span> of{" "}
+        <span className="font-medium text-foreground">{filtered.length}</span> achievements
+      </p>
+
       {/* Grid */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((a) => (
           <AchievementCard
             key={a.id}
             a={a}
-            onClaim={(id) => claimMutation.mutate(id)}
-            claiming={claimMutation.isPending}
+            onClaim={handleClaim}
+            claiming={claimingId === a.id}
           />
         ))}
       </div>
+
+      {/* Show more */}
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + 12)}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card/60 px-6 py-2.5 text-sm font-medium transition-colors hover:bg-card"
+          >
+            Show more ({filtered.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
 
       {/* CTA footer */}
       <div className="mt-8 glass rounded-3xl p-6 text-center">
@@ -454,14 +519,19 @@ function AchievementsPage() {
   );
 }
 
-function FilterChip({ active, onClick, icon: Icon, label }: {
+function FilterChip({ active, onClick, icon: Icon, label, highlight }: {
   active: boolean; onClick: () => void;
   icon: React.ComponentType<{ className?: string }>; label: string;
+  highlight?: boolean;
 }) {
   return (
     <button type="button" onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
-        active ? "border-primary/50 bg-primary/15 text-primary" : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground"
+        active
+          ? highlight
+            ? "border-emerald-400/50 bg-emerald-400/15 text-emerald-400"
+            : "border-primary/50 bg-primary/15 text-primary"
+          : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground"
       }`}>
       <Icon className="h-3.5 w-3.5" />
       {label}
