@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { usePwa } from "@/hooks/usePwa";
 
 function NotFoundComponent() {
@@ -136,16 +137,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { isOnline, showInstallPrompt, triggerInstall, dismissInstall } = usePwa();
+  const { isOnline, showInstallPrompt, triggerInstall, dismissInstall, updateAvailable, applyUpdate } = usePwa();
 
   return (
     <QueryClientProvider client={queryClient}>
       {!isOnline && <OfflineBanner />}
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {updateAvailable && <UpdateBanner onUpdate={applyUpdate} />}
       <Outlet />
-      {/* Floating notifications anchored to the bottom-right of the viewport. */}
       <Toaster position="bottom-right" richColors closeButton />
-      {/* PWA install prompt — shown at bottom, non-intrusive */}
       {showInstallPrompt && (
         <InstallPrompt onInstall={triggerInstall} onDismiss={dismissInstall} />
       )}
