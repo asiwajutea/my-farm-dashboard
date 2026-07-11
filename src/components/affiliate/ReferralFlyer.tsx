@@ -23,7 +23,7 @@ import { Download, Share2, Loader2, ImageIcon } from "lucide-react";
 // Measured from the white dashed rectangle in the template
 const BOX = {
   x:      0.052,   // left edge of the white box
-  y:      0.749,   // top edge of the white box
+  y:      0.76,   // top edge of the white box
   w:      0.540,   // width of the white box
   h:      0.085,   // height of the white box
 };
