@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Wrench } from "lucide-react";
 import { useSiteState } from "@/hooks/use-site-state";
-import { useIsAdmin } from "@/hooks/use-admin";
+import { useIsAdmin, useHasPrivilege } from "@/hooks/use-admin";
 
 // Maps the first path segment to the maintenance page-key the admin toggles.
 // Keep in sync with PAGE_KEYS in the admin maintenance page.
@@ -31,10 +31,11 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: state } = useSiteState();
   const { data: adminData } = useIsAdmin();
+  const canBypass = useHasPrivilege("bypass_maintenance");
   const isAdmin = adminData?.isAdmin === true;
 
-  // Admin console always bypasses; admins always bypass; missing state passes.
-  if (isAdmin) return <>{children}</>;
+  // Admin console always bypasses; admins and privileged users always bypass.
+  if (isAdmin || canBypass) return <>{children}</>;
   if (pathname.startsWith("/admin")) return <>{children}</>;
   if (!state) return <>{children}</>;
 

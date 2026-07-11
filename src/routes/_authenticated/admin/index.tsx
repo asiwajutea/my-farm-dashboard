@@ -14,6 +14,7 @@ const links = [
   { to: "/admin/premium",          label: "Premium",           desc: "Membership settings & metrics",         icon: Shield         },
   { to: "/admin/achievements",     label: "Achievements",      desc: "Configure PV & USDT rewards",           icon: Trophy         },
   { to: "/admin/deposit-channels", label: "Deposit Channels",  desc: "Lock/unlock IvoryPay & manual deposits",icon: ArrowDownToLine},
+  { to: "/admin/privileges",       label: "Privileges",        desc: "Grant page/capability access to users", icon: ShieldCheck    },
   { to: "/admin/audit",            label: "Audit Log",         desc: "All admin actions",                     icon: FileText       },
 ] as const;
 
