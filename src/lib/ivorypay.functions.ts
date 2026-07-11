@@ -108,27 +108,28 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<{
     status: "pending" | "processing" | "approved" | "rejected";
   }> => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Load the deposit row (RLS ensures ownership)
-    const { data: dep } = await supabase
+    // Use admin client to bypass potential RLS/type issues with new columns.
+    // Still enforce ownership by filtering on user_id.
+    const { data: dep } = await supabaseAdmin
       .from("deposit_requests")
-      .select("status, external_ref")
+      .select("status")
       .eq("id", data.depositRequestId)
       .eq("user_id", userId)
       .maybeSingle();
 
     if (!dep) throw new Error("Deposit not found");
 
-    // Already resolved in DB
+    // DB is authoritative — if approved/rejected, return immediately
     if (dep.status === "approved") return { status: "approved" };
     if (dep.status === "rejected") return { status: "rejected" };
 
-    // Poll IvoryPay's public verify endpoint using the deposit UUID as reference
-    const reference = dep.external_ref ?? data.depositRequestId;
+    // Poll IvoryPay's public verify endpoint as a fallback
     try {
       const { verifyTransaction } = await import("@/lib/ivorypay");
-      const result = await verifyTransaction(reference);
+      const result = await verifyTransaction(data.depositRequestId);
 
       if (result.status === "SUCCESS")    return { status: "approved" };
       if (result.status === "FAILED" ||
@@ -137,7 +138,7 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
       if (result.status === "PROCESSING" ||
           result.status === "CONFIRMING") return { status: "processing" };
     } catch {
-      // IvoryPay verify failed — return DB status
+      // IvoryPay verify unavailable — fall back to DB status
     }
 
     return { status: "pending" };
