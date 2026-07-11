@@ -58,30 +58,36 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
           return json({ ok: false, error: "missing_reference" }, 400);
         }
 
-        // 4. Look up deposit_requests by reference
-        //    IvoryPay sends the 32-char reference (UUID without hyphens).
-        //    We stored it in external_ref — look it up there first.
+        // 4. Look up deposit_requests by reference (= our deposit request UUID = external_ref)
         const { data: depositRow } = await supabaseAdmin
           .from("deposit_requests")
           .select("id, user_id, amount, status")
-          .eq("external_ref", data.reference)
+          .eq("id", data.reference)
           .maybeSingle();
 
-        if (!depositRow) {
-          console.error(`[ivorypay-webhook] No deposit for reference=${data.reference}`);
-          // Return 200 so IvoryPay doesn't retry indefinitely
+        // Fallback: match by external_ref in case reference was stored differently
+        const finalRow = depositRow ?? (await (async () => {
+          const { data: byRef } = await supabaseAdmin
+            .from("deposit_requests")
+            .select("id, user_id, amount, status")
+            .eq("external_ref", data.reference)
+            .maybeSingle();
+          return byRef;
+        })());
+
+        if (!finalRow) {
+          console.error(`[ivorypay-webhook] No deposit found for reference=${data.reference}`);
           return json({ ok: false, error: "deposit_not_found" }, 200);
         }
 
         // 5. Idempotency — already credited
-        if (depositRow.status === "approved") {
+        if (finalRow.status === "approved") {
           return json({ ok: true, already_processed: true });
         }
 
-        // 6. Determine credited amount in USDT
-        //    settledAmountInCrypto = what IvoryPay settled after fees
+        // 6. Use the amount IvoryPay actually received
         const settledUsdt = Number(
-          data.settledAmountInCrypto ?? data.receivedAmountInCrypto ?? depositRow.amount
+          data.settledAmountInCrypto ?? data.receivedAmountInCrypto ?? finalRow.amount
         );
 
         // Convert USDT → Seed
@@ -97,23 +103,23 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
         const { data: wallet } = await supabaseAdmin
           .from("wallets")
           .select("id")
-          .eq("user_id", depositRow.user_id)
+          .eq("user_id", finalRow.user_id)
           .eq("kind", "primary")
           .maybeSingle();
 
         if (!wallet) {
-          console.error(`[ivorypay-webhook] No primary wallet for user ${depositRow.user_id}`);
+          console.error(`[ivorypay-webhook] No primary wallet for user ${finalRow.user_id}`);
           return json({ ok: false, error: "wallet_not_found" }, 200);
         }
 
-        // 8. Credit wallet via SECURITY DEFINER RPC
+        // 8. Credit wallet
         const { error: rpcErr } = await supabaseAdmin.rpc("wallet_adjust", {
           p_wallet:    wallet.id,
           p_amount:    amountSeed,
           p_kind:      "deposit",
           p_memo:      `IvoryPay — ref:${data.reference}`,
           p_ref_table: "deposit_requests",
-          p_ref_id:    depositRow.id,
+          p_ref_id:    finalRow.id,
         });
 
         if (rpcErr) {
@@ -121,27 +127,27 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
           return json({ ok: false, error: "internal" }, 500);
         }
 
-        // 9. Mark deposit approved
+        // 9. Mark approved
         await supabaseAdmin
           .from("deposit_requests")
           .update({ status: "approved" })
-          .eq("id", depositRow.id);
+          .eq("id", finalRow.id);
 
-        // 10. Notify user (non-fatal)
+        // 10. Notify user
         try {
           await supabaseAdmin.rpc("notify_user", {
-            p_user:      depositRow.user_id,
+            p_user:      finalRow.user_id,
             p_kind:      "deposit_approved",
             p_title:     "Deposit approved 🎉",
             p_body:      `${settledUsdt.toFixed(2)} USDT has been credited to your Primary Wallet.`,
             p_ref_table: "deposit_requests",
-            p_ref_id:    depositRow.id,
+            p_ref_id:    finalRow.id,
           });
         } catch (e) {
           console.warn("[ivorypay-webhook] notify_user failed:", e);
         }
 
-        console.log(`[ivorypay-webhook] Credited ${amountSeed} Seed to user ${depositRow.user_id}`);
+        console.log(`[ivorypay-webhook] Credited ${amountSeed} Seed to user ${finalRow.user_id}`);
         return json({ ok: true });
       },
     },

@@ -63,23 +63,28 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
     if (depErr || !depRow) throw new Error(depErr?.message ?? "Failed to create deposit record");
 
     const depositRequestId = depRow.id;
-    // IvoryPay requires reference to be exactly 32 characters.
-    // A UUID is 36 chars with hyphens — strip the hyphens to get 32.
-    const ivoryReference = depositRequestId.replace(/-/g, "");
+    // IvoryPay docs use full UUIDs for reference (36 chars with hyphens is fine)
+    // Store as external_ref for webhook matching
     const siteUrl = process.env.SITE_URL ?? "https://vfarmers.app";
 
     // 4. Create the IvoryPay CHECKOUT transaction
-    //    reference = depositRequestId so the webhook can match it
+    //    baseFiat must be "NGN" — it's IvoryPay's display/conversion currency.
+    //    For CHECKOUT mode the customer pays USDT; IvoryPay shows the NGN equivalent.
+    //    We pass the USDT amount converted to NGN (approx 1 USDT ≈ 1600 NGN).
+    //    IvoryPay resolves the actual crypto amount on their checkout page.
+    const NGN_PER_USDT = Number(process.env.IVORYPAY_NGN_RATE ?? 1600);
+    const amountNgn = Math.round(data.amountUsdt * NGN_PER_USDT);
+
     let checkoutTx;
     try {
       checkoutTx = await createCheckoutTransaction({
-        amount:      data.amountUsdt,
+        amount:      amountNgn,
         email,
         firstName:   firstName ?? "VFarmers",
         lastName:    lastName ?? "User",
-        baseFiat:    "USD",
+        baseFiat:    "NGN",
         crypto:      "USDT",
-        reference:   ivoryReference,          // 32-char UUID without hyphens
+        reference:   depositRequestId,        // full UUID — docs use this format
         redirect_url: `${siteUrl}/deposit?ivorypay=success&ref=${depositRequestId}`,
       });
     } catch (err) {
@@ -90,10 +95,10 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
       throw new Error(msg);
     }
 
-    // 5. Store the 32-char IvoryPay reference as external_ref for webhook matching
+    // 5. Store the full UUID as external_ref for webhook matching
     await supabaseAdmin
       .from("deposit_requests")
-      .update({ external_ref: ivoryReference })
+      .update({ external_ref: depositRequestId })
       .eq("id", depositRequestId);
 
     return { checkoutUrl: checkoutTx.checkoutUrl, depositRequestId };
@@ -125,8 +130,8 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
     if (dep.status === "approved") return { status: "approved" };
     if (dep.status === "rejected") return { status: "rejected" };
 
-    // Poll IvoryPay's public verify endpoint using external_ref (32-char reference)
-    const reference = dep.external_ref ?? data.depositRequestId.replace(/-/g, "");
+    // Poll IvoryPay's public verify endpoint using the deposit UUID as reference
+    const reference = dep.external_ref ?? data.depositRequestId;
     try {
       const { verifyTransaction } = await import("@/lib/ivorypay");
       const result = await verifyTransaction(reference);
