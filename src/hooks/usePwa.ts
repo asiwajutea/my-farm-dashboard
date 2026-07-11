@@ -100,13 +100,30 @@ export function usePwa() {
 
   /** Tell the waiting SW to take over, then reload to pick up new assets. */
   const applyUpdate = () => {
+    // Always set up the reload handler first, regardless of current controller state.
+    // The controllerchange event fires when the new SW takes over.
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      window.location.reload();
+    }, { once: true });
+
     if (waitingSW) {
+      // Tell the waiting SW to skip waiting and become active immediately
       waitingSW.postMessage({ type: "SKIP_WAITING" });
-      // Reload once the new SW has activated
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        window.location.reload();
-      }, { once: true });
+    } else {
+      // No waiting SW reference in state — check the registration directly
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        } else {
+          // Nothing waiting — just reload; the browser will use whatever is cached
+          window.location.reload();
+        }
+      });
     }
+
+    // Hard safety net: reload after 4 s in case controllerchange never fires
+    // (e.g. no SW was registered, or the event already fired)
+    setTimeout(() => window.location.reload(), 4000);
   };
 
   const showInstallPrompt = !!installPrompt && !isInstalled && !installDismissed;
