@@ -8,6 +8,7 @@ import { getPremiumStatus, getPremiumConfig } from "@/lib/premium.functions";
 import UpgradeCTA from "@/components/premium/UpgradeCTA";
 import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { ShareLink } from "@/components/affiliate/ShareLink";
+import { ReferralFlyer } from "@/components/affiliate/ReferralFlyer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loadable } from "@/components/ui/loadable";
 import { SimpleRowsSkeleton } from "@/components/skeletons/ListSkeleton";
@@ -61,6 +62,16 @@ function AffiliatePage() {
       </div>
 
       {summary.data?.referralCode && <ShareLink code={summary.data.referralCode} />}
+
+      {summary.data?.referralCode && (
+        <div className="rounded-2xl border border-border bg-card/40 p-5">
+          <h3 className="mb-1 text-sm font-semibold">Referral flyer</h3>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Your personalized flyer with your referral code baked in. Download it or share directly to WhatsApp, Telegram, or anywhere else.
+          </p>
+          <ReferralFlyer code={summary.data.referralCode} />
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card/40 p-5">
         <div className="flex items-center justify-between">
