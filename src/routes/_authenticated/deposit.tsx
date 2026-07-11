@@ -1,11 +1,14 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { ArrowDownToLine, Zap } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowDownToLine, Zap, Lock, AlertTriangle } from "lucide-react";
 import { RequestForm } from "@/components/wallet/RequestForm";
 import { RequestsHistory } from "@/components/wallet/RequestsHistory";
 import { IvoryPayButton } from "@/components/wallet/IvoryPayButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getDepositChannelStatus } from "@/lib/deposit-channels.functions";
 
 const searchSchema = z.object({
   ivorypay:  z.string().optional(),  // "success" when returning from IvoryPay checkout
@@ -21,6 +24,24 @@ export const Route = createFileRoute("/_authenticated/deposit")({
 
 function DepositPage() {
   const search = useSearch({ from: "/_authenticated/deposit" });
+  const channelStatusFn = useServerFn(getDepositChannelStatus);
+
+  const { data: channelStatus } = useQuery({
+    queryKey: ["deposit-channel-status"],
+    queryFn: () => channelStatusFn(),
+    staleTime: 60_000,
+  });
+
+  // IvoryPay is locked if disabled by admin OR daily limit reached
+  const ivoryLocked =
+    channelStatus?.ivorypay.enabled === false ||
+    channelStatus?.ivorypay.limitReached === true;
+  const ivoryLockReason = channelStatus?.ivorypay.limitReached
+    ? `Daily deposit limit of ${channelStatus.ivorypay.dailyLimitUsdt.toFixed(0)} USDT reached. Try again tomorrow.`
+    : (channelStatus?.ivorypay.lockedReason ?? "IvoryPay deposits are currently unavailable.");
+
+  const manualLocked    = channelStatus?.manual.enabled === false;
+  const manualLockReason = channelStatus?.manual.lockedReason ?? "Manual deposits are currently unavailable.";
 
   // If returning from IvoryPay, default to the IvoryPay tab and pass the
   // deposit request ID so the component can resume polling immediately.
@@ -85,12 +106,14 @@ function DepositPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Pass resumeDepositId when returning from IvoryPay so the
-                component starts polling immediately without re-initiating */}
-            <IvoryPayButton
-              minUsdt={1}
-              resumeDepositId={returningFromIvoryPay ? cleanRef : undefined}
-            />
+            {ivoryLocked ? (
+              <LockedChannel reason={ivoryLockReason} />
+            ) : (
+              <IvoryPayButton
+                minUsdt={1}
+                resumeDepositId={returningFromIvoryPay ? cleanRef : undefined}
+              />
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -102,7 +125,11 @@ function DepositPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <RequestForm type="deposit" minUsdt={1} hint="Enter the USDT amount you're depositing." />
+            {manualLocked ? (
+              <LockedChannel reason={manualLockReason} />
+            ) : (
+              <RequestForm type="deposit" minUsdt={1} hint="Enter the USDT amount you're depositing." />
+            )}
           </CardContent>
         </Card>
       )}
@@ -115,6 +142,24 @@ function DepositPage() {
           <RequestsHistory filter="deposit" />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function LockedChannel({ reason }: { reason: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15">
+        <Lock className="h-6 w-6 text-amber-400" />
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">Channel unavailable</p>
+        <p className="mt-1 text-sm text-muted-foreground">{reason}</p>
+      </div>
+      <div className="flex items-center gap-1.5 text-xs text-amber-400/80">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        Please check back later or use another deposit method.
+      </div>
     </div>
   );
 }

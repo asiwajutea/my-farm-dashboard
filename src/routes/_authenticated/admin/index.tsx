@@ -1,19 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText, ShieldCheck, Wrench, Star, Trophy } from "lucide-react";
+import { Shield, Users, Inbox, Sprout, Handshake, Settings, Ticket, FileText, ShieldCheck, Wrench, Star, Trophy, ArrowDownToLine } from "lucide-react";
 
 const links = [
-  { to: "/admin/farmers", label: "Farmers", desc: "Search, freeze, adjust balances", icon: Users },
-  { to: "/admin/requests", label: "Requests", desc: "Approve deposits & withdrawals", icon: Inbox },
-  { to: "/admin/kyc", label: "KYC", desc: "Review identity verification", icon: ShieldCheck },
-  { to: "/admin/cycles", label: "Cycles", desc: "Force-mature, cancel", icon: Sprout },
-  { to: "/admin/escrow", label: "Escrow", desc: "Resolve disputes", icon: Handshake },
-  { to: "/admin/settings", label: "Settings", desc: "Rates, fees, boosters, ticker", icon: Settings },
-  { to: "/admin/maintenance", label: "Maintenance", desc: "Block pages or the site", icon: Wrench },
-  { to: "/admin/coupons", label: "Coupons", desc: "Create & disable", icon: Ticket },
-  { to: "/admin/pv", label: "Points (PV)", desc: "Configure activity rewards", icon: Star },
-  { to: "/admin/premium", label: "Premium", desc: "Membership settings & metrics", icon: Shield },
-  { to: "/admin/achievements", label: "Achievements", desc: "Configure PV & USDT rewards", icon: Trophy },
-  { to: "/admin/audit", label: "Audit Log", desc: "All admin actions", icon: FileText },
+  { to: "/admin/farmers",          label: "Farmers",          desc: "Search, freeze, adjust balances",       icon: Users          },
+  { to: "/admin/requests",         label: "Requests",          desc: "Approve deposits & withdrawals",        icon: Inbox          },
+  { to: "/admin/kyc",              label: "KYC",               desc: "Review identity verification",          icon: ShieldCheck    },
+  { to: "/admin/cycles",           label: "Cycles",            desc: "Force-mature, cancel",                  icon: Sprout         },
+  { to: "/admin/escrow",           label: "Escrow",            desc: "Resolve disputes",                      icon: Handshake      },
+  { to: "/admin/settings",         label: "Settings",          desc: "Rates, fees, boosters, ticker",         icon: Settings       },
+  { to: "/admin/maintenance",      label: "Maintenance",       desc: "Block pages or the site",               icon: Wrench         },
+  { to: "/admin/coupons",          label: "Coupons",           desc: "Create & disable",                      icon: Ticket         },
+  { to: "/admin/pv",               label: "Points (PV)",       desc: "Configure activity rewards",            icon: Star           },
+  { to: "/admin/premium",          label: "Premium",           desc: "Membership settings & metrics",         icon: Shield         },
+  { to: "/admin/achievements",     label: "Achievements",      desc: "Configure PV & USDT rewards",           icon: Trophy         },
+  { to: "/admin/deposit-channels", label: "Deposit Channels",  desc: "Lock/unlock IvoryPay & manual deposits",icon: ArrowDownToLine},
+  { to: "/admin/audit",            label: "Audit Log",         desc: "All admin actions",                     icon: FileText       },
 ] as const;
 
 export const Route = createFileRoute("/_authenticated/admin/")({

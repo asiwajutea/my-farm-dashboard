@@ -32,6 +32,38 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createCheckoutTransaction } = await import("@/lib/ivorypay");
 
+    // 0. Check channel availability and daily limit
+    const { getDepositChannelStatus } = await import("@/lib/deposit-channels.functions");
+    // Call directly with the supabase client since we're already server-side
+    const { data: channelSettings } = await supabase
+      .from("app_settings")
+      .select("ivorypay_enabled, ivorypay_daily_limit_usdt, ivorypay_locked_reason, seed_to_usdt")
+      .eq("id", true)
+      .maybeSingle();
+
+    if (channelSettings?.ivorypay_enabled === false) {
+      throw new Error(channelSettings.ivorypay_locked_reason ?? "IvoryPay deposits are currently unavailable.");
+    }
+
+    const dailyLimitUsdt = Number(channelSettings?.ivorypay_daily_limit_usdt ?? 0);
+    if (dailyLimitUsdt > 0) {
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const { data: todayRows } = await supabase
+        .from("deposit_requests")
+        .select("amount")
+        .eq("method", "ivorypay")
+        .eq("status", "approved")
+        .gte("created_at", todayStart.toISOString());
+      const rate = Number(channelSettings?.seed_to_usdt ?? 1);
+      const todayUsdt = (todayRows ?? []).reduce((s, r) => s + Number(r.amount) * rate, 0);
+      if (todayUsdt + data.amountUsdt > dailyLimitUsdt) {
+        throw new Error(
+          `Daily IvoryPay deposit limit of ${dailyLimitUsdt} USDT reached. Please try again tomorrow or use manual deposit.`
+        );
+      }
+    }
+
     // 1. Get user info for IvoryPay (email required, name used for receipt)
     const { data: { user } } = await supabase.auth.getUser();
     const email = user?.email ?? "customer@vfarmers.app";
