@@ -121,10 +121,14 @@ export function IvoryPayButton({ minUsdt = 1, resumeDepositId }: Props) {
   // ── Manual recheck ────────────────────────────────────────────────────────
   const [rechecking, setRechecking] = useState(false);
   async function manualRecheck() {
-    if (!depositId) return;
+    const id = depositId ?? resumeDepositId ?? null;
+    if (!id) {
+      toast.error("No deposit ID found. Please start a new deposit.");
+      return;
+    }
     setRechecking(true);
     try {
-      const result = await checkFn({ data: { depositRequestId: depositId } });
+      const result = await checkFn({ data: { depositRequestId: id } });
       if (result.status === "approved") {
         clearPolling(); setStatus("approved");
         toast.success("Deposit confirmed!");
@@ -143,8 +147,7 @@ export function IvoryPayButton({ minUsdt = 1, resumeDepositId }: Props) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Check failed";
       toast.error(`${msg}. Please try again.`);
-    }
-    finally { setRechecking(false); }
+    } finally { setRechecking(false); }
   }
 
   function reset() {

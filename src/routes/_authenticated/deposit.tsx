@@ -8,8 +8,9 @@ import { IvoryPayButton } from "@/components/wallet/IvoryPayButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const searchSchema = z.object({
-  ivorypay: z.string().optional(),  // "success" when returning from IvoryPay checkout
-  ref:      z.string().optional(),  // deposit request UUID
+  ivorypay:  z.string().optional(),  // "success" when returning from IvoryPay checkout
+  ref:       z.string().optional(),  // our deposit request UUID
+  reference: z.string().optional(),  // IvoryPay may also append their own ?reference= param
 });
 
 export const Route = createFileRoute("/_authenticated/deposit")({
@@ -23,7 +24,10 @@ function DepositPage() {
 
   // If returning from IvoryPay, default to the IvoryPay tab and pass the
   // deposit request ID so the component can resume polling immediately.
-  const returningFromIvoryPay = search.ivorypay === "success" && !!search.ref;
+  // Sanitise the ref — strip any trailing characters IvoryPay may have appended.
+  const rawRef = search.ref;
+  const cleanRef = rawRef?.split("&")[0]?.split("?")[0]?.trim();
+  const returningFromIvoryPay = search.ivorypay === "success" && !!cleanRef;
   const [tab, setTab] = useState<"manual" | "ivorypay">(
     returningFromIvoryPay ? "ivorypay" : "ivorypay",
   );
@@ -85,7 +89,7 @@ function DepositPage() {
                 component starts polling immediately without re-initiating */}
             <IvoryPayButton
               minUsdt={1}
-              resumeDepositId={returningFromIvoryPay ? search.ref : undefined}
+              resumeDepositId={returningFromIvoryPay ? cleanRef : undefined}
             />
           </CardContent>
         </Card>

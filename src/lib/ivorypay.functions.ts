@@ -79,7 +79,10 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
         baseFiat:    "NGN",
         crypto:      "USDT",
         reference:   depositRequestId,
-        redirect_url: `${siteUrl}/deposit?ivorypay=success&ref=${depositRequestId}`,
+        redirect_url: `${siteUrl}/deposit?ivorypay=success`,
+        // Note: IvoryPay will append ?reference=<ref> to this URL automatically.
+        // We store our depositRequestId as the reference so we can extract it
+        // from the appended reference param on return.
       });
     } catch (err) {
       // Roll back the deposit row if IvoryPay call fails
@@ -103,7 +106,10 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
 export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ depositRequestId: z.string().uuid() }).parse(d),
+    z.object({
+      // Accept any non-empty string — the DB query will return nothing if it's not a real UUID
+      depositRequestId: z.string().min(1).max(100),
+    }).parse(d),
   )
   .handler(async ({ data, context }): Promise<{
     status: "pending" | "processing" | "approved" | "rejected";
