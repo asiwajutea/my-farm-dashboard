@@ -140,7 +140,10 @@ export function IvoryPayButton({ minUsdt = 1, resumeDepositId }: Props) {
         );
         setStatus(result.status);
       }
-    } catch { toast.error("Check failed. Please try again."); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Check failed";
+      toast.error(`${msg}. Please try again.`);
+    }
     finally { setRechecking(false); }
   }
 

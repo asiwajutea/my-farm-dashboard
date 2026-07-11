@@ -108,21 +108,26 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<{
     status: "pending" | "processing" | "approved" | "rejected";
   }> => {
-    const { userId } = context;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabase, userId } = context;
 
-    // Use admin client to bypass potential RLS/type issues with new columns.
-    // Still enforce ownership by filtering on user_id.
-    const { data: dep } = await supabaseAdmin
+    // Select only 'status' — avoids type errors from new columns (external_ref)
+    // that may not be in the generated Supabase types yet.
+    // RLS on deposit_requests ensures the user can only read their own rows.
+    const { data: dep, error: depErr } = await supabase
       .from("deposit_requests")
-      .select("status")
+      .select("id, status")
       .eq("id", data.depositRequestId)
       .eq("user_id", userId)
       .maybeSingle();
 
+    if (depErr) {
+      console.error("[checkIvoryPayDeposit] DB error:", depErr.message);
+      throw new Error("Failed to check deposit status");
+    }
+
     if (!dep) throw new Error("Deposit not found");
 
-    // DB is authoritative — if approved/rejected, return immediately
+    // DB is authoritative — webhook already updated this
     if (dep.status === "approved") return { status: "approved" };
     if (dep.status === "rejected") return { status: "rejected" };
 
@@ -137,8 +142,9 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
           result.status === "MISMATCH")   return { status: "rejected" };
       if (result.status === "PROCESSING" ||
           result.status === "CONFIRMING") return { status: "processing" };
-    } catch {
-      // IvoryPay verify unavailable — fall back to DB status
+    } catch (verifyErr) {
+      // IvoryPay verify unavailable — return current DB status
+      console.warn("[checkIvoryPayDeposit] verify failed:", verifyErr);
     }
 
     return { status: "pending" };
