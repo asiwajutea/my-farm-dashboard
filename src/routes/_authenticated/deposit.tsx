@@ -1,18 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
 import { ArrowDownToLine, Zap } from "lucide-react";
 import { RequestForm } from "@/components/wallet/RequestForm";
 import { RequestsHistory } from "@/components/wallet/RequestsHistory";
 import { IvoryPayButton } from "@/components/wallet/IvoryPayButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
+const searchSchema = z.object({
+  ivorypay: z.string().optional(),  // "success" when returning from IvoryPay checkout
+  ref:      z.string().optional(),  // deposit request UUID
+});
+
 export const Route = createFileRoute("/_authenticated/deposit")({
+  validateSearch: searchSchema,
   head: () => ({ meta: [{ title: "Deposit · VFarmers" }] }),
   component: DepositPage,
 });
 
 function DepositPage() {
-  const [tab, setTab] = useState<"manual" | "ivorypay">("ivorypay");
+  const search = useSearch({ from: "/_authenticated/deposit" });
+
+  // If returning from IvoryPay, default to the IvoryPay tab and pass the
+  // deposit request ID so the component can resume polling immediately.
+  const returningFromIvoryPay = search.ivorypay === "success" && !!search.ref;
+  const [tab, setTab] = useState<"manual" | "ivorypay">(
+    returningFromIvoryPay ? "ivorypay" : "ivorypay",
+  );
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
@@ -67,7 +81,12 @@ function DepositPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <IvoryPayButton minUsdt={1} />
+            {/* Pass resumeDepositId when returning from IvoryPay so the
+                component starts polling immediately without re-initiating */}
+            <IvoryPayButton
+              minUsdt={1}
+              resumeDepositId={returningFromIvoryPay ? search.ref : undefined}
+            />
           </CardContent>
         </Card>
       ) : (

@@ -23,17 +23,27 @@ type DepositStatus = "idle" | "pending" | "processing" | "approved" | "rejected"
 
 interface Props {
   minUsdt?: number;
+  /** When returning from IvoryPay checkout, pass the deposit ID to resume polling */
+  resumeDepositId?: string;
 }
 
-export function IvoryPayButton({ minUsdt = 1 }: Props) {
+export function IvoryPayButton({ minUsdt = 1, resumeDepositId }: Props) {
   const initiateFn = useServerFn(initiateIvoryPayDeposit);
   const checkFn    = useServerFn(checkIvoryPayDeposit);
   const qc = useQueryClient();
 
-  const [amount, setAmount]     = useState("");
-  const [depositId, setDepositId] = useState<string | null>(null);
-  const [status, setStatus]     = useState<DepositStatus>("idle");
+  const [amount, setAmount]       = useState("");
+  const [depositId, setDepositId] = useState<string | null>(resumeDepositId ?? null);
+  const [status, setStatus]       = useState<DepositStatus>(resumeDepositId ? "pending" : "idle");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // If we resumed from a redirect, start polling immediately on mount
+  useEffect(() => {
+    if (resumeDepositId) {
+      startPolling(resumeDepositId);
+    }
+    return () => clearPolling();
+  }, [resumeDepositId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Initiate payment ──────────────────────────────────────────────────────
   const initiate = useMutation({
@@ -42,10 +52,19 @@ export function IvoryPayButton({ minUsdt = 1 }: Props) {
     onSuccess: ({ checkoutUrl, depositRequestId }) => {
       setDepositId(depositRequestId);
       setStatus("pending");
-      // Open IvoryPay hosted checkout in a new tab
-      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-      toast.success("IvoryPay checkout opened. Complete your payment there.");
       startPolling(depositRequestId);
+      // Navigate the current tab to IvoryPay checkout.
+      // Using window.location.href avoids popup blockers (window.open in async
+      // callbacks is blocked by most browsers) and ensures the URL is valid
+      // before navigating. The redirect_url in our server fn brings the user
+      // back to /deposit after payment.
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error("IvoryPay did not return a checkout URL. Please try again.");
+        setStatus("idle");
+        clearPolling();
+      }
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to initiate payment");
@@ -78,7 +97,6 @@ export function IvoryPayButton({ minUsdt = 1 }: Props) {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   }
 
-  useEffect(() => () => clearPolling(), []);
 
   // ── Manual recheck ────────────────────────────────────────────────────────
   const [rechecking, setRechecking] = useState(false);
@@ -152,7 +170,7 @@ export function IvoryPayButton({ minUsdt = 1 }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             {status === "processing"
               ? "Your transaction is confirmed on-chain. Crediting your wallet…"
-              : "Complete your payment in the IvoryPay tab. This page updates automatically."}
+              : "Redirecting you to IvoryPay… If nothing happened, use 'Check now' below."}
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
@@ -210,7 +228,7 @@ export function IvoryPayButton({ minUsdt = 1 }: Props) {
 
       <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
         <Shield className="h-3 w-3" />
-        Secured by IvoryPay — you will be redirected to their checkout page.
+        You will be redirected to IvoryPay's secure checkout. You'll return here automatically after payment.
       </div>
     </div>
   );
