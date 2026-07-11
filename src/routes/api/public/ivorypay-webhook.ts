@@ -1,22 +1,21 @@
 /**
- * IvoryPay webhook handler — POST /api/public/ivorypay-webhook
+ * IvoryPay webhook — POST /api/public/ivorypay-webhook
  *
- * IvoryPay POSTs a JSON body with event + data when a transaction status changes.
- * On "transaction.completed" we:
- *   1. Verify the Authorization header matches IVORYPAY_SECRET_KEY
- *   2. Look up the deposit_requests row by external_ref (IvoryPay tx ID)
- *      OR by metadata.reference (our deposit request ID)
- *   3. Update status → "approved"
- *   4. Credit the user's Primary wallet via wallet_adjust RPC
- *   5. Notify the user
+ * IvoryPay sends a POST when a transaction changes state.
+ * Signature is HMAC-SHA512 of JSON.stringify(body.data) in x-ivorypay-signature.
+ * Webhook URL must be registered in: IvoryPay Dashboard → Settings → Webhooks
  *
- * IvoryPay expects a 200 response — any non-2xx causes a retry.
- * We are idempotent: if the deposit is already approved we return 200 immediately.
+ * On "cryptoCollection.success":
+ *   1. Verify x-ivorypay-signature header
+ *   2. Find deposit_requests row by body.data.reference (= our deposit ID)
+ *   3. Credit wallet via wallet_adjust RPC
+ *   4. Set deposit status → "approved"
+ *   5. Notify user
  */
 
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { IvoryPayWebhookEvent } from "@/lib/ivorypay";
+import { verifyWebhookSignature, type IvoryPayWebhookPayload } from "@/lib/ivorypay";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -29,91 +28,68 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
-        // 1. Verify the Authorization header — IvoryPay sends the merchant secret key
-        const authHeader = request.headers.get("authorization") ?? "";
-        const secretKey = process.env.IVORYPAY_SECRET_KEY;
-
-        if (!secretKey) {
-          console.error("[ivorypay-webhook] IVORYPAY_SECRET_KEY not configured");
-          return json({ ok: false, error: "not_configured" }, 503);
-        }
-
-        // IvoryPay sends the secret key directly in the Authorization header
-        if (authHeader !== secretKey) {
-          console.warn("[ivorypay-webhook] Invalid authorization header");
-          return json({ ok: false, error: "unauthorized" }, 401);
-        }
-
-        // 2. Parse body
-        let event: IvoryPayWebhookEvent;
+        // 1. Parse body first (needed for both signature check and processing)
+        let payload: IvoryPayWebhookPayload;
+        let rawText: string;
         try {
-          event = (await request.json()) as IvoryPayWebhookEvent;
+          rawText = await request.text();
+          payload = JSON.parse(rawText) as IvoryPayWebhookPayload;
         } catch {
           return json({ ok: false, error: "invalid_json" }, 400);
         }
 
-        console.log(`[ivorypay-webhook] event=${event.event} tx=${event.data?.id}`);
+        // 2. Verify HMAC-SHA512 of JSON.stringify(payload.data)
+        const signature = request.headers.get("x-ivorypay-signature");
+        if (!verifyWebhookSignature(payload.data, signature)) {
+          console.warn("[ivorypay-webhook] Invalid signature");
+          return json({ ok: false, error: "unauthorized" }, 401);
+        }
 
-        // 3. Only act on completed transactions
-        if (event.event !== "transaction.completed") {
+        const { event, data } = payload;
+        console.log(`[ivorypay-webhook] event=${event} ref=${data?.reference}`);
+
+        // 3. Only act on successful crypto collections
+        //    Also handle fiatCollection.success if you later enable FIAT
+        if (event !== "cryptoCollection.success" && event !== "fiatCollection.success") {
           return json({ ok: true, ignored: true });
         }
 
-        const tx = event.data;
-        if (!tx?.id) return json({ ok: false, error: "missing_tx_id" }, 400);
-
-        // 4. Find the deposit_requests row
-        //    Try external_ref (IvoryPay tx ID) first, then metadata.reference (our deposit ID)
-        let depositRow: { id: string; user_id: string; amount: number; status: string } | null = null;
-
-        // Try by external_ref
-        const { data: byRef } = await supabaseAdmin
-          .from("deposit_requests")
-          .select("id, user_id, amount, status")
-          .eq("external_ref", tx.id)
-          .maybeSingle();
-        depositRow = byRef ?? null;
-
-        // Fallback: try metadata.reference as deposit request ID
-        if (!depositRow && tx.metadata?.reference) {
-          const { data: byMeta } = await supabaseAdmin
-            .from("deposit_requests")
-            .select("id, user_id, amount, status")
-            .eq("id", tx.metadata.reference)
-            .maybeSingle();
-          depositRow = byMeta ?? null;
-
-          // Store the external_ref now that we have it
-          if (depositRow) {
-            await supabaseAdmin
-              .from("deposit_requests")
-              .update({ external_ref: tx.id })
-              .eq("id", depositRow.id);
-          }
+        if (!data?.reference) {
+          return json({ ok: false, error: "missing_reference" }, 400);
         }
 
+        // 4. Look up deposit_requests by reference (= our deposit request UUID)
+        const { data: depositRow } = await supabaseAdmin
+          .from("deposit_requests")
+          .select("id, user_id, amount, status")
+          .eq("id", data.reference)
+          .maybeSingle();
+
         if (!depositRow) {
-          console.error(`[ivorypay-webhook] No deposit found for tx=${tx.id}`);
-          // Return 200 so IvoryPay doesn't retry — we can't match this payment
+          console.error(`[ivorypay-webhook] No deposit for reference=${data.reference}`);
+          // Return 200 so IvoryPay doesn't retry indefinitely
           return json({ ok: false, error: "deposit_not_found" }, 200);
         }
 
-        // 5. Idempotency — already processed
+        // 5. Idempotency — already credited
         if (depositRow.status === "approved") {
           return json({ ok: true, already_processed: true });
         }
 
-        // 6. Use the amount IvoryPay actually received (may differ slightly from requested)
-        const receivedUsdt = tx.amountReceived ?? tx.amount ?? depositRow.amount;
+        // 6. Determine credited amount in USDT
+        //    settledAmountInCrypto = what IvoryPay settled after fees
+        const settledUsdt = Number(
+          data.settledAmountInCrypto ?? data.receivedAmountInCrypto ?? depositRow.amount
+        );
 
-        // Convert USDT → Seed for the wallet credit
+        // Convert USDT → Seed
         const { data: settings } = await supabaseAdmin
           .from("app_settings")
           .select("seed_to_usdt")
           .eq("id", true)
           .maybeSingle();
         const rate = Number(settings?.seed_to_usdt ?? 1);
-        const amountSeed = rate > 0 ? receivedUsdt / rate : receivedUsdt;
+        const amountSeed = rate > 0 ? settledUsdt / rate : settledUsdt;
 
         // 7. Look up user's Primary wallet
         const { data: wallet } = await supabaseAdmin
@@ -128,12 +104,12 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
           return json({ ok: false, error: "wallet_not_found" }, 200);
         }
 
-        // 8. Atomically: credit wallet + mark deposit approved
+        // 8. Credit wallet via SECURITY DEFINER RPC
         const { error: rpcErr } = await supabaseAdmin.rpc("wallet_adjust", {
           p_wallet:    wallet.id,
           p_amount:    amountSeed,
           p_kind:      "deposit",
-          p_memo:      `IvoryPay deposit — tx:${tx.id}`,
+          p_memo:      `IvoryPay — ref:${data.reference}`,
           p_ref_table: "deposit_requests",
           p_ref_id:    depositRow.id,
         });
@@ -143,19 +119,19 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
           return json({ ok: false, error: "internal" }, 500);
         }
 
-        // 9. Mark the deposit as approved
+        // 9. Mark deposit approved
         await supabaseAdmin
           .from("deposit_requests")
           .update({ status: "approved" })
           .eq("id", depositRow.id);
 
-        // 10. Notify the user (non-fatal if it fails)
+        // 10. Notify user (non-fatal)
         try {
           await supabaseAdmin.rpc("notify_user", {
             p_user:      depositRow.user_id,
             p_kind:      "deposit_approved",
             p_title:     "Deposit approved 🎉",
-            p_body:      `${receivedUsdt.toFixed(2)} USDT has been credited to your Primary Wallet.`,
+            p_body:      `${settledUsdt.toFixed(2)} USDT has been credited to your Primary Wallet.`,
             p_ref_table: "deposit_requests",
             p_ref_id:    depositRow.id,
           });
