@@ -66,24 +66,19 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
     // Store as external_ref for webhook matching
     const siteUrl = process.env.SITE_URL ?? "https://vfarmers.app";
 
-    // 4. Create the IvoryPay CHECKOUT transaction
-    //    baseFiat must be "NGN" — it's IvoryPay's display/conversion currency.
-    //    For CHECKOUT mode the customer pays USDT; IvoryPay shows the NGN equivalent.
-    //    We pass the USDT amount converted to NGN (approx 1 USDT ≈ 1600 NGN).
-    //    IvoryPay resolves the actual crypto amount on their checkout page.
-    const NGN_PER_USDT = Number(process.env.IVORYPAY_NGN_RATE ?? 1600);
-    const amountNgn = Math.round(data.amountUsdt * NGN_PER_USDT);
-
+    // 4. Create the IvoryPay CHECKOUT transaction.
+    //    Pass the USDT amount directly — IvoryPay handles fiat display conversion.
+    //    baseFiat: "NGN" is required by IvoryPay (their only supported baseFiat).
     let checkoutTx;
     try {
       checkoutTx = await createCheckoutTransaction({
-        amount:      amountNgn,
+        amount:      data.amountUsdt,             // pass USDT amount directly
         email,
         firstName:   firstName ?? "VFarmers",
         lastName:    lastName ?? "User",
         baseFiat:    "NGN",
         crypto:      "USDT",
-        reference:   depositRequestId,        // full UUID — docs use this format
+        reference:   depositRequestId,
         redirect_url: `${siteUrl}/deposit?ivorypay=success&ref=${depositRequestId}`,
       });
     } catch (err) {

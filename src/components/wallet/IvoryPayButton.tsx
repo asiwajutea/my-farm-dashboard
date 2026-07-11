@@ -37,11 +37,31 @@ export function IvoryPayButton({ minUsdt = 1, resumeDepositId }: Props) {
   const [status, setStatus]       = useState<DepositStatus>(resumeDepositId ? "pending" : "idle");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // If we resumed from a redirect, start polling immediately on mount
+  // If we resumed from a redirect, check immediately then start polling
   useEffect(() => {
-    if (resumeDepositId) {
+    if (!resumeDepositId) return;
+
+    // Immediate check — don't wait 10 s for the first poll
+    (async () => {
+      try {
+        const result = await checkFn({ data: { depositRequestId: resumeDepositId } });
+        if (result.status === "approved") {
+          setStatus("approved");
+          toast.success("Deposit confirmed! Your wallet has been credited.");
+          qc.invalidateQueries({ queryKey: ["my-requests"] });
+          return; // no need to start polling
+        } else if (result.status === "rejected") {
+          setStatus("rejected");
+          return;
+        } else if (result.status === "processing") {
+          setStatus("processing");
+        }
+      } catch { /* non-fatal — fall through to polling */ }
+
+      // Only start interval polling if not yet resolved
       startPolling(resumeDepositId);
-    }
+    })();
+
     return () => clearPolling();
   }, [resumeDepositId]); // eslint-disable-line react-hooks/exhaustive-deps
 
