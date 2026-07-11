@@ -63,6 +63,9 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
     if (depErr || !depRow) throw new Error(depErr?.message ?? "Failed to create deposit record");
 
     const depositRequestId = depRow.id;
+    // IvoryPay requires reference to be exactly 32 characters.
+    // A UUID is 36 chars with hyphens — strip the hyphens to get 32.
+    const ivoryReference = depositRequestId.replace(/-/g, "");
     const siteUrl = process.env.SITE_URL ?? "https://vfarmers.app";
 
     // 4. Create the IvoryPay CHECKOUT transaction
@@ -76,19 +79,21 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
         lastName:    lastName ?? "User",
         baseFiat:    "USD",
         crypto:      "USDT",
-        reference:   depositRequestId,
+        reference:   ivoryReference,          // 32-char UUID without hyphens
         redirect_url: `${siteUrl}/deposit?ivorypay=success&ref=${depositRequestId}`,
       });
     } catch (err) {
       // Roll back the deposit row if IvoryPay call fails
       await supabaseAdmin.from("deposit_requests").delete().eq("id", depositRequestId);
-      throw err;
+      // Surface the real IvoryPay error message to the client
+      const msg = err instanceof Error ? err.message : "IvoryPay payment initiation failed";
+      throw new Error(msg);
     }
 
-    // 5. Store the reference back as external_ref for idempotency and lookup
+    // 5. Store the 32-char IvoryPay reference as external_ref for webhook matching
     await supabaseAdmin
       .from("deposit_requests")
-      .update({ external_ref: depositRequestId })
+      .update({ external_ref: ivoryReference })
       .eq("id", depositRequestId);
 
     return { checkoutUrl: checkoutTx.checkoutUrl, depositRequestId };
@@ -120,10 +125,11 @@ export const checkIvoryPayDeposit = createServerFn({ method: "GET" })
     if (dep.status === "approved") return { status: "approved" };
     if (dep.status === "rejected") return { status: "rejected" };
 
-    // Poll IvoryPay's public verify endpoint using the deposit ID as reference
+    // Poll IvoryPay's public verify endpoint using external_ref (32-char reference)
+    const reference = dep.external_ref ?? data.depositRequestId.replace(/-/g, "");
     try {
       const { verifyTransaction } = await import("@/lib/ivorypay");
-      const result = await verifyTransaction(data.depositRequestId);
+      const result = await verifyTransaction(reference);
 
       if (result.status === "SUCCESS")    return { status: "approved" };
       if (result.status === "FAILED" ||

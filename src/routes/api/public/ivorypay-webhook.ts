@@ -58,11 +58,13 @@ export const Route = createFileRoute("/api/public/ivorypay-webhook")({
           return json({ ok: false, error: "missing_reference" }, 400);
         }
 
-        // 4. Look up deposit_requests by reference (= our deposit request UUID)
+        // 4. Look up deposit_requests by reference
+        //    IvoryPay sends the 32-char reference (UUID without hyphens).
+        //    We stored it in external_ref — look it up there first.
         const { data: depositRow } = await supabaseAdmin
           .from("deposit_requests")
           .select("id, user_id, amount, status")
-          .eq("id", data.reference)
+          .eq("external_ref", data.reference)
           .maybeSingle();
 
         if (!depositRow) {

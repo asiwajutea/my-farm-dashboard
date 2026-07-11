@@ -110,7 +110,23 @@ export async function createCheckoutTransaction(
     throw new Error(`IvoryPay createTransaction failed: ${json.message ?? res.statusText}`);
   }
 
-  return json.data;
+  // Log the full response in development so we can inspect the shape
+  console.log("[IvoryPay] createTransaction response:", JSON.stringify(json.data, null, 2));
+
+  // IvoryPay may use checkoutUrl or checkout_url depending on version
+  const checkoutUrl =
+    (json.data as unknown as Record<string, string>).checkoutUrl ??
+    (json.data as unknown as Record<string, string>).checkout_url ??
+    (json.data as unknown as Record<string, string>).paymentUrl ??
+    (json.data as unknown as Record<string, string>).payment_url;
+
+  if (!checkoutUrl) {
+    throw new Error(
+      `IvoryPay did not return a checkout URL. Response: ${JSON.stringify(json.data)}`
+    );
+  }
+
+  return { ...json.data, checkoutUrl };
 }
 
 /**
