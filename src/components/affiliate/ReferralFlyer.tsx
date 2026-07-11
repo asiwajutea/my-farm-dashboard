@@ -68,27 +68,15 @@ export function ReferralFlyer({ code, memberName }: Props) {
       const bw = BOX.w * W;
       const bh = BOX.h * H;
 
-      // 3. Optionally fill a semi-transparent white overlay to ensure legibility
-      //    even if the box background varies slightly across template versions.
-      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-      ctx.roundRect(bx, by, bw, bh, 10);
-      ctx.fill();
-
-      // 4. Draw the referral code — large, bold, centred in the box
-      const fontSize = Math.round(bh * 0.48);
+      // 3. Draw the referral code — large, bold, centred in the box
+      //    No background fill — the template's white box shows through naturally.
+      const fontSize = Math.round(bh * 0.62);
       ctx.font        = `900 ${fontSize}px 'Arial Black', Arial, sans-serif`;
       ctx.fillStyle   = "#1a4d1a";
       ctx.textAlign   = "center";
       ctx.textBaseline = "middle";
       ctx.letterSpacing = "6px";
       ctx.fillText(code, bx + bw / 2, by + bh / 2, bw - 24);
-
-      // 5. Optionally add a subtle label above the code
-      const labelSize = Math.round(bh * 0.20);
-      ctx.font        = `600 ${labelSize}px Arial, sans-serif`;
-      ctx.fillStyle   = "#2d7a2d";
-      ctx.letterSpacing = "2px";
-      ctx.fillText("REFERRAL CODE", bx + bw / 2, by + bh * 0.18, bw - 24);
 
       setReady(true);
     };
