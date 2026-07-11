@@ -51,11 +51,10 @@ export const initiateIvoryPayDeposit = createServerFn({ method: "POST" })
     const { data: depRow, error: depErr } = await supabaseAdmin
       .from("deposit_requests")
       .insert({
-        user_id:      userId,
-        amount:       amountSeed,
-        method:       "ivorypay",
-        status:       "pending",
-        external_ref: null,          // will be set to reference = id after creation
+        user_id: userId,
+        amount:  amountSeed,
+        method:  "ivorypay",
+        status:  "pending",
       })
       .select("id")
       .single();

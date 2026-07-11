@@ -113,12 +113,18 @@ export async function createCheckoutTransaction(
   // Log the full response in development so we can inspect the shape
   console.log("[IvoryPay] createTransaction response:", JSON.stringify(json.data, null, 2));
 
-  // IvoryPay may use checkoutUrl or checkout_url depending on version
+  // IvoryPay may nest checkoutUrl inside collectionDetails (API mode fallback)
+  // or return it at the top level (CHECKOUT mode).
+  const data = json.data as unknown as Record<string, unknown>;
+  const collectionDetails = (data.collectionDetails ?? {}) as Record<string, unknown>;
+
   const checkoutUrl =
-    (json.data as unknown as Record<string, string>).checkoutUrl ??
-    (json.data as unknown as Record<string, string>).checkout_url ??
-    (json.data as unknown as Record<string, string>).paymentUrl ??
-    (json.data as unknown as Record<string, string>).payment_url;
+    (data.checkoutUrl as string | undefined) ??
+    (data.checkout_url as string | undefined) ??
+    (collectionDetails.checkoutUrl as string | undefined) ??
+    (collectionDetails.checkout_url as string | undefined) ??
+    (data.paymentUrl as string | undefined) ??
+    (data.payment_url as string | undefined);
 
   if (!checkoutUrl) {
     throw new Error(
