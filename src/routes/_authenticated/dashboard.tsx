@@ -13,6 +13,7 @@ import PremiumBadge from "@/components/premium/PremiumBadge";
 import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { RecoveryPhraseNagModal } from "@/components/recovery/RecoveryPhraseNagModal";
 import { OnboardingFlow, hasSeenOnboarding } from "@/components/OnboardingFlow";
+import { GettingStartedChecklist, type ChecklistData } from "@/components/GettingStartedChecklist";
 import { useSiteState } from "@/hooks/use-site-state";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ function Dashboard() {
   const [rate, setRate] = useState<number>(1);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [checklistData, setChecklistData] = useState<ChecklistData | null>(null);
   const { data: siteState } = useSiteState();
 
   const fnCycles = useServerFn(listMyCycles);
@@ -83,7 +85,7 @@ function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const [{ data: prof }, { data: ws }, { data: settings }] = await Promise.all([
-        supabase.from("profiles").select("display_name, referral_code").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("display_name, referral_code, username, avatar_url").eq("id", user.id).maybeSingle(),
         supabase.from("wallets").select("kind, balance, locked").eq("user_id", user.id),
         supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
       ]);
@@ -102,6 +104,37 @@ function Dashboard() {
         setWallets(map);
       }
       if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
+
+      // Build checklist data in parallel
+      const [
+        { data: cycles },
+        { data: deposits },
+        { data: payoutMethods },
+        { data: passcodeRow },
+        { data: affiliateRow },
+      ] = await Promise.all([
+        supabase.from("cycles").select("id").eq("user_id", user.id).limit(1),
+        supabase.from("deposit_requests").select("id").eq("user_id", user.id).eq("status", "approved").limit(1),
+        supabase.from("payout_methods").select("id").eq("user_id", user.id).limit(1),
+        supabase.from("user_passcodes").select("user_id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("referral_code").eq("id", user.id).maybeSingle(),
+      ]);
+
+      // Count direct referrals
+      const { count: referralCount } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("referred_by", affiliateRow?.referral_code ?? "NONE");
+
+      setChecklistData({
+        hasUsername:     !!(prof as { username?: string | null })?.username,
+        hasAvatar:       !!(prof as { avatar_url?: string | null })?.avatar_url,
+        hasPayoutMethod: (payoutMethods?.length ?? 0) > 0,
+        hasDeposited:    (deposits?.length ?? 0) > 0,
+        hasStartedCycle: (cycles?.length ?? 0) > 0,
+        hasReferral:     (referralCount ?? 0) > 0,
+        hasPasscode:     !!passcodeRow,
+      });
 
       // Show onboarding after a short delay if not seen yet
       // Delay keeps it from clashing with other modals (recovery phrase, etc.)
@@ -169,6 +202,13 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Getting started checklist — shown to new users until all tasks done */}
+      {checklistData && (
+        <div className="mt-6">
+          <GettingStartedChecklist data={checklistData} referralCode={referralCode} />
+        </div>
+      )}
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
         <Link to="/wallet" className="block">
@@ -252,9 +292,6 @@ function Dashboard() {
       {showOnboarding && (
         <OnboardingFlow
           name={name}
-          referralCode={referralCode}
-          telegramGroupUrl={siteState?.telegram_group_url ?? null}
-          telegramChannelUrl={siteState?.telegram_channel_url ?? null}
           onDone={() => setShowOnboarding(false)}
         />
       )}

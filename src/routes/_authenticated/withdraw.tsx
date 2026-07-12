@@ -14,6 +14,7 @@ import { usePayoutLock } from "@/hooks/use-payout-lock";
 import { fmtAmount } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPremiumStatus } from "@/lib/premium.functions";
+import { PageHint, PAGE_HINTS } from "@/components/PageHint";
 
 export const Route = createFileRoute("/_authenticated/withdraw")({
   head: () => ({ meta: [{ title: "Withdraw · VFarmers" }] }),
@@ -87,6 +88,7 @@ function WithdrawPage() {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+      <PageHint {...PAGE_HINTS.withdraw} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">

@@ -9,6 +9,7 @@ import UpgradeCTA from "@/components/premium/UpgradeCTA";
 import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { ShareLink } from "@/components/affiliate/ShareLink";
 import { ReferralFlyer } from "@/components/affiliate/ReferralFlyer";
+import { PageHint, PAGE_HINTS } from "@/components/PageHint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loadable } from "@/components/ui/loadable";
 import { SimpleRowsSkeleton } from "@/components/skeletons/ListSkeleton";
@@ -40,6 +41,7 @@ function AffiliatePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-5">
+      <PageHint {...PAGE_HINTS.affiliate} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Affiliate</h1>
         <p className="text-sm text-muted-foreground">Earn from 3 generations of farmers you bring to VFarmers.</p>

@@ -27,6 +27,7 @@ import {
 } from "@/lib/premium.functions";
 import PremiumBadge from "@/components/premium/PremiumBadge";
 import { Button } from "@/components/ui/button";
+import { PageHint, PAGE_HINTS } from "@/components/PageHint";
 import {
   Dialog,
   DialogContent,
@@ -237,6 +238,7 @@ function UpgradePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
+      <PageHint {...PAGE_HINTS.upgrade} />
       {/* Page header */}
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Membership</h1>

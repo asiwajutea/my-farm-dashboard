@@ -9,6 +9,7 @@ import { RequestsHistory } from "@/components/wallet/RequestsHistory";
 import { IvoryPayButton } from "@/components/wallet/IvoryPayButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getDepositChannelStatus } from "@/lib/deposit-channels.functions";
+import { PageHint, PAGE_HINTS } from "@/components/PageHint";
 
 const searchSchema = z.object({
   ivorypay:  z.string().optional(),  // "success" when returning from IvoryPay checkout
@@ -55,6 +56,7 @@ function DepositPage() {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+      <PageHint {...PAGE_HINTS.deposit} />
       <header className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <ArrowDownToLine className="h-5 w-5" />
