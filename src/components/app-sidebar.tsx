@@ -180,20 +180,6 @@ export function AppSidebar() {
           {renderGroup("Account", account)}
           {showAdminSection && renderGroup("Admin", [
             { title: "Admin Console", url: "/admin", icon: Shield },
-            ...(isAdmin || myPrivileges.includes("admin_farmers")
-              ? [{ title: "Farmers", url: "/admin/farmers", icon: Users } as const] : []),
-            ...(isAdmin || myPrivileges.includes("admin_requests")
-              ? [{ title: "Requests", url: "/admin/requests", icon: Shield } as const] : []),
-            ...(isAdmin || myPrivileges.includes("admin_kyc")
-              ? [{ title: "KYC", url: "/admin/kyc", icon: ShieldCheck } as const] : []),
-            ...(isAdmin || myPrivileges.includes("admin_deposit_channels")
-              ? [{ title: "Deposit Channels", url: "/admin/deposit-channels", icon: ArrowDownToLine } as const] : []),
-            ...(isAdmin
-              ? [
-                  { title: "Maintenance", url: "/admin/maintenance", icon: ShieldCheck } as const,
-                  { title: "Privileges", url: "/admin/privileges", icon: Shield } as const,
-                ]
-              : []),
           ])}
         </SidebarContent>
 

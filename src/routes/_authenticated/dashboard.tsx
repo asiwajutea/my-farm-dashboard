@@ -12,6 +12,8 @@ import { getRecoveryPhraseStatus } from "@/lib/recovery-phrase.functions";
 import PremiumBadge from "@/components/premium/PremiumBadge";
 import { PremiumNagModal } from "@/components/premium/PremiumNagModal";
 import { RecoveryPhraseNagModal } from "@/components/recovery/RecoveryPhraseNagModal";
+import { OnboardingFlow, hasSeenOnboarding } from "@/components/OnboardingFlow";
+import { useSiteState } from "@/hooks/use-site-state";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtAmount, seedToUsdt } from "@/lib/currency";
@@ -32,6 +34,9 @@ function Dashboard() {
   const [name, setName] = useState("Farmer");
   const [wallets, setWallets] = useState<Partial<Record<WalletKind, WalletRow>>>({});
   const [rate, setRate] = useState<number>(1);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { data: siteState } = useSiteState();
 
   const fnCycles = useServerFn(listMyCycles);
   const fnReap = useServerFn(reapCycleFn);
@@ -78,7 +83,7 @@ function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const [{ data: prof }, { data: ws }, { data: settings }] = await Promise.all([
-        supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("display_name, referral_code").eq("id", user.id).maybeSingle(),
         supabase.from("wallets").select("kind, balance, locked").eq("user_id", user.id),
         supabase.from("app_settings").select("seed_to_usdt").maybeSingle(),
       ]);
@@ -90,12 +95,19 @@ function Dashboard() {
         "Farmer";
       const fullName = raw.split(/\s+/)[0] || raw;
       setName(fullName);
+      if (prof?.referral_code) setReferralCode(prof.referral_code);
       if (ws) {
         const map: Partial<Record<WalletKind, WalletRow>> = {};
         for (const w of ws as WalletRow[]) map[w.kind] = w;
         setWallets(map);
       }
       if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
+
+      // Show onboarding after a short delay if not seen yet
+      // Delay keeps it from clashing with other modals (recovery phrase, etc.)
+      if (!hasSeenOnboarding()) {
+        setTimeout(() => setShowOnboarding(true), 2000);
+      }
     })();
   }, []);
 
@@ -233,6 +245,17 @@ function Dashboard() {
       {recoveryStatusQ.data && !recoveryStatusQ.data.hasPhrase && (
         <RecoveryPhraseNagModal
           onDismiss={() => recoveryStatusQ.refetch()}
+        />
+      )}
+
+      {/* Onboarding tour — shown once to new users, 2 s after mount */}
+      {showOnboarding && (
+        <OnboardingFlow
+          name={name}
+          referralCode={referralCode}
+          telegramGroupUrl={siteState?.telegram_group_url ?? null}
+          telegramChannelUrl={siteState?.telegram_channel_url ?? null}
+          onDone={() => setShowOnboarding(false)}
         />
       )}
     </div>
