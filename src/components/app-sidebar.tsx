@@ -34,7 +34,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useIsAdmin } from "@/hooks/use-admin";
+import { useIsAdmin, useMyPrivileges } from "@/hooks/use-admin";
 import { getPremiumStatus } from "@/lib/premium.functions";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
@@ -70,6 +70,17 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: adminData } = useIsAdmin();
   const isAdmin = adminData?.isAdmin === true;
+  const { data: privilegeData } = useMyPrivileges();
+  const myPrivileges = privilegeData?.privileges ?? [];
+
+  // Show admin section if full admin OR has any admin capability privilege
+  const ADMIN_PRIVILEGES = [
+    "admin_farmers", "admin_requests", "admin_kyc", "admin_cycles",
+    "admin_escrow", "admin_coupons", "admin_pv", "admin_audit",
+    "admin_deposit_channels",
+  ];
+  const hasAnyAdminPrivilege = myPrivileges.some((p) => ADMIN_PRIVILEGES.includes(p));
+  const showAdminSection = isAdmin || hasAnyAdminPrivilege;
 
   // Premium status — no longer needed for link visibility (link is always shown)
   // Keep the query so the cache is warm for the Membership page
@@ -117,7 +128,7 @@ export function AppSidebar() {
       ro.disconnect();
       window.removeEventListener("resize", updateScrollState);
     };
-  }, [updateScrollState, isAdmin, collapsed]);
+  }, [updateScrollState, showAdminSection, collapsed]);
 
   const scrollDown = () => {
     scrollRef.current?.scrollBy({ top: 240, behavior: "smooth" });
@@ -165,10 +176,22 @@ export function AppSidebar() {
           ])}
           {renderGroup("Transfer", transfer)}
           {renderGroup("Account", account)}
-          {isAdmin && renderGroup("Admin", [
+          {showAdminSection && renderGroup("Admin", [
             { title: "Admin Console", url: "/admin", icon: Shield },
-            { title: "Affiliates", url: "/admin/affiliates", icon: Users },
-            { title: "Maintenance", url: "/admin/maintenance", icon: Shield },
+            ...(isAdmin || myPrivileges.includes("admin_farmers")
+              ? [{ title: "Farmers", url: "/admin/farmers", icon: Users } as const] : []),
+            ...(isAdmin || myPrivileges.includes("admin_requests")
+              ? [{ title: "Requests", url: "/admin/requests", icon: Shield } as const] : []),
+            ...(isAdmin || myPrivileges.includes("admin_kyc")
+              ? [{ title: "KYC", url: "/admin/kyc", icon: ShieldCheck } as const] : []),
+            ...(isAdmin || myPrivileges.includes("admin_deposit_channels")
+              ? [{ title: "Deposit Channels", url: "/admin/deposit-channels", icon: ArrowDownToLine } as const] : []),
+            ...(isAdmin
+              ? [
+                  { title: "Maintenance", url: "/admin/maintenance", icon: ShieldCheck } as const,
+                  { title: "Privileges", url: "/admin/privileges", icon: Shield } as const,
+                ]
+              : []),
           ])}
         </SidebarContent>
 
