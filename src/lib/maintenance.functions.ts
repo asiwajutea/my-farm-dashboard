@@ -11,6 +11,8 @@ export type MaintenanceState = {
   pages: Record<string, boolean>;
   ticker_enabled: boolean;
   ticker_items: { icon: string; label: string }[];
+  telegram_group_url:   string | null;
+  telegram_channel_url: string | null;
 };
 
 // Public read — used by the public landing page (ticker) and by the
@@ -21,7 +23,7 @@ export const getPublicSiteState = createServerFn({ method: "GET" }).handler(
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("app_settings")
-      .select("maint_mode_global, maint_message, maint_pages, ticker_enabled, ticker_items")
+      .select("maint_mode_global, maint_message, maint_pages, ticker_enabled, ticker_items, telegram_group_url, telegram_channel_url")
       .eq("id", true)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -35,6 +37,8 @@ export const getPublicSiteState = createServerFn({ method: "GET" }).handler(
       pages,
       ticker_enabled: data?.ticker_enabled ?? true,
       ticker_items: items,
+      telegram_group_url:   (data as Record<string, unknown>)?.telegram_group_url as string | null ?? null,
+      telegram_channel_url: (data as Record<string, unknown>)?.telegram_channel_url as string | null ?? null,
     };
   },
 );
@@ -78,6 +82,34 @@ export const adminSetTicker = createServerFn({ method: "POST" })
       p_enabled: data.enabled,
       p_items: data.items,
     });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ── Admin: update social community links ─────────────────────────────────
+
+export const adminSetSocialLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      telegram_group_url:   z.string().url().max(500).nullable().or(z.literal("")),
+      telegram_channel_url: z.string().url().max(500).nullable().or(z.literal("")),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId, _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Admin only");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .update({
+        telegram_group_url:   data.telegram_group_url || null,
+        telegram_channel_url: data.telegram_channel_url || null,
+      })
+      .eq("id", true);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

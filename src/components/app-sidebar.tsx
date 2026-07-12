@@ -35,6 +35,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsAdmin, useMyPrivileges } from "@/hooks/use-admin";
+import { useSiteState } from "@/hooks/use-site-state";
 import { getPremiumStatus } from "@/lib/premium.functions";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
@@ -72,6 +73,7 @@ export function AppSidebar() {
   const isAdmin = adminData?.isAdmin === true;
   const { data: privilegeData } = useMyPrivileges();
   const myPrivileges = privilegeData?.privileges ?? [];
+  const { data: siteState } = useSiteState();
 
   // Show admin section if full admin OR has any admin capability privilege
   const ADMIN_PRIVILEGES = [
@@ -208,6 +210,74 @@ export function AppSidebar() {
           </div>
         )}
       </div>
+
+      {/* Telegram community links — shown only when URLs are configured */}
+      {!collapsed && (siteState?.telegram_group_url || siteState?.telegram_channel_url) && (
+        <div className="shrink-0 border-t border-border/40 px-3 py-2.5">
+          <p className="mb-1.5 text-[10px] uppercase tracking-widest text-sidebar-foreground/40">Community</p>
+          <div className="flex flex-col gap-1">
+            {siteState?.telegram_group_url && (
+              <a
+                href={siteState.telegram_group_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                {/* Telegram SVG icon */}
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[#2CA5E0]" aria-hidden="true">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617 5.36 12.69c-.65-.204-.664-.65.136-.961l11.25-4.337c.538-.194 1.01.131.838.829h.31z"/>
+                </svg>
+                Join Group
+              </a>
+            )}
+            {siteState?.telegram_channel_url && (
+              <a
+                href={siteState.telegram_channel_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[#2CA5E0]" aria-hidden="true">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617 5.36 12.69c-.65-.204-.664-.65.136-.961l11.25-4.337c.538-.194 1.01.131.838.829h.31z"/>
+                </svg>
+                Follow Channel
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed: show icon-only Telegram buttons */}
+      {collapsed && (siteState?.telegram_group_url || siteState?.telegram_channel_url) && (
+        <div className="shrink-0 border-t border-border/40 flex flex-col items-center gap-1 py-2">
+          {siteState?.telegram_group_url && (
+            <a
+              href={siteState.telegram_group_url}
+              target="_blank"
+              rel="noreferrer"
+              title="Join Telegram Group"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-[#2CA5E0]" aria-hidden="true">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617 5.36 12.69c-.65-.204-.664-.65.136-.961l11.25-4.337c.538-.194 1.01.131.838.829h.31z"/>
+              </svg>
+            </a>
+          )}
+          {siteState?.telegram_channel_url && (
+            <a
+              href={siteState.telegram_channel_url}
+              target="_blank"
+              rel="noreferrer"
+              title="Follow Telegram Channel"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-[#2CA5E0]" aria-hidden="true">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617 5.36 12.69c-.65-.204-.664-.65.136-.961l11.25-4.337c.538-.194 1.01.131.838.829h.31z"/>
+              </svg>
+            </a>
+          )}
+        </div>
+      )}
     </Sidebar>
   );
 }

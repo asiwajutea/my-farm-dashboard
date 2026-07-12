@@ -12,6 +12,7 @@ import {
 } from "@/lib/settings.functions";
 import { seedToUsdt, usdtToSeed, fmtAmount } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
+import { adminSetSocialLinks } from "@/lib/maintenance.functions";
 import { BoosterManager } from "@/components/admin/BoosterManager";
 import { TickerEditor } from "@/components/admin/TickerEditor";
 import { PayoutScheduleEditor } from "@/components/admin/PayoutScheduleEditor";
@@ -222,6 +223,9 @@ function AdminSettingsPage() {
 
       {/* Marquee ticker */}
       <TickerEditor />
+
+      {/* Social community links */}
+      <SocialLinksEditor />
     </div>
   );
 }
@@ -338,5 +342,89 @@ function PctField({
         <span className="text-xs text-muted-foreground">%</span>
       </div>
     </div>
+  );
+}
+
+// ── Social Links Editor ────────────────────────────────────────────────────
+
+function SocialLinksEditor() {
+  const saveFn = useServerFn(adminSetSocialLinks);
+  const { data: siteState } = useQuery({
+    queryKey: ["site-state"],
+    queryFn: async () => {
+      const { getPublicSiteState } = await import("@/lib/maintenance.functions");
+      return getPublicSiteState();
+    },
+    staleTime: 30_000,
+  });
+  const qc = useQueryClient();
+
+  const [groupUrl,   setGroupUrl]   = useState("");
+  const [channelUrl, setChannelUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Sync from loaded state
+  useEffect(() => {
+    if (siteState) {
+      setGroupUrl(siteState.telegram_group_url ?? "");
+      setChannelUrl(siteState.telegram_channel_url ?? "");
+    }
+  }, [siteState]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await saveFn({
+        data: {
+          telegram_group_url:   groupUrl.trim() || null,
+          telegram_channel_url: channelUrl.trim() || null,
+        },
+      });
+      toast.success("Social links saved.");
+      qc.invalidateQueries({ queryKey: ["site-state"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/40 p-5">
+      <h2 className="text-sm font-semibold">Community Links</h2>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        Telegram links shown to all members in the sidebar. Leave blank to hide.
+      </p>
+      <form onSubmit={handleSave} className="mt-4 space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground">Telegram Group URL</label>
+          <input
+            type="url"
+            placeholder="https://t.me/vfarmers_group"
+            value={groupUrl}
+            onChange={(e) => setGroupUrl(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm outline-none focus:border-primary/60"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Telegram Channel URL</label>
+          <input
+            type="url"
+            placeholder="https://t.me/vfarmers_channel"
+            value={channelUrl}
+            onChange={(e) => setChannelUrl(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm outline-none focus:border-primary/60"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save links"}
+        </button>
+      </form>
+    </section>
   );
 }
