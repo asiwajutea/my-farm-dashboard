@@ -1,27 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyPrivileges } from "@/lib/privileges.functions";
+import { getMyPrivileges, type Privilege } from "@/lib/privileges.functions";
 
 export const PRIVILEGES_KEY = ["my-privileges"] as const;
 
-/**
- * Returns the set of privilege codes granted to the current user.
- * Admins automatically have all privileges so no need to check separately —
- * use `useIsAdmin()` for that.
- */
 export function usePrivileges() {
   const fn = useServerFn(getMyPrivileges);
-  const query = useQuery({
+  return useQuery({
     queryKey: PRIVILEGES_KEY,
     queryFn: () => fn(),
     staleTime: 60_000,
+    select: (data) => data.privileges,
   });
+}
 
-  const privileges = new Set(query.data ?? []);
-
-  return {
-    ...query,
-    privileges,
-    has: (code: string) => privileges.has(code),
-  };
+export function useHasPrivilege(privilege: Privilege | string) {
+  const { data: privileges = [] } = usePrivileges();
+  return privileges.includes(privilege);
 }

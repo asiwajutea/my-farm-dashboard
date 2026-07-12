@@ -1,23 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, Plus, Trash2, Loader2, Search, X } from "lucide-react";
+import { Shield, Search, Plus, Trash2, Loader2, CheckCircle2, User, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   adminListPrivileges,
   adminGrantPrivilege,
   adminRevokePrivilege,
+  adminFindUserForPrivilege,
   ALL_PRIVILEGES,
-  type PrivilegeRow,
+  PRIVILEGE_LABELS,
 } from "@/lib/privileges.functions";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/admin/privileges")({
-  head: () => ({ meta: [{ title: "Privileges · Admin" }] }),
+  head: () => ({ meta: [{ title: "User Privileges · Admin" }] }),
   component: AdminPrivilegesPage,
 });
 
@@ -25,6 +25,7 @@ function AdminPrivilegesPage() {
   const listFn   = useServerFn(adminListPrivileges);
   const grantFn  = useServerFn(adminGrantPrivilege);
   const revokeFn = useServerFn(adminRevokePrivilege);
+  const findFn   = useServerFn(adminFindUserForPrivilege);
   const qc = useQueryClient();
 
   const { data: rows = [], isLoading } = useQuery({
@@ -32,63 +33,46 @@ function AdminPrivilegesPage() {
     queryFn: () => listFn(),
   });
 
-  // ── Grant form ────────────────────────────────────────────────────────────
-  const [handle, setHandle]       = useState("");
-  const [resolvedId, setResolvedId] = useState<string | null>(null);
-  const [resolvedName, setResolvedName] = useState<string | null>(null);
-  const [resolving, setResolving]   = useState(false);
-  const [selectedPrivs, setSelectedPrivs] = useState<Set<string>>(new Set());
-  const [note, setNote]             = useState("");
+  // ── Find user ─────────────────────────────────────────────────────────────
+  const [search, setSearch]   = useState("");
+  const [finding, setFinding] = useState(false);
+  const [foundUser, setFoundUser] = useState<{
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    email: string | null;
+    current_privileges: string[];
+  } | null>(null);
+  const [note, setNote] = useState("");
 
-  async function resolveUser() {
-    if (!handle.trim()) return;
-    setResolving(true);
-    setResolvedId(null);
-    setResolvedName(null);
+  async function handleFind(e: React.FormEvent) {
+    e.preventDefault();
+    if (!search.trim()) return;
+    setFinding(true);
+    setFoundUser(null);
     try {
-      // Try username match first, then referral code
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, username")
-        .or(`username.ilike.${handle.trim()},referral_code.ilike.${handle.trim()}`)
-        .limit(1)
-        .maybeSingle();
-      if (data) {
-        setResolvedId(data.id);
-        setResolvedName(data.display_name ?? data.username ?? data.id);
-      } else {
-        toast.error("User not found. Try their username or referral code.");
-      }
-    } catch {
-      toast.error("Lookup failed");
-    } finally {
-      setResolving(false);
-    }
+      const result = await findFn({ data: { handle: search.trim() } });
+      if (!result) toast.error("User not found. Try email, username, or referral code.");
+      else setFoundUser(result);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Search failed"); }
+    finally { setFinding(false); }
   }
 
-  const togglePriv = (code: string) =>
-    setSelectedPrivs((prev) => {
-      const n = new Set(prev);
-      n.has(code) ? n.delete(code) : n.add(code);
-      return n;
-    });
-
+  // ── Grant ─────────────────────────────────────────────────────────────────
   const grant = useMutation({
-    mutationFn: async () => {
-      if (!resolvedId || selectedPrivs.size === 0) throw new Error("Select a user and at least one privilege");
-      for (const privilege of selectedPrivs) {
-        await grantFn({ data: { user_id: resolvedId, privilege, note: note || undefined } });
-      }
-    },
-    onSuccess: () => {
-      toast.success("Privileges granted.");
-      setHandle(""); setResolvedId(null); setResolvedName(null);
-      setSelectedPrivs(new Set()); setNote("");
+    mutationFn: (privilege: string) =>
+      grantFn({ data: { user_id: foundUser!.id, privilege, note: note || undefined } }),
+    onSuccess: (_, privilege) => {
+      toast.success(`Granted: ${PRIVILEGE_LABELS[privilege as keyof typeof PRIVILEGE_LABELS]?.label ?? privilege}`);
+      setFoundUser((prev) =>
+        prev ? { ...prev, current_privileges: [...new Set([...prev.current_privileges, privilege])] } : prev
+      );
       qc.invalidateQueries({ queryKey: ["admin-privileges"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Grant failed"),
   });
 
+  // ── Revoke ────────────────────────────────────────────────────────────────
   const revoke = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
     onSuccess: () => {
@@ -98,18 +82,19 @@ function AdminPrivilegesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Revoke failed"),
   });
 
-  // Group active grants by user
-  const byUser = rows.reduce<Record<string, PrivilegeRow[]>>((acc, r) => {
-    (acc[r.user_id] ??= []).push(r);
+  // Group rows by user
+  const byUser = rows.reduce<Record<string, typeof rows>>((acc, r) => {
+    const key = r.user_id;
+    (acc[key] ??= []).push(r);
     return acc;
   }, {});
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-8 space-y-8">
+    <div className="mx-auto max-w-5xl px-5 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <ShieldCheck className="h-5 w-5" />
+          <Shield className="h-5 w-5" />
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">User Privileges</h1>
@@ -119,121 +104,139 @@ function AdminPrivilegesPage() {
         </div>
       </div>
 
-      {/* ── Grant form ── */}
+      {/* Grant new privilege */}
       <section className="glass rounded-2xl p-6 space-y-5">
-        <h2 className="text-sm font-semibold">Grant privileges</h2>
+        <h2 className="font-semibold">Grant a privilege</h2>
 
-        {/* User lookup */}
-        <div>
-          <label className="mb-1.5 block text-xs text-muted-foreground">Username or referral code</label>
-          <div className="flex gap-2">
-            <Input
-              placeholder="e.g. sage_farmer or 7A86CF00"
-              value={handle}
-              onChange={(e) => setHandle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && resolveUser()}
-            />
-            <Button variant="outline" onClick={resolveUser} disabled={resolving || !handle.trim()}>
-              {resolving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
-          {resolvedName && (
-            <p className="mt-1.5 text-xs text-primary flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Found: <span className="font-semibold">{resolvedName}</span>
-              <button type="button" onClick={() => { setResolvedId(null); setResolvedName(null); setHandle(""); }}>
-                <X className="h-3.5 w-3.5 text-muted-foreground ml-1 hover:text-foreground" />
-              </button>
-            </p>
-          )}
-        </div>
-
-        {/* Privilege checkboxes */}
-        <div>
-          <label className="mb-2 block text-xs text-muted-foreground">Select privileges</label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {ALL_PRIVILEGES.map((p) => (
-              <label key={p.code} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${selectedPrivs.has(p.code) ? "border-primary/50 bg-primary/5" : "border-border/60 bg-card/30 hover:border-border"}`}>
-                <Switch
-                  checked={selectedPrivs.has(p.code)}
-                  onCheckedChange={() => togglePriv(p.code)}
-                  className="mt-0.5 shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{p.label}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{p.description}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Note */}
-        <div>
-          <label className="mb-1.5 block text-xs text-muted-foreground">Note (optional — internal reference)</label>
+        {/* Find user */}
+        <form onSubmit={handleFind} className="flex gap-2">
           <Input
-            placeholder="e.g. Temporary access for audit review"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
+            placeholder="Search by email, @username, or referral code"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
           />
-        </div>
+          <Button type="submit" disabled={finding || !search.trim()}>
+            {finding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Find
+          </Button>
+        </form>
 
-        <Button
-          className="gap-2"
-          onClick={() => grant.mutate()}
-          disabled={grant.isPending || !resolvedId || selectedPrivs.size === 0}
-        >
-          {grant.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Grant {selectedPrivs.size > 0 ? `${selectedPrivs.size} privilege${selectedPrivs.size > 1 ? "s" : ""}` : "privileges"}
-        </Button>
+        {/* Found user + privilege grid */}
+        {foundUser && (
+          <div className="rounded-xl border border-border bg-card/40 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <User className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{foundUser.display_name ?? foundUser.username ?? "Unknown"}</p>
+                  <p className="text-xs text-muted-foreground">{foundUser.email}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => { setFoundUser(null); setSearch(""); }} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs text-muted-foreground">Note (optional — explain why)</label>
+              <Input
+                placeholder="e.g. Trusted team member handling deposits"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {ALL_PRIVILEGES.map((priv) => {
+                const meta = PRIVILEGE_LABELS[priv];
+                const has = foundUser.current_privileges.includes(priv);
+                return (
+                  <div
+                    key={priv}
+                    className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
+                      has ? "border-primary/30 bg-primary/5" : "border-border/60 bg-card/20"
+                    }`}
+                  >
+                    <Switch
+                      checked={has}
+                      onCheckedChange={(on) => {
+                        if (on) grant.mutate(priv);
+                        else {
+                          const row = rows.find((r) => r.user_id === foundUser.id && r.privilege === priv);
+                          if (row) revoke.mutate(row.id);
+                          else {
+                            setFoundUser((prev) =>
+                              prev ? { ...prev, current_privileges: prev.current_privileges.filter((p) => p !== priv) } : prev
+                            );
+                          }
+                        }
+                      }}
+                      disabled={grant.isPending || revoke.isPending}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{meta.label}</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{meta.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
-      {/* ── Active grants ── */}
+      {/* Existing privileges table */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold">Active grants</h2>
-
+        <h2 className="mb-3 font-semibold">All granted privileges</h2>
         {isLoading ? (
-          <div className="flex items-center gap-2 py-8 text-muted-foreground justify-center">
+          <div className="flex items-center gap-2 py-10 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : Object.keys(byUser).length === 0 ? (
-          <div className="rounded-2xl border border-border/60 bg-card/30 p-8 text-center text-sm text-muted-foreground">
-            No privileges granted yet.
-          </div>
+          <p className="text-sm text-muted-foreground py-6 text-center">No privileges granted yet.</p>
         ) : (
           <div className="space-y-4">
             {Object.entries(byUser).map(([userId, userRows]) => {
-              const name  = userRows[0].grantee_name  ?? userRows[0].grantee_email ?? userId;
-              const email = userRows[0].grantee_email ?? "";
+              const sample = userRows[0];
+              const name = sample.user_display_name ?? sample.user_username ?? sample.user_email ?? userId.slice(0, 8);
               return (
-                <div key={userId} className="glass rounded-2xl p-5">
+                <div key={userId} className="glass rounded-2xl p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <div>
-                      <span className="text-sm font-semibold">{name}</span>
-                      {email && <span className="ml-2 text-xs text-muted-foreground">{email}</span>}
-                    </div>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">{name}</span>
+                    {sample.user_email && (
+                      <span className="text-xs text-muted-foreground">· {sample.user_email}</span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {userRows.map((r) => {
-                      const meta = ALL_PRIVILEGES.find((p) => p.code === r.privilege);
+                    {userRows.map((row) => {
+                      const label = PRIVILEGE_LABELS[row.privilege as keyof typeof PRIVILEGE_LABELS]?.label ?? row.privilege;
                       return (
-                        <div key={r.id} className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/40 px-2.5 py-1.5 text-xs">
-                          <span className="font-medium">{meta?.label ?? r.privilege}</span>
-                          {r.note && <span className="text-muted-foreground">· {r.note}</span>}
+                        <div
+                          key={row.id}
+                          className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 pl-3 pr-1.5 py-1 text-xs text-primary"
+                        >
+                          {label}
                           <button
                             type="button"
-                            onClick={() => revoke.mutate(r.id)}
+                            onClick={() => revoke.mutate(row.id)}
                             disabled={revoke.isPending}
-                            className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                            aria-label={`Revoke ${r.privilege}`}
+                            className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
+                            title="Revoke"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
                       );
                     })}
                   </div>
+                  {sample.note && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">Note: {sample.note}</p>
+                  )}
                 </div>
               );
             })}
