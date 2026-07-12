@@ -28,20 +28,32 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
     if (isAdmin === true) return;
 
-    // Non-admins: check if they have a privilege for the specific page being accessed
+    // Non-admins: check if they have ANY admin capability privilege.
+    // The admin index page (/admin) is accessible to any privileged user.
+    // Specific sub-pages check for their specific privilege below.
+    const { data: privRows } = await supabase
+      .from("user_privileges")
+      .select("privilege")
+      .eq("user_id", user.id)
+      .in("privilege", Object.values(PAGE_PRIVILEGE));
+
+    const hasAnyPrivilege = privRows && privRows.length > 0;
+    if (!hasAnyPrivilege) throw redirect({ to: "/dashboard" });
+
+    // For the index page (/admin or /admin/) any privilege grants access
     const pathSegment = location.pathname.replace(/^\/admin\/?/, "").split("/")[0];
+    if (!pathSegment) return; // index — allowed for any privileged user
 
-    if (pathSegment && PAGE_PRIVILEGE[pathSegment]) {
+    // For a specific sub-page, check the required privilege
+    if (PAGE_PRIVILEGE[pathSegment]) {
       const requiredPrivilege = PAGE_PRIVILEGE[pathSegment];
-      const { data: hasPriv } = await (supabase as unknown as {
-        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null; error: unknown }>;
-      }).rpc("has_privilege" as never, { p_user_id: user.id, p_privilege: requiredPrivilege } as never);
-
-      if (hasPriv === true) return; // privileged — allow through
+      const hasRequired = privRows.some((r) => r.privilege === requiredPrivilege);
+      if (hasRequired) return;
+      throw redirect({ to: "/admin" }); // has privileges but not for this page
     }
 
-    // No access
-    throw redirect({ to: "/dashboard" });
+    // Unknown page segment — allow through (admin-only pages have their own guards)
+    return;
   },
   component: () => <Outlet />,
 });

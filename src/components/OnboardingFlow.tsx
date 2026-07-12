@@ -67,7 +67,7 @@ export function OnboardingFlow({
       iconColor: "text-primary bg-primary/15",
       title: `Welcome to VFarmers, ${name}! 🌱`,
       body: "You're now part of a growing community of Farmers. This quick tour will show you the key features so you can start earning right away.",
-      skip: "Skip tour",
+      skip: "Let's go →",
     },
     {
       id: "deposit",
@@ -202,30 +202,47 @@ export function OnboardingFlow({
 
         {/* Actions */}
         <div className="mt-6 flex flex-col gap-2">
-          {/* CTA button (navigates away + advances) */}
-          {step.cta && (
-            <Link
-              to={step.cta.to}
+          {/* Primary action: CTA (navigates) or Next/Done (advances in-place) */}
+          {step.cta ? (
+            <>
+              <Link
+                to={step.cta.to}
+                onClick={advance}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
+              >
+                {step.cta.label}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              {/* Secondary: advance without navigating */}
+              <button
+                type="button"
+                onClick={advance}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              >
+                {step.skip}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
               onClick={advance}
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
             >
-              {step.cta.label}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+              {isLast ? "Go to Dashboard" : step.skip}
+              {!isLast && <ArrowRight className="h-4 w-4" />}
+            </button>
           )}
 
-          {/* Skip / Next / Done */}
-          <button
-            type="button"
-            onClick={advance}
-            className={`rounded-xl px-5 py-2.5 text-sm font-medium transition-colors ${
-              step.cta
-                ? "text-muted-foreground hover:text-foreground"
-                : "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-glow hover:scale-[1.02]"
-            }`}
-          >
-            {isLast ? "Go to Dashboard" : step.skip}
-          </button>
+          {/* Skip entire tour — only on non-last steps */}
+          {!isLast && (
+            <button
+              type="button"
+              onClick={dismiss}
+              className="text-center text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              Skip tour
+            </button>
+          )}
         </div>
 
         {/* Step counter */}
