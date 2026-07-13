@@ -27,13 +27,14 @@ function setDismissed(): void {
 }
 
 export type ChecklistData = {
-  hasUsername:       boolean;   // profile.username is set
-  hasAvatar:         boolean;   // profile.avatar_url is set
-  hasPayoutMethod:   boolean;   // has at least one bank/crypto payout method
-  hasDeposited:      boolean;   // has at least one approved deposit
-  hasStartedCycle:   boolean;   // has at least one farming cycle
-  hasReferral:       boolean;   // has referred at least one person
-  hasPasscode:       boolean;   // transaction passcode is set
+  hasUsername:       boolean;
+  hasAvatar:         boolean;
+  hasPayoutMethod:   boolean;
+  hasDeposited:      boolean;
+  hasStartedCycle:   boolean;
+  hasReferral:       boolean;
+  hasPasscode:       boolean;
+  hasFlyerDownloaded: boolean;
 };
 
 interface ChecklistItem {
@@ -112,7 +113,7 @@ export function GettingStartedChecklist({ data, referralCode }: Props) {
         ? `Your code ${referralCode} is ready. Share your personalised flyer to earn commissions.`
         : "Share your personalised referral flyer to earn commissions from every cycle your downline runs.",
       to: "/affiliate",
-      done: data.hasReferral,
+      done: data.hasFlyerDownloaded,
     },
     {
       id: "hasReferral",

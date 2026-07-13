@@ -105,35 +105,39 @@ function Dashboard() {
       }
       if (settings?.seed_to_usdt) setRate(Number(settings.seed_to_usdt));
 
-      // Build checklist data in parallel
+      // Build checklist data — use separate queries with correct field names
       const [
-        { data: cycles },
-        { data: deposits },
-        { data: payoutMethods },
-        { data: passcodeRow },
-        { data: affiliateRow },
+        { data: cyclesRows },
+        { data: depositsRows },
+        { data: payoutRows },
+        { data: commissionsRows },
       ] = await Promise.all([
         supabase.from("cycles").select("id").eq("user_id", user.id).limit(1),
         supabase.from("deposit_requests").select("id").eq("user_id", user.id).eq("status", "approved").limit(1),
         supabase.from("payout_methods").select("id").eq("user_id", user.id).limit(1),
-        supabase.from("user_passcodes").select("user_id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("referral_code").eq("id", user.id).maybeSingle(),
+        // affiliate_commissions exists = someone in our downline reaped a cycle = we have referrals
+        supabase.from("affiliate_commissions").select("id").eq("user_id", user.id).limit(1),
       ]);
 
-      // Count direct referrals
-      const { count: referralCount } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("referred_by", affiliateRow?.referral_code ?? "NONE");
+      // Passcode: use the has_passcode RPC (RLS-safe)
+      const { data: hasPasscodeData } = await supabase.rpc("has_passcode");
+
+      // Flyer downloaded: tracked in localStorage by ReferralFlyer component
+      // Key format: vf_flyer_dl_<referralCode>
+      const flyerCode = (prof as { referral_code?: string | null })?.referral_code;
+      const hasFlyerDownloaded = typeof window !== "undefined" && !!flyerCode
+        ? !!localStorage.getItem(`vf_flyer_dl_${flyerCode}`)
+        : false;
 
       setChecklistData({
-        hasUsername:     !!(prof as { username?: string | null })?.username,
-        hasAvatar:       !!(prof as { avatar_url?: string | null })?.avatar_url,
-        hasPayoutMethod: (payoutMethods?.length ?? 0) > 0,
-        hasDeposited:    (deposits?.length ?? 0) > 0,
-        hasStartedCycle: (cycles?.length ?? 0) > 0,
-        hasReferral:     (referralCount ?? 0) > 0,
-        hasPasscode:     !!passcodeRow,
+        hasUsername:        !!(prof as { username?: string | null })?.username,
+        hasAvatar:          !!(prof as { avatar_url?: string | null })?.avatar_url,
+        hasPayoutMethod:    (payoutRows?.length ?? 0) > 0,
+        hasDeposited:       (depositsRows?.length ?? 0) > 0,
+        hasStartedCycle:    (cyclesRows?.length ?? 0) > 0,
+        hasReferral:        (commissionsRows?.length ?? 0) > 0,
+        hasPasscode:        !!hasPasscodeData,
+        hasFlyerDownloaded,
       });
 
       // Show onboarding after a short delay if not seen yet
@@ -225,6 +229,13 @@ function Dashboard() {
         <QuickAction to="/farm" label="Reap" icon={Coins} />
         <QuickAction to="/history" label="History" icon={HistoryIcon} />
       </section>
+
+      {/* Getting Started checklist — only shown until all tasks are done */}
+      {checklistData && (
+        <section className="mt-6">
+          <GettingStartedChecklist data={checklistData} referralCode={referralCode} />
+        </section>
+      )}
 
       <section className="mt-6">
         <MaintenanceCard />

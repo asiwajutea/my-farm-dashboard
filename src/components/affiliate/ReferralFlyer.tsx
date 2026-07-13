@@ -95,6 +95,9 @@ export function ReferralFlyer({ code, memberName }: Props) {
     a.href     = dataUrl;
     a.download = `vfarmers-referral-${code}.png`;
     a.click();
+    // Mark flyer as downloaded so the dashboard checklist can pick it up.
+    // Using a per-code key so it works correctly even if userId isn't available here.
+    try { localStorage.setItem(`vf_flyer_dl_${code}`, "1"); } catch { /* ignore */ }
   };
 
   // ── Native share (mobile) ─────────────────────────────────────────────────
