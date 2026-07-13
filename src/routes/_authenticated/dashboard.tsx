@@ -207,13 +207,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Getting started checklist — shown to new users until all tasks done */}
-      {checklistData && (
-        <div className="mt-6">
-          <GettingStartedChecklist data={checklistData} referralCode={referralCode} />
-        </div>
-      )}
-
       <section className="mt-8 grid gap-4 md:grid-cols-2">
         <Link to="/wallet" className="block">
           <WalletCard title="Primary Wallet" mode="usdt" usdt={primaryUsdt} seed={rate > 0 ? primaryUsdt / rate : 0} sub="Deposits and withdrawals" accent="gold" icon={Wallet} />
